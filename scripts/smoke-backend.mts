@@ -60,6 +60,14 @@ try {
   const other = createRufitApi({baseUrl, getAccessToken:() => token(`bob-${run}`)});
   assert.equal((await api.me()).id, (await api.me()).id);
   assert.notEqual((await api.me()).id, (await other.me()).id);
+  await assert.rejects(api.profile(), (e:unknown) => e instanceof ApiError && e.status === 404);
+  const profileKey = randomUUID();
+  const profile = await api.createProfile({nickname:'Test athlete',bio:'Test data only',experience:'BEGINNER',goals:['STRENGTH']},profileKey);
+  assert.equal(profile.visibility,'PRIVATE');
+  const updatedProfile = await api.updateProfile(profile.version,{nickname:'Updated athlete',bio:'',experience:null,goals:[]});
+  assert.equal((await api.profile()).nickname,updatedProfile.nickname);
+  assert.equal((await api.createProfile({nickname:'Test athlete',bio:'Test data only',experience:'BEGINNER',goals:['STRENGTH']},profileKey)).nickname,'Updated athlete');
+  await assert.rejects(other.profile(), (e:unknown) => e instanceof ApiError && e.status === 404);
   assert.equal(await api.active(), null);
   const key = randomUUID();
   let workout = await api.start(key);

@@ -10,6 +10,9 @@ export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIG
 export type ExerciseInput = { name: string; bodyPart: BodyPart; equipment: Equipment };
 export type Exercise = ExerciseInput & { id: string; custom: boolean; archivedAt: string | null; version: number };
 export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: Equipment; page?: number; size?: number; includeArchived?: boolean };
+export type ProfileFields = { nickname: string; bio: string; experience: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null;
+  goals: ('GENERAL_FITNESS' | 'STRENGTH' | 'MUSCLE_GAIN' | 'WEIGHT_MANAGEMENT')[] };
+export type Profile = ProfileFields & {version: number; visibility: 'PRIVATE'};
 export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
@@ -68,6 +71,9 @@ export function createRufitApi(options: Options) {
   }
   const workoutPath = (id: string) => `/workouts/${segment(id)}`;
   return {
+    profile: () => request<Profile>('GET', '/profile'),
+    createProfile: (profile: ProfileFields, idempotencyKey: string) => request<Profile>('POST', '/profile', profile, {'Idempotency-Key': idempotencyKey}),
+    updateProfile: (version: number, profile: ProfileFields) => request<Profile>('PUT', '/profile', {version, profile}),
     me: () => request<{id: string}>('GET', '/me'),
     exerciseStatisticsById: (exerciseId: string) => request<ExerciseStatistics>('GET', `/workouts/exercise-statistics?exerciseId=${segment(exerciseId)}`),
     exerciseStatisticsByName: (exerciseName: string) => request<ExerciseStatistics>('GET', `/workouts/exercise-statistics?exerciseName=${segment(exerciseName)}`),
