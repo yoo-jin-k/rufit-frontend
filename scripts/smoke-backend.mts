@@ -52,6 +52,8 @@ try {
   if (!ready) throw new Error('백엔드 시작 대기 시간 초과');
   const api = createRufitApi({baseUrl, getAccessToken:() => token(`alice-${run}`)});
   const other = createRufitApi({baseUrl, getAccessToken:() => token(`bob-${run}`)});
+  assert.equal((await api.me()).id, (await api.me()).id);
+  assert.notEqual((await api.me()).id, (await other.me()).id);
   assert.equal(await api.active(), null);
   const key = randomUUID();
   let workout = await api.start(key);
@@ -91,7 +93,45 @@ try {
   await api.deleteHistory(workout.id, workout.version, true);
   assert.equal((await api.history()).totalElements, 0);
   await assert.rejects(api.start(key), (e:unknown) => e instanceof ApiError && e.code === 'RESOURCE_DELETED');
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts');
+  const exerciseKey = randomUUID();
+  let exercise = await api.createExercise({name:'검증 운동', bodyPart:'LEGS', equipment:'BARBELL'}, exerciseKey);
+  assert.equal((await api.createExercise({name:'검증 운동', bodyPart:'LEGS', equipment:'BARBELL'}, exerciseKey)).id, exercise.id);
+  assert.equal((await api.exercises({query:'검증', bodyPart:'LEGS'})).totalElements, 1);
+  await assert.rejects(other.exercise(exercise.id), (e:unknown) => e instanceof ApiError && e.status === 404);
+  exercise = await api.updateExercise(exercise.id, exercise.version, {name:'수정 운동', bodyPart:'LEGS', equipment:'DUMBBELL'});
+  const routineKey = randomUUID();
+  const templateSets = [{exerciseId:exercise.id, exerciseName:'client name ignored', weight:20, reps:5}];
+  const template = await api.createRoutine('식별자 루틴', templateSets, routineKey);
+  assert.equal(template.sets[0].exerciseName, '수정 운동');
+  assert.equal((await api.createRoutine('식별자 루틴', templateSets, routineKey)).id, template.id);
+  let draftWorkout = await api.startRoutine(template.id, randomUUID());
+  const draft = {operationId:randomUUID(), version:draftWorkout.version,
+    sets:[{set:templateSets[0], completed:true}], restSetIndex:0, restEndsAt:new Date(Date.now()+60000).toISOString()};
+  // Lose the acknowledgement after the real server committed the operation.
+  const lostResponse = createRufitApi({baseUrl, getAccessToken:() => token(`alice-${run}`), fetch:async (input, init) => {
+    const response = await fetch(input, init); assert.equal(response.status, 200);
+    await response.arrayBuffer(); throw new Error('simulated lost acknowledgement');
+  }});
+  await assert.rejects(lostResponse.saveDraft(draftWorkout.id, draft), (e:unknown) => e instanceof ApiError && e.outcomeUnknown);
+  const recovered = await api.saveDraft(draftWorkout.id, draft);
+  assert.equal(recovered.replayed, true);
+  assert.equal(recovered.appliedVersion, recovered.workout.version);
+  assert.equal(recovered.workout.restSetIndex, 0);
+  assert.deepEqual(recovered.workout.completedSetIndexes, [0]);
+  draftWorkout = await api.finish(draftWorkout.id, recovered.workout.version);
+  assert.equal((await api.exerciseHistoryById(exercise.id)).items[0].sets[0].exerciseId, exercise.id);
+  const replayAfterFinish = await api.saveDraft(draftWorkout.id, draft);
+  assert.ok(replayAfterFinish.workout.version > replayAfterFinish.appliedVersion);
+  await api.deleteRoutine(template.id, template.version, true);
+  assert.equal((await api.workout(draftWorkout.id)).sourceRoutineId, template.id);
+  await assert.rejects(api.createRoutine('식별자 루틴', templateSets, routineKey), (e:unknown) => e instanceof ApiError && e.status === 410);
+  exercise = await api.archiveExercise(exercise.id, exercise.version);
+  assert.ok(exercise.archivedAt);
+  assert.equal((await api.exercises({query:'수정 운동'})).totalElements, 0);
+  assert.equal((await api.exercises({query:'수정 운동', includeArchived:true})).totalElements, 1);
+  exercise = await api.restoreExercise(exercise.id, exercise.version);
+  assert.equal(exercise.archivedAt, null);
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);

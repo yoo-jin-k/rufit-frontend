@@ -1,8 +1,15 @@
-export type SetInput = { exerciseName: string; weight: number; reps: number };
+export type SetInput = { exerciseId?: string | null; exerciseName: string; weight: number; reps: number };
 export type WorkoutSnapshot = {
   id: string; startedAt: string; finishedAt: string | null; cancelledAt: string | null; sourceRoutineId: string | null;
-  version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null;
+  version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null; restSetIndex: number | null;
 };
+export type Draft = { operationId: string; version: number; sets: {set: SetInput; completed: boolean}[]; restSetIndex: number | null; restEndsAt: string | null };
+export type DraftSave = { workout: WorkoutSnapshot; appliedVersion: number; replayed: boolean };
+export type BodyPart = 'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'FULL_BODY';
+export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIGHT' | 'OTHER';
+export type ExerciseInput = { name: string; bodyPart: BodyPart; equipment: Equipment };
+export type Exercise = ExerciseInput & { id: string; custom: boolean; archivedAt: string | null; version: number };
+export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: Equipment; page?: number; size?: number; includeArchived?: boolean };
 export type Routine = { id: string; title: string; version: number; sets: SetInput[] };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
@@ -59,6 +66,20 @@ export function createRufitApi(options: Options) {
   }
   const workoutPath = (id: string) => `/workouts/${segment(id)}`;
   return {
+    me: () => request<{id: string}>('GET', '/me'),
+    saveDraft: (id: string, draft: Draft) => request<DraftSave>('PUT', `${workoutPath(id)}/draft`, draft),
+    exercises: (search: ExerciseSearch = {}) => {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(search)) if (value !== undefined) params.set(key, String(value));
+      return request<Page<Exercise>>('GET', `/exercises?${params}`);
+    },
+    exercise: (id: string) => request<Exercise>('GET', `/exercises/${segment(id)}`),
+    createExercise: (input: ExerciseInput, idempotencyKey: string) => request<Exercise>('POST', '/exercises', input, {'Idempotency-Key': idempotencyKey}),
+    updateExercise: (id: string, version: number, input: ExerciseInput) => request<Exercise>('PUT', `/exercises/${segment(id)}`, {version, ...input}),
+    archiveExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/archive`, {version}),
+    restoreExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/restore`, {version}),
+    exerciseHistoryById: (exerciseId: string, page = 0, size = 10) => request<Page<ExerciseRecord> & {exerciseName: string}>('GET', `/workouts/exercise-history?exerciseId=${segment(exerciseId)}&page=${page}&size=${size}`),
+    deleteRoutine: (id: string, version: number, confirmed: true) => request<null>('POST', `/routines/${segment(id)}/delete`, {version, confirmed}),
     start: (idempotencyKey: string) => request<WorkoutSnapshot>('POST', '/workouts', undefined, { 'Idempotency-Key': idempotencyKey }),
     active: () => request<WorkoutSnapshot | null>('GET', '/workouts/active'),
     workout: (id: string) => request<WorkoutSnapshot>('GET', workoutPath(id)),
@@ -78,7 +99,7 @@ export function createRufitApi(options: Options) {
     calendar: (month: string, zone = 'Asia/Seoul') => request<Calendar>('GET', `/workouts/calendar?month=${segment(month)}&zone=${segment(zone)}`),
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
-    createRoutine: (title: string, sets: SetInput[]) => request<Routine>('POST', '/routines', { title, sets }),
+    createRoutine: (title: string, sets: SetInput[], idempotencyKey?: string) => request<Routine>('POST', '/routines', { title, sets }, idempotencyKey ? {'Idempotency-Key': idempotencyKey} : undefined),
     updateRoutine: (id: string, version: number, title: string, sets: SetInput[]) => request<Routine>('PUT', `/routines/${segment(id)}`, { version, title, sets }),
     startRoutine: (id: string, idempotencyKey: string) => request<WorkoutSnapshot>('POST', `/routines/${segment(id)}/start`, undefined, { 'Idempotency-Key': idempotencyKey }),
   };
