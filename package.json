@@ -1,0 +1,34 @@
+{
+  "name": "rufit-frontend",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~57.0.22",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check": "npm run typecheck && npm run lint",
+    "export": "expo export --platform all"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
