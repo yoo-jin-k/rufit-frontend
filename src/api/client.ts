@@ -13,7 +13,7 @@ export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: 
 export type ProfileFields = { nickname: string; bio: string; experience: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null;
   goals: ('GENERAL_FITNESS' | 'STRENGTH' | 'MUSCLE_GAIN' | 'WEIGHT_MANAGEMENT')[] };
 export type Profile = ProfileFields & {version: number; visibility: 'PRIVATE'};
-export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null };
+export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null; sourceWorkoutId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
 export type WorkoutSummary = {workoutId: string; version: number; startedAt: string; finishedAt: string; durationSeconds: number;
@@ -93,6 +93,7 @@ export function createRufitApi(options: Options) {
     archiveExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/archive`, {version}),
     restoreExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/restore`, {version}),
     exerciseHistoryById: (exerciseId: string, page = 0, size = 10) => request<Page<ExerciseRecord> & {exerciseName: string}>('GET', `/workouts/exercise-history?exerciseId=${segment(exerciseId)}&page=${page}&size=${size}`),
+    routineFromWorkout: (workoutId: string, version: number, title: string, idempotencyKey: string) => request<Routine>('POST', `/routines/from-workout/${segment(workoutId)}`, {version, title}, {'Idempotency-Key': idempotencyKey}),
     copyRoutine: (id: string, version: number, title: string, idempotencyKey: string) => request<Routine>('POST', `/routines/${segment(id)}/copy`, {version, title}, {'Idempotency-Key': idempotencyKey}),
     deleteRoutine: (id: string, version: number, confirmed: true) => request<null>('POST', `/routines/${segment(id)}/delete`, {version, confirmed}),
     start: (idempotencyKey: string) => request<WorkoutSnapshot>('POST', '/workouts', undefined, { 'Idempotency-Key': idempotencyKey }),

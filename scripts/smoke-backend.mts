@@ -112,9 +112,18 @@ try {
   second = await api.removeSet(second.id, second.version, 0); assert.equal(second.sets.length, 0);
   second = await api.cancel(second.id, second.version, true); assert.ok(second.cancelledAt);
   assert.equal(await api.active(), null);
+  const workoutRoutineKey = randomUUID(); const originalWorkoutVersion = workout.version;
+  const fromWorkout = await api.routineFromWorkout(workout.id,workout.version,'Saved from workout',workoutRoutineKey);
+  assert.equal(fromWorkout.sourceWorkoutId,workout.id);assert.equal(fromWorkout.sourceRoutineId,null);
+  assert.equal(fromWorkout.sets[0].weight,40.5);
+  await assert.rejects(other.routineFromWorkout(workout.id,workout.version,'Other owner',randomUUID()), (e:unknown) => e instanceof ApiError && e.status===404);
   workout = await api.correctHistory(workout.id, workout.version, [{exerciseName:'스쿼트', weight:50, reps:10}]);
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 500);
   await api.deleteHistory(workout.id, workout.version, true);
+  assert.equal((await api.routineFromWorkout(workout.id,originalWorkoutVersion,'Retry after deletion',workoutRoutineKey)).id,fromWorkout.id);
+  const fromRecordedRoutine = await api.startRoutine(fromWorkout.id,randomUUID());
+  assert.equal(fromRecordedRoutine.sets[0].weight,40.5);assert.deepEqual(fromRecordedRoutine.completedSetIndexes,[]);
+  await api.cancel(fromRecordedRoutine.id,fromRecordedRoutine.version,true);
   assert.equal((await api.history()).totalElements, 0);
   assert.equal((await api.dailyHistory(recordedDate, 'UTC')).totalElements, 0);
   await assert.rejects(api.start(key), (e:unknown) => e instanceof ApiError && e.code === 'RESOURCE_DELETED');
