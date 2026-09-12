@@ -41,3 +41,16 @@ test('원격 토큰 전송은 HTTPS를 요구하고 개발 예외는 명시한�
   assert.doesNotThrow(() => createRufitApi({...options, allowInsecureHttp:true}));
   assert.throws(() => createRufitApi({...options, baseUrl:'https://user:password@api.example.test'}));
 });
+
+test('서버 오류 확인 번호를 보존하고 임의 헤더 값은 제외한다', async () => {
+  const id='00000000-0000-4000-8000-000000000001';
+  for (const malformed of [false,true]) {
+    const api=createRufitApi({baseUrl:'https://api.example.test',getAccessToken:() => 'token',fetch:async () => malformed ?
+      new Response('unreadable',{status:500,headers:{'X-Request-Id':id}}) :
+      Response.json({code:'STATE_CONFLICT',detail:'conflict'},{status:409,headers:{'X-Request-Id':id}})});
+    await assert.rejects(api.start('key'),(e:unknown) => e instanceof ApiError && e.requestId===id && e.outcomeUnknown===malformed);
+  }
+  const api=createRufitApi({baseUrl:'https://api.example.test',getAccessToken:() => 'token',fetch:async () =>
+    Response.json({code:'NOT_FOUND'},{status:404,headers:{'X-Request-Id':'untrusted-text'}})});
+  await assert.rejects(api.workout('id'),(e:unknown) => e instanceof ApiError && e.requestId===null);
+});

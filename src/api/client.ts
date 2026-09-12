@@ -28,8 +28,9 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly outcomeUnknown: boolean;
-  constructor(status: number, code: string, message: string, outcomeUnknown = false) {
-    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.outcomeUnknown = outcomeUnknown;
+  readonly requestId: string | null;
+  constructor(status: number, code: string, message: string, outcomeUnknown = false, requestId: string | null = null) {
+    super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.outcomeUnknown = outcomeUnknown; this.requestId = requestId;
   }
 }
 type Options = { baseUrl: string; getAccessToken: () => string | null | Promise<string | null>; fetch?: typeof fetch; timeoutMs?: number; allowInsecureHttp?: boolean };
@@ -56,15 +57,17 @@ export function createRufitApi(options: Options) {
         headers: { Accept: 'application/json', Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extraHeaders },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
+      const responseId = response.headers.get('X-Request-Id');
+      const requestId = responseId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(responseId) ? responseId : null;
       if (response.status === 204) return null as T;
       let value: unknown;
       try { value = await response.json(); } catch {
-        throw new ApiError(response.status, 'INVALID_RESPONSE', '서버 응답을 읽지 못했습니다. 최신 기록을 다시 확인해 주세요.', method !== 'GET');
+        throw new ApiError(response.status, 'INVALID_RESPONSE', '서버 응답을 읽지 못했습니다. 최신 기록을 다시 확인해 주세요.', method !== 'GET', requestId);
       }
       if (!response.ok) {
         const code = object(value) && typeof value.code === 'string' ? value.code : 'HTTP_ERROR';
         const message = object(value) && typeof value.detail === 'string' ? value.detail : '요청을 처리하지 못했습니다.';
-        throw new ApiError(response.status, code, message, method !== 'GET' && response.status >= 500);
+        throw new ApiError(response.status, code, message, method !== 'GET' && response.status >= 500, requestId);
       }
       return value as T;
     } catch (error) {

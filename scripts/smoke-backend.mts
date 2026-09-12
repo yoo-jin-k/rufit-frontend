@@ -96,7 +96,7 @@ try {
   const daily = await api.dailyHistory(recordedDate, 'UTC');
   assert.equal(daily.totalElements, 1); assert.equal(daily.items[0]?.id, workout.id);
   assert.equal((await other.dailyHistory(recordedDate, 'UTC')).totalElements, 0);
-  await assert.rejects(api.dailyHistory('2026-02-29', 'UTC'), (e:unknown) => e instanceof ApiError && e.status === 400);
+  await assert.rejects(api.dailyHistory('2026-02-29', 'UTC'), (e:unknown) => e instanceof ApiError && e.status === 400 && typeof e.requestId === 'string' && /^[0-9a-f-]{36}$/.test(e.requestId));
   assert.equal((await api.exerciseHistory('스쿼트')).items[0].sets[0].weight, 40.5);
   const month = workout.startedAt.slice(0,7);
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 405);
