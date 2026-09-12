@@ -3,10 +3,12 @@ import type { Draft, WorkoutSnapshot } from './client.ts';
 import type { AccountScope, RufitSession } from './session.ts';
 
 export type OutboxStorage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void> };
-export type PendingDraft = { workoutId: string; draft: Draft; status: 'pending' | 'conflict'; remoteVersion: number | null };
+export type ConflictReason = 'STATE_CONFLICT' | 'RESOURCE_UNAVAILABLE' | 'REQUEST_REJECTED' | 'REMOTE_CHANGED';
+const conflictReasons: readonly string[] = ['STATE_CONFLICT','RESOURCE_UNAVAILABLE','REQUEST_REJECTED','REMOTE_CHANGED'];
+export type PendingDraft = { workoutId: string; draft: Draft; status: 'pending' | 'conflict'; remoteVersion: number | null; reason?: ConflictReason };
 type Archive = { schemaVersion: 1; scope: AccountScope; entries: PendingDraft[] };
 type FlushResult = { kind: 'idle' } | { kind: 'saved'; workout: WorkoutSnapshot } |
-  { kind: 'conflict'; operationId: string; remoteVersion: number | null };
+  { kind: 'conflict'; operationId: string; remoteVersion: number | null; reason?: ConflictReason };
 const queues = new WeakMap<OutboxStorage, Map<string, Promise<unknown>>>();
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const version = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
@@ -43,7 +45,8 @@ export function createDraftOutbox(storage: OutboxStorage, scope: AccountScope) {
     const v: unknown = JSON.parse(raw);
     if (!object(v) || v.schemaVersion !== 1 || !object(v.scope) || v.scope.server !== scope.server || v.scope.accountId !== scope.accountId ||
       !Array.isArray(v.entries) || v.entries.length > 100 || !v.entries.every(e => object(e) && uuid(e.workoutId) && validDraft(e.draft) &&
-        (e.status === 'pending' || e.status === 'conflict') && (e.remoteVersion === null || version(e.remoteVersion))))
+        (e.status === 'pending' || e.status === 'conflict') && (e.remoteVersion === null || version(e.remoteVersion)) &&
+        (e.reason === undefined || (typeof e.reason === 'string' && conflictReasons.includes(e.reason)))))
       throw new Error('저장 대기 데이터를 읽지 못했습니다. 기존 데이터는 보존했습니다.');
     const archive = v as Archive;
     if (new Set(archive.entries.map(e => e.workoutId)).size !== archive.entries.length ||
@@ -79,18 +82,19 @@ export function createDraftOutbox(storage: OutboxStorage, scope: AccountScope) {
         let result;
         try { result = await session.saveDraft(entry.workoutId, entry.draft); }
         catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 409) throw error;
+          if (!(error instanceof ApiError) || error.outcomeUnknown || ![400,404,409,410].includes(error.status)) throw error;
           entry.status = 'conflict';
+          entry.reason = error.status === 409 ? 'STATE_CONFLICT' : error.status === 400 ? 'REQUEST_REJECTED' : 'RESOURCE_UNAVAILABLE';
           await write(archive);
-          return {kind: 'conflict', operationId: entry.draft.operationId, remoteVersion: null};
+          return {kind: 'conflict', operationId: entry.draft.operationId, remoteVersion: null, reason: entry.reason};
         }
         if (!result || !result.workout || result.workout.id !== entry.workoutId || !version(result.appliedVersion) ||
           result.appliedVersion <= entry.draft.version || !version(result.workout.version) || result.workout.version < result.appliedVersion)
           throw new ApiError(200, 'INVALID_RESPONSE', '저장 확인 응답을 읽지 못했습니다.', true);
         if (result.workout.version > result.appliedVersion) {
-          entry.status = 'conflict'; entry.remoteVersion = result.workout.version;
+          entry.status = 'conflict'; entry.remoteVersion = result.workout.version; entry.reason = 'REMOTE_CHANGED';
           await write(archive);
-          return {kind: 'conflict', operationId: entry.draft.operationId, remoteVersion: entry.remoteVersion};
+          return {kind: 'conflict', operationId: entry.draft.operationId, remoteVersion: entry.remoteVersion, reason: entry.reason};
         }
         archive.entries = archive.entries.filter(e => e !== entry);
         await write(archive);

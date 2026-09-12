@@ -105,3 +105,35 @@ test('손상된 저장과 잘못된 입력 및 잘못된 서버 확인은 기록
   await assert.rejects(queue.flushOne(active), (e:unknown) => e instanceof ApiError && e.code === 'INVALID_RESPONSE');
   assert.equal((await queue.list()).length,1);
 });
+
+test('삭제되거나 거절된 초안은 보존하고 다음 운동 저장을 막지 않는다', async () => {
+  for (const status of [400,404,410]) {
+    const disk=storage(); const queue=createDraftOutbox(disk,scope);
+    const missingId=randomUUID(); const nextId=randomUUID(); const rejected=draft(); const next=draft();
+    await queue.enqueue(missingId,rejected); await queue.enqueue(nextId,next);
+    let count=0;
+    const active=await session(body => {count++;
+      return body.operationId===rejected.operationId ? Response.json({code:'REJECTED',detail:'cannot save'},{status}) :
+        Response.json({workout:snapshot(nextId),appliedVersion:1,replayed:false});
+    });
+    assert.equal((await queue.flushOne(active)).kind,'conflict');
+    const restored=createDraftOutbox(disk,scope);
+    assert.deepEqual((await restored.list())[0].draft,rejected);
+    assert.equal((await restored.list())[0].reason,status===400?'REQUEST_REJECTED':'RESOURCE_UNAVAILABLE');
+    assert.equal((await restored.flushOne(active)).kind,'saved');
+    assert.equal((await restored.list()).length,1); assert.equal((await restored.list())[0].workoutId,missingId);
+    assert.equal((await restored.flushOne(active)).kind,'idle');assert.equal(count,2);
+  }
+});
+test('인증·일시 실패와 해석 불가능한 거절 응답은 같은 작업 재시도를 유지한다', async () => {
+  for(const status of [401,403,408,429,500,503]) {
+    const disk=storage();const queue=createDraftOutbox(disk,scope);await queue.enqueue(randomUUID(),draft());
+    const active=await session(() => Response.json({code:'RETRY_LATER'},{status}));
+    await assert.rejects(queue.flushOne(active),(e:unknown) => e instanceof ApiError && e.status===status);
+    assert.equal((await queue.list())[0].status,'pending');
+  }
+  const disk=storage();const queue=createDraftOutbox(disk,scope);await queue.enqueue(randomUUID(),draft());
+  const active=await session(() => new Response('proxy error',{status:404}));
+  await assert.rejects(queue.flushOne(active),(e:unknown) => e instanceof ApiError && e.outcomeUnknown);
+  assert.equal((await queue.list())[0].status,'pending');
+});

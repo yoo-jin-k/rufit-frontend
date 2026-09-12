@@ -194,6 +194,25 @@ try {
   assert.equal(statistics.workouts,2); assert.equal(statistics.completedSets,2);
   assert.equal(statistics.volumeKgReps,200); assert.equal(statistics.heaviestSet?.weight,20);
   assert.equal((await api.exerciseStatisticsByName('not recorded')).heaviestSet,null);
+  let removedWorkout = await api.start(randomUUID());
+  const removedDraft = {...queuedDraft,operationId:randomUUID(),version:removedWorkout.version};
+  await restoredOutbox.enqueue(removedWorkout.id,removedDraft);
+  removedWorkout = await api.cancel(removedWorkout.id,removedWorkout.version,true);
+  await api.deleteHistory(removedWorkout.id,removedWorkout.version,true);
+  const followingWorkout = await api.start(randomUUID());
+  await restoredOutbox.enqueue(followingWorkout.id,{...queuedDraft,operationId:randomUUID(),version:followingWorkout.version});
+  const removedResult = await restoredOutbox.flushOne(verified);
+  assert.equal(removedResult.kind,'conflict');
+  if (removedResult.kind !== 'conflict') throw new Error('Expected unavailable draft');
+  assert.equal(removedResult.reason,'RESOURCE_UNAVAILABLE');
+  const afterDelete = createDraftOutbox(disk,verified.scope);
+  assert.equal((await afterDelete.list())[0].draft.operationId,removedDraft.operationId);
+  const followingResult = await afterDelete.flushOne(verified);
+  assert.equal(followingResult.kind,'saved');
+  if (followingResult.kind !== 'saved') throw new Error('Expected following draft to save');
+  assert.equal((await afterDelete.list()).length,1);
+  assert.equal((await afterDelete.flushOne(verified)).kind,'idle');
+  await api.cancel(followingWorkout.id,followingResult.workout.version,true);
   verified.close(); accountSession.close(); otherSession.close();
   console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox');
 } catch (error) {
