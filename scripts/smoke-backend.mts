@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { testDatabaseEnvironment } from './test-database.ts';
 import { createRufitSession } from '../src/api/session.ts';
 import { createDraftOutbox } from '../src/api/outbox.ts';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +18,7 @@ import { createRufitApi, ApiError } from '../src/api/client.ts';
 
 const jar = process.env.RUFIT_BACKEND_JAR ?? fileURLToPath(new URL('../../rufit-backend/target/rufit-backend-0.0.1-SNAPSHOT.jar', import.meta.url));
 if (!existsSync(jar)) throw new Error('검증된 백엔드 JAR가 필요합니다. 먼저 백엔드에서 mvnw verify를 실행해 주세요.');
-if (!process.env.DB_URL || !process.env.DB_USERNAME || !process.env.DB_PASSWORD) throw new Error('전용 테스트 DB 환경변수가 필요합니다.');
+const testEnvironment = testDatabaseEnvironment(process.env);
 const pair = generateKeyPairSync('rsa', { modulusLength:2048 });
 const publicKey = { ...pair.publicKey.export({format:'jwk'}), kid:'client-integration', alg:'RS256', use:'sig' };
 const jwks = createServer((_, response) => { response.writeHead(200, {'Content-Type':'application/json'}); response.end(JSON.stringify({keys:[publicKey]})); });
@@ -39,8 +40,8 @@ function token(subject: string) {
   return `${encoded}.${sign('RSA-SHA256', Buffer.from(encoded), pair.privateKey).toString('base64url')}`;
 }
 const java = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/java` : 'java';
-const backend = spawn(java, ['-jar', jar, `--server.port=${address.port}`], {
-  env:{...process.env, SPRING_PROFILES_ACTIVE:'oidc', RUFIT_AUTH_ISSUER:issuer,
+const backend = spawn(java, ['-jar', jar, `--server.port=${address.port}`, `--spring.datasource.url=${testEnvironment.DB_URL}`, '--spring.datasource.username=rufit_test'], {
+  env:{...testEnvironment, SPRING_PROFILES_ACTIVE:'oidc', RUFIT_AUTH_ISSUER:issuer,
     RUFIT_AUTH_JWK_SET_URI:`http://127.0.0.1:${jwksAddress.port}`, RUFIT_AUTH_AUDIENCE:'rufit-api'},
   stdio:['ignore','pipe','pipe'],
 });
