@@ -1,0 +1,2 @@
+# rufit
+RuFit workout tracker
