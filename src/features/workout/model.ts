@@ -6,7 +6,7 @@ export function startWorkout(id: string, now: number): Workout {
 }
 export function addExercise(workout: Workout, id: string, name: string): Workout {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
-  if (!name.trim()) throw new Error('운동 이름을 입력해 주세요.');
+  if (!name.trim() || name.trim().length > 80) throw new Error('운동 이름을 입력해 주세요.');
   if (workout.exercises.some(e => e.id === id)) throw new Error('중복된 운동입니다.');
   return { ...workout, exercises: [...workout.exercises, { id, name: name.trim(), sets: [{ id: `${id}-1`, weight: '', reps: '', completed: false }] }] };
 }
@@ -16,12 +16,20 @@ export function validSet(set: WorkoutSet): boolean {
 }
 export function updateSet(workout: Workout, exerciseId: string, setId: string, patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'completed'>>): Workout {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
+  const target = workout.exercises.find(e => e.id === exerciseId)?.sets.find(s => s.id === setId);
+  if (!target) throw new Error('세트를 찾을 수 없습니다.');
+  if (patch.completed === true && !validSet({ ...target, ...patch })) throw new Error('무게와 횟수를 올바르게 입력해 주세요.');
   return { ...workout, exercises: workout.exercises.map(e => e.id !== exerciseId ? e : { ...e, sets: e.sets.map(s => s.id !== setId ? s : { ...s, ...patch }) }) };
 }
-export function finishWorkout(workout: Workout, now: number): Workout {
+export class IncompleteSetsError extends Error {
+  constructor() { super('미완료 세트를 제외하고 종료할까요?'); }
+}
+export function finishWorkout(workout: Workout, now: number, discardIncomplete = false): Workout {
   if (workout.finishedAt !== undefined) throw new Error('이미 종료한 운동입니다.');
-  if (!workout.exercises.length || workout.exercises.some(e => !e.sets.length || e.sets.some(s => !validSet(s))))
-    throw new Error('모든 세트에 무게(0~1500kg)와 횟수(1~1000)를 입력해 주세요.');
+  const sets = workout.exercises.flatMap(e => e.sets);
+  const completed = sets.filter(s => s.completed);
+  if (!completed.length || completed.some(s => !validSet(s))) throw new Error('올바르게 입력하고 완료한 세트가 1개 이상 필요합니다.');
   if (now < workout.startedAt) throw new Error('종료 시간이 시작 시간보다 빠릅니다.');
-  return { ...workout, finishedAt: now };
+  if (completed.length !== sets.length && !discardIncomplete) throw new IncompleteSetsError();
+  return { ...workout, finishedAt: now, exercises: workout.exercises.map(e => ({ ...e, sets: e.sets.filter(s => s.completed) })).filter(e => e.sets.length > 0) };
 }
