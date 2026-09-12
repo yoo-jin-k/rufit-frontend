@@ -1,10 +1,15 @@
 import { createServer } from 'node:http';
-import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { Buffer } from 'node:buffer';
 import process from 'node:process';
 import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, writeFile, rename, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createRufitSession } from '../src/api/session.ts';
+import { createDraftOutbox } from '../src/api/outbox.ts';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -39,6 +44,7 @@ const backend = spawn(java, ['-jar', jar, `--server.port=${address.port}`], {
     RUFIT_AUTH_JWK_SET_URI:`http://127.0.0.1:${jwksAddress.port}`, RUFIT_AUTH_AUDIENCE:'rufit-api'},
   stdio:['ignore','pipe','pipe'],
 });
+const outboxDirectory = await mkdtemp(join(tmpdir(), 'rufit-outbox-test-'));
 let logs = '';
 backend.stdout.on('data', chunk => { logs = (logs+chunk).slice(-12000); });
 backend.stderr.on('data', chunk => { logs = (logs+chunk).slice(-12000); });
@@ -131,12 +137,40 @@ try {
   assert.equal((await api.exercises({query:'수정 운동', includeArchived:true})).totalElements, 1);
   exercise = await api.restoreExercise(exercise.id, exercise.version);
   assert.equal(exercise.archivedAt, null);
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement');
+  const filename = (key: string) => join(outboxDirectory, createHash('sha256').update(key).digest('hex'));
+  const disk = {
+    getItem: async (key: string) => { try { return await readFile(filename(key),'utf8'); } catch (e:unknown) {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'ENOENT') return null; throw e;
+    } },
+    setItem: async (key: string, value: string) => { await writeFile(filename(key)+'.tmp',value); await rename(filename(key)+'.tmp',filename(key)); },
+  };
+  const verified = await createRufitSession({baseUrl,getAccessToken:() => token(`alice-${run}`)});
+  let queuedWorkout = await api.start(randomUUID());
+  const queuedDraft = {operationId:randomUUID(),version:queuedWorkout.version,sets:[{set:templateSets[0],completed:true}],restSetIndex:null,restEndsAt:null};
+  const outbox = createDraftOutbox(disk,verified.scope);
+  await outbox.enqueue(queuedWorkout.id,queuedDraft);
+  const lossySession = await createRufitSession({baseUrl,getAccessToken:() => token(`alice-${run}`),fetch:async (input, init) => {
+    const response = await fetch(input,init);
+    if (String(input).endsWith('/draft')) { assert.equal(response.status,200); await response.arrayBuffer(); throw new Error('lost ack'); }
+    return response;
+  }});
+  await assert.rejects(outbox.flushOne(lossySession), (e:unknown) => e instanceof ApiError && e.outcomeUnknown);
+  lossySession.close();
+  const restoredOutbox = createDraftOutbox(disk,verified.scope);
+  assert.equal((await restoredOutbox.list())[0].draft.operationId,queuedDraft.operationId);
+  const synced = await restoredOutbox.flushOne(verified);
+  assert.equal(synced.kind,'saved');
+  if (synced.kind !== 'saved') throw new Error('Expected saved outbox');
+  queuedWorkout = await api.finish(queuedWorkout.id,synced.workout.version);
+  assert.ok(queuedWorkout.finishedAt); assert.equal((await restoredOutbox.list()).length,0);
+  verified.close();
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);
   throw error;
 } finally {
+  await rm(outboxDirectory,{recursive:true,force:true});
   if (backend.exitCode === null) { backend.kill('SIGTERM'); await once(backend, 'exit'); }
   await new Promise<void>(resolve => jwks.close(() => resolve()));
 }
