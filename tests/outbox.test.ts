@@ -68,7 +68,11 @@ test('계정 확인 뒤 전역 토큰이 바뀌어도 확인된 세션의 토큰
     return String(url).endsWith('/me') ? Response.json({id:'alice'}) : Response.json({});
   }});
   token = 'bob-token'; await active.saveDraft(randomUUID(),draft());
-  assert.deepEqual(seen,['Bearer alice-token','Bearer alice-token']);
+  await active.api.updateProfile(0,{nickname:'Alice form',bio:'',experience:null,goals:[]});
+  assert.deepEqual(seen,['Bearer alice-token','Bearer alice-token','Bearer alice-token']);
+  active.close();
+  await assert.rejects(active.api.updateProfile(0,{nickname:'Stale form',bio:'',experience:null,goals:[]}), (e:unknown) => e instanceof ApiError && e.status === 401);
+  assert.equal(seen.length,3);
 });
 test('버전 충돌과 뒤늦은 재시도는 로컬 내용을 보존하고 자동 재전송하지 않는다', async () => {
   for (const afterReplay of [false,true]) {

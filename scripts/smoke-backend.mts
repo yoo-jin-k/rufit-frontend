@@ -56,8 +56,10 @@ try {
     await delay(250);
   }
   if (!ready) throw new Error('백엔드 시작 대기 시간 초과');
-  const api = createRufitApi({baseUrl, getAccessToken:() => token(`alice-${run}`)});
-  const other = createRufitApi({baseUrl, getAccessToken:() => token(`bob-${run}`)});
+  const accountSession = await createRufitSession({baseUrl, getAccessToken:() => token(`alice-${run}`)});
+  const otherSession = await createRufitSession({baseUrl, getAccessToken:() => token(`bob-${run}`)});
+  const api = accountSession.api;
+  const other = otherSession.api;
   assert.equal((await api.me()).id, (await api.me()).id);
   assert.notEqual((await api.me()).id, (await other.me()).id);
   await assert.rejects(api.profile(), (e:unknown) => e instanceof ApiError && e.status === 404);
@@ -186,7 +188,7 @@ try {
   assert.equal(statistics.workouts,2); assert.equal(statistics.completedSets,2);
   assert.equal(statistics.volumeKgReps,200); assert.equal(statistics.heaviestSet?.weight,20);
   assert.equal((await api.exerciseStatisticsByName('not recorded')).heaviestSet,null);
-  verified.close();
+  verified.close(); accountSession.close(); otherSession.close();
   console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
