@@ -1,9 +1,9 @@
 export type SetInput = { exerciseId?: string | null; exerciseName: string; weight: number; reps: number };
 export type WorkoutSnapshot = {
   id: string; startedAt: string; finishedAt: string | null; cancelledAt: string | null; sourceRoutineId: string | null;
-  version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null; restSetIndex: number | null;
+  version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null; restSetIndex: number | null; note: string;
 };
-export type Draft = { operationId: string; version: number; sets: {set: SetInput; completed: boolean}[]; restSetIndex: number | null; restEndsAt: string | null };
+export type Draft = { note?: string | null; operationId: string; version: number; sets: {set: SetInput; completed: boolean}[]; restSetIndex: number | null; restEndsAt: string | null };
 export type DraftSave = { workout: WorkoutSnapshot; appliedVersion: number; replayed: boolean };
 export type BodyPart = 'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'FULL_BODY';
 export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIGHT' | 'OTHER';
@@ -13,6 +13,8 @@ export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: 
 export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
+export type ExerciseStatistics = { exerciseId: string | null; exerciseName: string; workouts: number; completedSets: number; totalReps: number;
+  volumeKgReps: number; lastPerformedAt: string | null; heaviestSet: {workoutId: string; finishedAt: string; setIndex: number; weight: number; reps: number} | null };
 export type DaySummary = { date: string; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
 export type Calendar = { month: string; zone: string; days: DaySummary[]; workoutDays: number; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
 export class ApiError extends Error {
@@ -67,6 +69,9 @@ export function createRufitApi(options: Options) {
   const workoutPath = (id: string) => `/workouts/${segment(id)}`;
   return {
     me: () => request<{id: string}>('GET', '/me'),
+    exerciseStatisticsById: (exerciseId: string) => request<ExerciseStatistics>('GET', `/workouts/exercise-statistics?exerciseId=${segment(exerciseId)}`),
+    exerciseStatisticsByName: (exerciseName: string) => request<ExerciseStatistics>('GET', `/workouts/exercise-statistics?exerciseName=${segment(exerciseName)}`),
+    updateNote: (id: string, version: number, note: string) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/note`, {version, note}),
     saveDraft: (id: string, draft: Draft) => request<DraftSave>('PUT', `${workoutPath(id)}/draft`, draft),
     exercises: (search: ExerciseSearch = {}) => {
       const params = new URLSearchParams();

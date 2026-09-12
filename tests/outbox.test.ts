@@ -16,7 +16,7 @@ function storage() {
 const draft = (): Draft => ({operationId:randomUUID(), version:0,
   sets:[{set:{exerciseName:'Squat', weight:20, reps:10}, completed:true}], restSetIndex:null, restEndsAt:null});
 const snapshot = (id: string, version = 1): WorkoutSnapshot => ({id, version, startedAt:new Date().toISOString(), finishedAt:null,
-  cancelledAt:null, sourceRoutineId:null, sets:[{exerciseName:'Squat', weight:20, reps:10}], completedSetIndexes:[0], restEndsAt:null, restSetIndex:null});
+  cancelledAt:null, sourceRoutineId:null, sets:[{exerciseName:'Squat', weight:20, reps:10}], completedSetIndexes:[0], restEndsAt:null, restSetIndex:null, note:''});
 async function session(save: (body: Draft) => Response | Promise<Response>, accountId = 'alice') {
   return createRufitSession({baseUrl:scope.server, getAccessToken:() => 'token', fetch:async (url, init) =>
     String(url).endsWith('/me') ? Response.json({id:accountId}) : save(JSON.parse(String(init?.body)) as Draft)});

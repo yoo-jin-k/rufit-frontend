@@ -151,7 +151,7 @@ try {
   };
   const verified = await createRufitSession({baseUrl,getAccessToken:() => token(`alice-${run}`)});
   let queuedWorkout = await api.start(randomUUID());
-  const queuedDraft = {operationId:randomUUID(),version:queuedWorkout.version,sets:[{set:templateSets[0],completed:true}],restSetIndex:null,restEndsAt:null};
+  const queuedDraft = {note:'Kept through lost acknowledgement',operationId:randomUUID(),version:queuedWorkout.version,sets:[{set:templateSets[0],completed:true}],restSetIndex:null,restEndsAt:null};
   const outbox = createDraftOutbox(disk,verified.scope);
   await outbox.enqueue(queuedWorkout.id,queuedDraft);
   const lossySession = await createRufitSession({baseUrl,getAccessToken:() => token(`alice-${run}`),fetch:async (input, init) => {
@@ -168,6 +168,13 @@ try {
   if (synced.kind !== 'saved') throw new Error('Expected saved outbox');
   queuedWorkout = await api.finish(queuedWorkout.id,synced.workout.version);
   assert.ok(queuedWorkout.finishedAt); assert.equal((await restoredOutbox.list()).length,0);
+  assert.equal(queuedWorkout.note,'Kept through lost acknowledgement');
+  queuedWorkout = await api.updateNote(queuedWorkout.id,queuedWorkout.version,'Corrected after finish');
+  assert.equal((await api.workout(queuedWorkout.id)).note,'Corrected after finish');
+  const statistics = await api.exerciseStatisticsById(exercise.id);
+  assert.equal(statistics.workouts,2); assert.equal(statistics.completedSets,2);
+  assert.equal(statistics.volumeKgReps,200); assert.equal(statistics.heaviestSet?.weight,20);
+  assert.equal((await api.exerciseStatisticsByName('not recorded')).heaviestSet,null);
   verified.close();
   console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox');
 } catch (error) {

@@ -14,6 +14,7 @@ const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}
 const sameScope = (a: AccountScope, b: AccountScope) => a.server === b.server && a.accountId === b.accountId;
 function validDraft(v: unknown): v is Draft {
   if (!object(v) || !uuid(v.operationId) || !version(v.version) || !Array.isArray(v.sets) || v.sets.length > 300) return false;
+  if (v.note != null && (typeof v.note !== 'string' || v.note.length > 2000)) return false;
   if (!v.sets.every(s => object(s) && typeof s.completed === 'boolean' && object(s.set) &&
     (s.set.exerciseId == null || uuid(s.set.exerciseId)) && typeof s.set.exerciseName === 'string' &&
     s.set.exerciseName.trim().length > 0 && s.set.exerciseName.length <= 80 &&
