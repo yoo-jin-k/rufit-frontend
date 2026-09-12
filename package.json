@@ -24,8 +24,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "check": "npm run typecheck && npm run lint",
-    "export": "expo export --platform all"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "export": "expo export --platform all",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "private": true,
   "engines": {
