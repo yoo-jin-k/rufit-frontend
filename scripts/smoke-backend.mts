@@ -71,6 +71,13 @@ try {
   assert.equal((await api.profile()).nickname,updatedProfile.nickname);
   assert.equal((await api.createProfile({nickname:'Test athlete',bio:'Test data only',experience:'BEGINNER',goals:['STRENGTH']},profileKey)).nickname,'Updated athlete');
   await assert.rejects(other.profile(), (e:unknown) => e instanceof ApiError && e.status === 404);
+  const restDefaults = await api.restPreferences();
+  assert.deepEqual(restDefaults,{version:0,defaultRestSeconds:90});
+  const savedRest = await api.saveRestPreferences(restDefaults.version,180);
+  assert.deepEqual(savedRest,{version:1,defaultRestSeconds:180});
+  assert.deepEqual(await other.restPreferences(),restDefaults);
+  await assert.rejects(api.saveRestPreferences(0,30),(e:unknown) => e instanceof ApiError && e.status === 409);
+  assert.deepEqual(await api.restPreferences(),savedRest);
   assert.equal(await api.active(), null);
   const key = randomUUID();
   let workout = await api.start(key);
