@@ -100,6 +100,10 @@ try {
   assert.equal((await api.exerciseHistory('스쿼트')).items[0].sets[0].weight, 40.5);
   const month = workout.startedAt.slice(0,7);
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 405);
+  const week = await api.weeklyCalendar(recordedDate,'UTC');
+  assert.equal(week.days.length,7);assert.equal(week.workouts,1);assert.equal(week.volumeKgReps,405);
+  assert.equal(week.days.find(day => day.date===recordedDate)?.workouts,1);
+  assert.equal((await other.weeklyCalendar(recordedDate,'UTC')).workouts,0);
   let routine = await api.createRoutine('검증 루틴', [{exerciseName:'스쿼트', weight:30, reps:8}]);
   routine = await api.updateRoutine(routine.id, routine.version, '수정 루틴', [{exerciseName:'스쿼트', weight:35, reps:10}]);
   assert.equal((await api.routine(routine.id)).title, '수정 루틴');
@@ -120,6 +124,7 @@ try {
   await assert.rejects(other.routineFromWorkout(workout.id,workout.version,'Other owner',randomUUID()), (e:unknown) => e instanceof ApiError && e.status===404);
   workout = await api.correctHistory(workout.id, workout.version, [{exerciseName:'스쿼트', weight:50, reps:10}]);
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 500);
+  assert.equal((await api.weeklyCalendar(recordedDate,'UTC')).volumeKgReps,500);
   await api.deleteHistory(workout.id, workout.version, true);
   assert.equal((await api.routineFromWorkout(workout.id,originalWorkoutVersion,'Retry after deletion',workoutRoutineKey)).id,fromWorkout.id);
   const fromRecordedRoutine = await api.startRoutine(fromWorkout.id,randomUUID());
@@ -127,6 +132,7 @@ try {
   await api.cancel(fromRecordedRoutine.id,fromRecordedRoutine.version,true);
   assert.equal((await api.history()).totalElements, 0);
   assert.equal((await api.dailyHistory(recordedDate, 'UTC')).totalElements, 0);
+  assert.equal((await api.weeklyCalendar(recordedDate,'UTC')).workouts,0);
   await assert.rejects(api.start(key), (e:unknown) => e instanceof ApiError && e.code === 'RESOURCE_DELETED');
   const exerciseKey = randomUUID();
   let exercise = await api.createExercise({name:'검증 운동', bodyPart:'LEGS', equipment:'BARBELL'}, exerciseKey);

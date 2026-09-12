@@ -23,6 +23,7 @@ export type ExerciseStatistics = { exerciseId: string | null; exerciseName: stri
   volumeKgReps: number; lastPerformedAt: string | null; heaviestSet: {workoutId: string; finishedAt: string; setIndex: number; weight: number; reps: number} | null };
 export type DaySummary = { date: string; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
 export type Calendar = { month: string; zone: string; days: DaySummary[]; workoutDays: number; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
+export type WeeklyCalendar = Omit<Calendar, 'month'> & {weekStart: string; weekEnd: string};
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -114,6 +115,7 @@ export function createRufitApi(options: Options) {
     correctHistory: (id: string, version: number, sets: SetInput[]) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/history`, { version, sets }),
     deleteHistory: (id: string, version: number, confirmed: true) => request<null>('POST', `${workoutPath(id)}/delete`, { version, confirmed }),
     exerciseHistory: (exerciseName: string, page = 0, size = 10) => request<Page<ExerciseRecord> & { exerciseName: string }>('GET', `/workouts/exercise-history?exerciseName=${segment(exerciseName)}&page=${page}&size=${size}`),
+    weeklyCalendar: (date: string, zone = 'Asia/Seoul') => request<WeeklyCalendar>('GET', `/workouts/calendar/week?date=${segment(date)}&zone=${segment(zone)}`),
     calendar: (month: string, zone = 'Asia/Seoul') => request<Calendar>('GET', `/workouts/calendar?month=${segment(month)}&zone=${segment(zone)}`),
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
