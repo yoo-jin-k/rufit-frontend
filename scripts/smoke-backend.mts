@@ -91,6 +91,11 @@ try {
   assert.equal(resultSummary.exercises[0].exerciseName,'스쿼트');
   assert.equal(await api.active(), null);
   assert.equal((await api.history()).totalElements, 1);
+  const recordedDate = workout.startedAt.slice(0,10);
+  const daily = await api.dailyHistory(recordedDate, 'UTC');
+  assert.equal(daily.totalElements, 1); assert.equal(daily.items[0]?.id, workout.id);
+  assert.equal((await other.dailyHistory(recordedDate, 'UTC')).totalElements, 0);
+  await assert.rejects(api.dailyHistory('2026-02-29', 'UTC'), (e:unknown) => e instanceof ApiError && e.status === 400);
   assert.equal((await api.exerciseHistory('스쿼트')).items[0].sets[0].weight, 40.5);
   const month = workout.startedAt.slice(0,7);
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 405);
@@ -111,6 +116,7 @@ try {
   assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 500);
   await api.deleteHistory(workout.id, workout.version, true);
   assert.equal((await api.history()).totalElements, 0);
+  assert.equal((await api.dailyHistory(recordedDate, 'UTC')).totalElements, 0);
   await assert.rejects(api.start(key), (e:unknown) => e instanceof ApiError && e.code === 'RESOURCE_DELETED');
   const exerciseKey = randomUUID();
   let exercise = await api.createExercise({name:'검증 운동', bodyPart:'LEGS', equipment:'BARBELL'}, exerciseKey);

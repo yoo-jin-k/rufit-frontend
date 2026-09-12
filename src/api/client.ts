@@ -100,6 +100,7 @@ export function createRufitApi(options: Options) {
     workoutSummary: (id: string) => request<WorkoutSummary>('GET', `${workoutPath(id)}/summary`),
     workout: (id: string) => request<WorkoutSnapshot>('GET', workoutPath(id)),
     history: (page = 0, size = 20) => request<Page<WorkoutSnapshot>>('GET', `/workouts?page=${page}&size=${size}`),
+    dailyHistory: (date: string, zone = 'Asia/Seoul', page = 0, size = 20) => request<Page<WorkoutSnapshot>>('GET', `/workouts?date=${segment(date)}&zone=${segment(zone)}&page=${page}&size=${size}`),
     replaceSets: (id: string, version: number, sets: SetInput[]) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/exercises`, { version, sets }),
     appendSet: (id: string, version: number, set: SetInput) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/sets`, { version, set }),
     editSet: (id: string, version: number, index: number, set: SetInput) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/sets/${index}`, { version, set }),
