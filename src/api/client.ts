@@ -10,7 +10,7 @@ export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIG
 export type ExerciseInput = { name: string; bodyPart: BodyPart; equipment: Equipment };
 export type Exercise = ExerciseInput & { id: string; custom: boolean; archivedAt: string | null; version: number };
 export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: Equipment; page?: number; size?: number; includeArchived?: boolean };
-export type Routine = { id: string; title: string; version: number; sets: SetInput[] };
+export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
 export type DaySummary = { date: string; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
@@ -79,6 +79,7 @@ export function createRufitApi(options: Options) {
     archiveExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/archive`, {version}),
     restoreExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/restore`, {version}),
     exerciseHistoryById: (exerciseId: string, page = 0, size = 10) => request<Page<ExerciseRecord> & {exerciseName: string}>('GET', `/workouts/exercise-history?exerciseId=${segment(exerciseId)}&page=${page}&size=${size}`),
+    copyRoutine: (id: string, version: number, title: string, idempotencyKey: string) => request<Routine>('POST', `/routines/${segment(id)}/copy`, {version, title}, {'Idempotency-Key': idempotencyKey}),
     deleteRoutine: (id: string, version: number, confirmed: true) => request<null>('POST', `/routines/${segment(id)}/delete`, {version, confirmed}),
     start: (idempotencyKey: string) => request<WorkoutSnapshot>('POST', '/workouts', undefined, { 'Idempotency-Key': idempotencyKey }),
     active: () => request<WorkoutSnapshot | null>('GET', '/workouts/active'),

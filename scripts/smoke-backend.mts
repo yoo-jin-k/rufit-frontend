@@ -128,7 +128,12 @@ try {
   assert.equal((await api.exerciseHistoryById(exercise.id)).items[0].sets[0].exerciseId, exercise.id);
   const replayAfterFinish = await api.saveDraft(draftWorkout.id, draft);
   assert.ok(replayAfterFinish.workout.version > replayAfterFinish.appliedVersion);
+  const copyKey = randomUUID();
+  const copied = await api.copyRoutine(template.id,template.version,'Copied routine',copyKey);
+  assert.equal(copied.sourceRoutineId,template.id);
+  assert.equal(copied.sets[0].exerciseId,exercise.id);
   await api.deleteRoutine(template.id, template.version, true);
+  assert.equal((await api.copyRoutine(template.id,template.version,'Copied routine',copyKey)).id,copied.id);
   assert.equal((await api.workout(draftWorkout.id)).sourceRoutineId, template.id);
   await assert.rejects(api.createRoutine('식별자 루틴', templateSets, routineKey), (e:unknown) => e instanceof ApiError && e.status === 410);
   exercise = await api.archiveExercise(exercise.id, exercise.version);
