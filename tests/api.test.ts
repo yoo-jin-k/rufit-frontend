@@ -34,3 +34,10 @@ test('시간 초과가 요청을 중단한다', async () => {
   }) });
   await assert.rejects(api.active(), (e: unknown) => e instanceof ApiError && e.code === 'TIMEOUT' && !e.outcomeUnknown);
 });
+
+test('원격 토큰 전송은 HTTPS를 요구하고 개발 예외는 명시한다', () => {
+  const options = {baseUrl:'http://api.example.test', getAccessToken:() => 'secret'};
+  assert.throws(() => createRufitApi(options));
+  assert.doesNotThrow(() => createRufitApi({...options, allowInsecureHttp:true}));
+  assert.throws(() => createRufitApi({...options, baseUrl:'https://user:password@api.example.test'}));
+});

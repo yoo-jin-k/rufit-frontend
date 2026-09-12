@@ -77,12 +77,20 @@ try {
   routine = await api.updateRoutine(routine.id, routine.version, '수정 루틴', [{exerciseName:'스쿼트', weight:35, reps:10}]);
   assert.equal((await api.routine(routine.id)).title, '수정 루틴');
   assert.equal((await api.routines()).length, 1);
-  let second = await api.startRoutine(routine.id);
+  const routineStartKey = randomUUID();
+  let second = await api.startRoutine(routine.id, routineStartKey);
+  assert.equal(second.sourceRoutineId, routine.id);
   second = await api.completeSet(second.id, second.version, 0, true, 60);
+  assert.deepEqual((await api.startRoutine(routine.id, routineStartKey)).completedSetIndexes, [0]);
   second = await api.skipRest(second.id, second.version); assert.equal(second.restEndsAt, null);
   second = await api.removeSet(second.id, second.version, 0); assert.equal(second.sets.length, 0);
   second = await api.cancel(second.id, second.version, true); assert.ok(second.cancelledAt);
   assert.equal(await api.active(), null);
+  workout = await api.correctHistory(workout.id, workout.version, [{exerciseName:'스쿼트', weight:50, reps:10}]);
+  assert.equal((await api.calendar(month, 'UTC')).volumeKgReps, 500);
+  await api.deleteHistory(workout.id, workout.version, true);
+  assert.equal((await api.history()).totalElements, 0);
+  await assert.rejects(api.start(key), (e:unknown) => e instanceof ApiError && e.code === 'RESOURCE_DELETED');
   console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');

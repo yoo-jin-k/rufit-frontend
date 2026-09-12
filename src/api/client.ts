@@ -1,6 +1,6 @@
 export type SetInput = { exerciseName: string; weight: number; reps: number };
 export type WorkoutSnapshot = {
-  id: string; startedAt: string; finishedAt: string | null; cancelledAt: string | null;
+  id: string; startedAt: string; finishedAt: string | null; cancelledAt: string | null; sourceRoutineId: string | null;
   version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null;
 };
 export type Routine = { id: string; title: string; version: number; sets: SetInput[] };
@@ -16,13 +16,15 @@ export class ApiError extends Error {
     super(message); this.name = 'ApiError'; this.status = status; this.code = code; this.outcomeUnknown = outcomeUnknown;
   }
 }
-type Options = { baseUrl: string; getAccessToken: () => string | null | Promise<string | null>; fetch?: typeof fetch; timeoutMs?: number };
+type Options = { baseUrl: string; getAccessToken: () => string | null | Promise<string | null>; fetch?: typeof fetch; timeoutMs?: number; allowInsecureHttp?: boolean };
 const segment = encodeURIComponent;
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 export function createRufitApi(options: Options) {
   const base = new URL(options.baseUrl);
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash)
     throw new Error('API 주소 형식을 확인해 주세요.');
+  if (base.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(base.hostname) && !options.allowInsecureHttp)
+    throw new Error('로그인 토큰을 보내는 서버 주소에는 HTTPS가 필요합니다.');
   const baseUrl = base.toString().replace(/\/$/, '');
   const transport = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? 15000;
@@ -70,12 +72,14 @@ export function createRufitApi(options: Options) {
     skipRest: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/rest/skip`, { version }),
     finish: (id: string, version: number, discardIncomplete = false) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/finish`, { version, discardIncomplete }),
     cancel: (id: string, version: number, confirmed: true) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/cancel`, { version, confirmed }),
+    correctHistory: (id: string, version: number, sets: SetInput[]) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/history`, { version, sets }),
+    deleteHistory: (id: string, version: number, confirmed: true) => request<null>('POST', `${workoutPath(id)}/delete`, { version, confirmed }),
     exerciseHistory: (exerciseName: string, page = 0, size = 10) => request<Page<ExerciseRecord> & { exerciseName: string }>('GET', `/workouts/exercise-history?exerciseName=${segment(exerciseName)}&page=${page}&size=${size}`),
     calendar: (month: string, zone = 'Asia/Seoul') => request<Calendar>('GET', `/workouts/calendar?month=${segment(month)}&zone=${segment(zone)}`),
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
     createRoutine: (title: string, sets: SetInput[]) => request<Routine>('POST', '/routines', { title, sets }),
     updateRoutine: (id: string, version: number, title: string, sets: SetInput[]) => request<Routine>('PUT', `/routines/${segment(id)}`, { version, title, sets }),
-    startRoutine: (id: string) => request<WorkoutSnapshot>('POST', `/routines/${segment(id)}/start`),
+    startRoutine: (id: string, idempotencyKey: string) => request<WorkoutSnapshot>('POST', `/routines/${segment(id)}/start`, undefined, { 'Idempotency-Key': idempotencyKey }),
   };
 }
