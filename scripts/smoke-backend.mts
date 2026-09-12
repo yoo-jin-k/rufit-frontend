@@ -42,7 +42,7 @@ function token(subject: string) {
 const java = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/java` : 'java';
 const backend = spawn(java, ['-jar', jar, `--server.port=${address.port}`, `--spring.datasource.url=${testEnvironment.DB_URL}`, '--spring.datasource.username=rufit_test'], {
   env:{...testEnvironment, SPRING_PROFILES_ACTIVE:'oidc', RUFIT_AUTH_ISSUER:issuer,
-    RUFIT_AUTH_JWK_SET_URI:`http://127.0.0.1:${jwksAddress.port}`, RUFIT_AUTH_AUDIENCE:'rufit-api'},
+    RUFIT_AUTH_JWK_SET_URI:`http://127.0.0.1:${jwksAddress.port}`, RUFIT_AUTH_AUDIENCE:'rufit-api', RUFIT_AUTH_ALLOW_LOCAL_HTTP_JWKS:'true'},
   stdio:['ignore','pipe','pipe'],
 });
 const outboxDirectory = await mkdtemp(join(tmpdir(), 'rufit-outbox-test-'));
