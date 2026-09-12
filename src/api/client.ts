@@ -16,6 +16,9 @@ export type Profile = ProfileFields & {version: number; visibility: 'PRIVATE'};
 export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
+export type WorkoutSummary = {workoutId: string; version: number; startedAt: string; finishedAt: string; durationSeconds: number;
+  completedSets: number; totalReps: number; volumeKgReps: number; exercises: {exerciseId: string | null; exerciseName: string;
+    completedSets: number; totalReps: number; volumeKgReps: number; heaviestWeight: number; repsAtHeaviestWeight: number}[]};
 export type ExerciseStatistics = { exerciseId: string | null; exerciseName: string; workouts: number; completedSets: number; totalReps: number;
   volumeKgReps: number; lastPerformedAt: string | null; heaviestSet: {workoutId: string; finishedAt: string; setIndex: number; weight: number; reps: number} | null };
 export type DaySummary = { date: string; workouts: number; completedSets: number; volumeKgReps: number; durationSeconds: number };
@@ -94,6 +97,7 @@ export function createRufitApi(options: Options) {
     deleteRoutine: (id: string, version: number, confirmed: true) => request<null>('POST', `/routines/${segment(id)}/delete`, {version, confirmed}),
     start: (idempotencyKey: string) => request<WorkoutSnapshot>('POST', '/workouts', undefined, { 'Idempotency-Key': idempotencyKey }),
     active: () => request<WorkoutSnapshot | null>('GET', '/workouts/active'),
+    workoutSummary: (id: string) => request<WorkoutSummary>('GET', `${workoutPath(id)}/summary`),
     workout: (id: string) => request<WorkoutSnapshot>('GET', workoutPath(id)),
     history: (page = 0, size = 20) => request<Page<WorkoutSnapshot>>('GET', `/workouts?page=${page}&size=${size}`),
     replaceSets: (id: string, version: number, sets: SetInput[]) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/exercises`, { version, sets }),

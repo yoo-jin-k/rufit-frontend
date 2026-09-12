@@ -84,6 +84,9 @@ try {
   await assert.rejects(api.finish(workout.id, workout.version), (e:unknown) => e instanceof ApiError && e.code === 'INCOMPLETE_SETS_CONFIRMATION_REQUIRED');
   workout = await api.finish(workout.id, workout.version, true);
   assert.equal(workout.sets.length, 1); assert.ok(workout.finishedAt);
+  const resultSummary = await api.workoutSummary(workout.id);
+  assert.equal(resultSummary.completedSets,1); assert.equal(resultSummary.volumeKgReps,405);
+  assert.equal(resultSummary.exercises[0].exerciseName,'스쿼트');
   assert.equal(await api.active(), null);
   assert.equal((await api.history()).totalElements, 1);
   assert.equal((await api.exerciseHistory('스쿼트')).items[0].sets[0].weight, 40.5);
