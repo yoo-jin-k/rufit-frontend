@@ -126,6 +126,7 @@ export function createRufitApi(options: Options) {
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
     createRoutine: (title: string, sets: SetInput[], idempotencyKey?: string) => request<Routine>('POST', '/routines', { title, sets }, idempotencyKey ? {'Idempotency-Key': idempotencyKey} : undefined),
+    searchRoutines: (query = '', page = 0, size = 20) => request<Page<Routine>>('GET', `/routines/search?query=${segment(query)}&page=${page}&size=${size}`),
     updateRoutine: (id: string, version: number, title: string, sets: SetInput[]) => request<Routine>('PUT', `/routines/${segment(id)}`, { version, title, sets }),
     startRoutine: (id: string, idempotencyKey: string) => request<WorkoutSnapshot>('POST', `/routines/${segment(id)}/start`, undefined, { 'Idempotency-Key': idempotencyKey }),
   };

@@ -115,6 +115,11 @@ try {
   routine = await api.updateRoutine(routine.id, routine.version, '수정 루틴', [{exerciseName:'스쿼트', weight:35, reps:10}]);
   assert.equal((await api.routine(routine.id)).title, '수정 루틴');
   assert.equal((await api.routines()).length, 1);
+  const foundRoutines = await api.searchRoutines('수정',0,1);
+  assert.equal(foundRoutines.totalElements,1);assert.equal(foundRoutines.hasNext,false);
+  assert.equal(foundRoutines.items[0].id,routine.id);
+  assert.equal((await other.searchRoutines('수정')).totalElements,0);
+  assert.equal((await api.searchRoutines('%')).totalElements,0);
   const routineStartKey = randomUUID();
   let second = await api.startRoutine(routine.id, routineStartKey);
   assert.equal(second.sourceRoutineId, routine.id);
