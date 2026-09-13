@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BodyPart, Equipment } from '../../api/client';
@@ -17,9 +17,23 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
   const [custom, setCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [error, setError] = useState('');
+  const listRef = useRef<FlatList<CatalogExercise>>(null);
+  const errorOffset = useRef<number | null>(null);
+  const revealPending = useRef(false);
+  // 실패했을 때만 오류 위치로 이동하고, 검색하거나 필터를 바꿀 때는 스크롤을 유지해요.
+  function revealError() {
+    if (!revealPending.current || errorOffset.current === null) return;
+    listRef.current?.scrollToOffset({ offset: errorOffset.current, animated: true });
+    revealPending.current = false;
+  }
+  function reportError(message: string) {
+    revealPending.current = true;
+    setError(message);
+    revealError();
+  }
   const results = searchExercises(query, bodyPart, equipment);
   function choose(exercise: Pick<CatalogExercise, 'name'> & { id?: string }) {
-    try { onSelect(exercise); onClose(); } catch (e) { setError(e instanceof Error ? e.message : '종목을 추가하지 못했습니다.'); }
+    try { onSelect(exercise); onClose(); } catch (e) { reportError(e instanceof Error ? e.message : '종목을 추가하지 못했습니다.'); }
   }
   return <Modal transparent animationType="slide" onRequestClose={onClose}>
     <KeyboardAvoidingView style={[s.backdrop, { paddingTop: Math.max(insets.top, 24) }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -28,20 +42,23 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
         <View style={s.handle} />
         <View style={s.header}><View><Text style={s.eyebrow}>오늘의 움직임</Text><Text style={s.title}>종목 추가</Text></View>
           <Pressable style={s.close} accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose}><Text style={s.closeText}>×</Text></Pressable></View>
-        <TextInput style={s.search} accessibilityLabel="종목 이름 검색" placeholder="종목 이름 검색 (예: 스쿼트)" value={query} onChangeText={setQuery} maxLength={80} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
-          <Chip label={`${equipment ? equipmentLabels[equipment] : '운동 도구'} ${showEquipment ? '⌃' : '⌄'}`} selected={!!equipment || showEquipment} onPress={() => setShowEquipment(!showEquipment)} />
-          <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
-          {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => <Chip key={value} label={label} selected={bodyPart === value} onPress={() => setBodyPart(value)} />)}
-        </ScrollView>
-        {showEquipment && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
-          <Chip label="도구 전체" selected={!equipment} onPress={() => setEquipment(undefined)} />
-          {(Object.entries(equipmentLabels) as [Equipment, string][]).map(([value, label]) => <Chip key={value} label={label} selected={equipment === value} onPress={() => setEquipment(value)} />)}
-        </ScrollView>}
-        <View style={s.resultHeader}><Text accessibilityLiveRegion="polite" style={s.muted}>{results.length}개 종목{bodyPart ? ` · ${bodyParts[bodyPart]}` : ''}{equipment ? ` · ${equipmentLabels[equipment]}` : ''}</Text>
-          {!!(query || bodyPart || equipment) && <Pressable accessibilityRole="button" style={s.reset} onPress={() => { setQuery(''); setBodyPart(undefined); setEquipment(undefined); }}><Text style={s.link}>검색 초기화</Text></Pressable>}</View>
-        {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-        <FlatList data={results} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={s.list}
+        {/* 낮은 창에서도 검색과 목록을 같은 영역에서 스크롤해 선택할 수 있어요. */}
+        <FlatList ref={listRef} data={results} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" style={s.scroll} contentContainerStyle={s.list}
+          ListHeaderComponent={<View>
+            <TextInput style={s.search} accessibilityLabel="종목 이름 검색" placeholder="종목 이름 검색 (예: 스쿼트)" value={query} onChangeText={setQuery} maxLength={80} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
+              <Chip label={`${equipment ? equipmentLabels[equipment] : '운동 도구'} ${showEquipment ? '⌃' : '⌄'}`} selected={!!equipment || showEquipment} onPress={() => setShowEquipment(!showEquipment)} />
+              <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
+              {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => <Chip key={value} label={label} selected={bodyPart === value} onPress={() => setBodyPart(value)} />)}
+            </ScrollView>
+            {showEquipment && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
+              <Chip label="도구 전체" selected={!equipment} onPress={() => setEquipment(undefined)} />
+              {(Object.entries(equipmentLabels) as [Equipment, string][]).map(([value, label]) => <Chip key={value} label={label} selected={equipment === value} onPress={() => setEquipment(value)} />)}
+            </ScrollView>}
+            <View style={s.resultHeader}><Text accessibilityLiveRegion="polite" style={s.muted}>{results.length}개 종목{bodyPart ? ` · ${bodyParts[bodyPart]}` : ''}{equipment ? ` · ${equipmentLabels[equipment]}` : ''}</Text>
+              {!!(query || bodyPart || equipment) && <Pressable accessibilityRole="button" style={s.reset} onPress={() => { setQuery(''); setBodyPart(undefined); setEquipment(undefined); }}><Text style={s.link}>검색 초기화</Text></Pressable>}</View>
+            {!!error && <Text accessibilityRole="alert" style={s.error} onLayout={event => { errorOffset.current = event.nativeEvent.layout.y; revealError(); }}>{error}</Text>}
+          </View>}
           renderItem={({ item }) => {
             const selected = selectedIds.includes(item.id);
             return <Pressable accessibilityRole="button" accessibilityLabel={`${item.name}, ${bodyParts[item.bodyPart]}, ${equipmentLabels[item.equipment]}${selected ? ', 추가됨' : ', 추가'}`} accessibilityState={{ disabled: selected }} disabled={selected} onPress={() => choose(item)} style={({ pressed }) => [s.exercise, { opacity: pressed ? 0.65 : 1 }]}>
@@ -54,7 +71,7 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
           ListFooterComponent={<View style={s.footer}>
             {custom ? <View style={s.custom}><Text style={s.exerciseName}>내 종목 직접 입력</Text><TextInput style={s.customInput} accessibilityLabel="직접 입력할 운동 이름" placeholder="운동 이름" maxLength={80} value={customName} onChangeText={setCustomName} /><Button title="이 이름으로 추가" disabled={!customName.trim()} onPress={() => choose({ name: customName })} /><Button title="직접 입력 취소" secondary onPress={() => setCustom(false)} /></View> : <Button title="목록에 없는 종목 직접 입력" secondary onPress={() => { setCustomName(query); setCustom(true); }} />}
             <Text style={s.credit}>동작 사진 · Free Exercise DB · Unlicense</Text>
-            <Pressable accessibilityRole="link" style={s.sourceLink} onPress={() => { void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() => setError('출처 링크를 열지 못했습니다.')); }}><Text style={s.link}>사진 출처 보기</Text></Pressable>
+            <Pressable accessibilityRole="link" style={s.sourceLink} onPress={() => { void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() => reportError('출처 링크를 열지 못했습니다.')); }}><Text style={s.link}>사진 출처 보기</Text></Pressable>
           </View>} />
       </View>
     </KeyboardAvoidingView>
@@ -75,9 +92,9 @@ const s = StyleSheet.create({
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: 24, backgroundColor: colors.background }, chipSelected: { backgroundColor: colors.primary },
   chipLabel: { fontSize: 15, fontWeight: '600', color: colors.muted }, chipLabelSelected: { color: '#fff' },
   resultHeader: { paddingHorizontal: 20, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, reset: { minHeight: 44, justifyContent: 'center' },
-  list: { paddingHorizontal: 20, paddingBottom: 12 }, exercise: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 14, borderBottomWidth: 1, borderColor: '#F0F3F1' },
+  scroll: { flex: 1, minHeight: 0 }, list: { paddingBottom: 12 }, exercise: { marginHorizontal: 20, flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 14, borderBottomWidth: 1, borderColor: '#F0F3F1' },
   picture: { width: 88, height: 88, borderRadius: 16, backgroundColor: colors.background }, exerciseInfo: { flex: 1, gap: 6 }, exerciseName: { color: colors.text, fontSize: 17, lineHeight: 24, fontWeight: '600' },
   muted: { color: colors.muted, fontSize: 13, lineHeight: 20 }, add: { color: colors.primary, fontSize: 26, minWidth: 28, textAlign: 'center' }, selected: { fontSize: 12, color: colors.muted },
-  empty: { paddingVertical: 32, gap: 8 }, footer: { paddingTop: 24, gap: 10 }, custom: { gap: 12 }, customInput: { borderWidth: 1, borderColor: colors.border, padding: 14, borderRadius: 12, fontSize: 16, minHeight: 48 },
+  empty: { marginHorizontal: 20, paddingVertical: 32, gap: 8 }, footer: { marginHorizontal: 20, paddingTop: 24, gap: 10 }, custom: { gap: 12 }, customInput: { borderWidth: 1, borderColor: colors.border, padding: 14, borderRadius: 12, fontSize: 16, minHeight: 48 },
   credit: { color: colors.muted, textAlign: 'center', fontSize: 11, marginTop: 12 }, sourceLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }, link: { color: colors.primary, fontSize: 13 }, error: { color: '#B42318', paddingHorizontal: 20 },
 });
