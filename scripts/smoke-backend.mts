@@ -21,7 +21,12 @@ if (!existsSync(jar)) throw new Error('검증된 백엔드 JAR가 필요합니�
 const testEnvironment = testDatabaseEnvironment(process.env);
 const pair = generateKeyPairSync('rsa', { modulusLength:2048 });
 const publicKey = { ...pair.publicKey.export({format:'jwk'}), kid:'client-integration', alg:'RS256', use:'sig' };
-const jwks = createServer((_, response) => { response.writeHead(200, {'Content-Type':'application/json'}); response.end(JSON.stringify({keys:[publicKey]})); });
+let publishedKeys = [publicKey];
+let keysUnavailable = false;
+const jwks = createServer((_, response) => {
+  response.writeHead(keysUnavailable ? 503 : 200, {'Content-Type':'application/json'});
+  response.end(JSON.stringify(keysUnavailable ? {error:'test outage'} : {keys:publishedKeys}));
+});
 jwks.listen(0, '127.0.0.1'); await once(jwks, 'listening');
 const jwksAddress = jwks.address();
 if (!jwksAddress || typeof jwksAddress === 'string') throw new Error('JWKS address unavailable');
@@ -32,12 +37,12 @@ await new Promise<void>(resolve => probe.close(() => resolve()));
 const baseUrl = `http://127.0.0.1:${address.port}`;
 const issuer = 'https://client-test.rufit.test';
 const run = randomUUID();
-function token(subject: string) {
+function token(subject: string, signingPair = pair, kid = 'client-integration') {
   const encoded = [
-    {alg:'RS256', typ:'JWT', kid:'client-integration'},
+    {alg:'RS256', typ:'JWT', kid},
     {iss:issuer, sub:subject, aud:'rufit-api', iat:Math.floor(Date.now()/1000), exp:Math.floor(Date.now()/1000)+600},
   ].map(value => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.');
-  return `${encoded}.${sign('RSA-SHA256', Buffer.from(encoded), pair.privateKey).toString('base64url')}`;
+  return `${encoded}.${sign('RSA-SHA256', Buffer.from(encoded), signingPair.privateKey).toString('base64url')}`;
 }
 const java = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/java` : 'java';
 const backend = spawn(java, ['-jar', jar, `--server.port=${address.port}`, `--spring.datasource.url=${testEnvironment.DB_URL}`, '--spring.datasource.username=rufit_test'], {
@@ -82,7 +87,20 @@ try {
   const key = randomUUID();
   let workout = await api.start(key);
   assert.equal((await api.start(key)).id, workout.id);
-  workout = await api.replaceSets(workout.id, workout.version, [{exerciseName:'스쿼트', weight:40.5, reps:10}]);
+  const rotatedPair = generateKeyPairSync('rsa', {modulusLength:2048});
+  const rotatedToken = () => token(`alice-${run}`,rotatedPair,'rotated-client-integration');
+  const rotatingApi = createRufitApi({baseUrl,getAccessToken:rotatedToken});
+  keysUnavailable = true;
+  try {
+    await assert.rejects(rotatingApi.updateNote(workout.id,workout.version,'Unverified write'),(e:unknown) =>
+      e instanceof ApiError && e.status === 503 && e.code === 'AUTHENTICATION_UNAVAILABLE' && e.outcomeUnknown && e.requestId !== null);
+  } finally { keysUnavailable = false; }
+  publishedKeys = [publicKey,{...rotatedPair.publicKey.export({format:'jwk'}),kid:'rotated-client-integration',alg:'RS256',use:'sig'}];
+  const rotatedSession = await createRufitSession({baseUrl,getAccessToken:rotatedToken});
+  assert.deepEqual(rotatedSession.scope,accountSession.scope);
+  const afterKeyRecovery = await rotatedSession.api.workout(workout.id);
+  assert.equal(afterKeyRecovery.note,'');assert.equal(afterKeyRecovery.version,workout.version);
+  workout = await rotatedSession.api.replaceSets(workout.id, workout.version, [{exerciseName:'스쿼트', weight:40.5, reps:10}]);
   workout = await api.completeSet(workout.id, workout.version, 0, true, 90);
   assert.ok(workout.restEndsAt);
   workout = await api.appendSet(workout.id, workout.version, {exerciseName:'푸시업', weight:0, reps:8});
