@@ -17,6 +17,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createRufitApi, ApiError } from '../src/api/client.ts';
 import { exerciseCatalog } from '../src/features/exercises/catalog.ts';
 import { prepareWorkoutDraft } from '../src/features/workout/draftMapping.ts';
+import { createConnectedWorkoutStorage } from '../src/features/workout/connectedStorage.ts';
 import { addExercise, addSet, removeSet, startWorkout, updateSet } from '../src/features/workout/model.ts';
 
 const jar = process.env.RUFIT_BACKEND_JAR ?? fileURLToPath(new URL('../../rufit-backend/target/rufit-backend-0.0.1-SNAPSHOT.jar', import.meta.url));
@@ -312,9 +313,63 @@ try {
   assert.equal((await mappingQueue.list()).length,0);
   await assert.rejects(other.workout(mappingWorkout.id),(e:unknown)=>e instanceof ApiError && e.status===404);
   await mappingSession.api.cancel(mappingWorkout.id,mappedSnapshot.version,true);
+  const connectionSession = await createRufitSession({baseUrl,getAccessToken:() => token(`connected-${run}`)});
+  const connectionWorkout = await connectionSession.api.start(randomUUID());
+  let failReceiptWrite = false;
+  const connectedDisk = {...disk,setItem:async(key:string,value:string)=>{
+    if (failReceiptWrite && key.startsWith('rufit.connected-workouts') && JSON.parse(value).records[0].pending?.acknowledgedVersion != null) {
+      failReceiptWrite=false;throw new Error('test receipt disk failure');
+    }
+    await disk.setItem(key,value);
+  }};
+  const connections = createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
+  const linked = await connections.link(connectionSession,connectionWorkout.id);
+  let connectedForm = {note:'Original connected note',rest:null,workout:updateSet(
+    addExercise(linked.form.workout,'connected-squat','스쿼트',publicExerciseId),'connected-squat','connected-squat-1',{weight:'01.00',reps:'02',completed:true})};
+  connectedForm = {...connectedForm,workout:addSet(connectedForm.workout,'connected-squat','connected-copy','connected-squat-1')};
+  await connections.edit(connectionWorkout.id,linked.revision,connectedForm);
+  const connectedOperation = randomUUID();
+  await connections.queueLatest(connectionWorkout.id,connectedOperation);
+  let serverSaved!:()=>void; const savedSignal = new Promise<void>(resolve=>{serverSaved=resolve;});
+  let releaseReply!:()=>void; const replyGate = new Promise<void>(resolve=>{releaseReply=resolve;});
+  const delayedSession = await createRufitSession({baseUrl,getAccessToken:() => token(`connected-${run}`),fetch:async(input,init)=>{
+    const response=await fetch(input,init);
+    if (String(input).endsWith('/draft')) {assert.equal(response.status,200);serverSaved();await replyGate;}
+    return response;
+  }});
+  const delayedFlush = connections.flush(delayedSession);
+  const receiptFailure = assert.rejects(delayedFlush,/test receipt disk failure/);
+  await Promise.race([savedSignal, receiptFailure]);
+  const duringSave = (await connections.load(connectionWorkout.id))!;
+  const newerForm = {...duringSave.form,note:'Typed while response was delayed',workout:updateSet(duringSave.form.workout,'connected-squat','connected-copy',{weight:''})};
+  await connections.edit(connectionWorkout.id,duringSave.revision,newerForm);
+  failReceiptWrite=true;releaseReply();await receiptFailure;delayedSession.close();
+  const restoredConnections=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
+  assert.equal((await restoredConnections.pending())[0].draft.operationId,connectedOperation);
+  assert.equal((await restoredConnections.load(connectionWorkout.id))!.form.workout.exercises[0].sets[1].weight,'');
+  const receiptResult=await restoredConnections.flush(connectionSession);
+  assert.equal(receiptResult.kind,'saved');
+  const restoredForm=(await restoredConnections.load(connectionWorkout.id))!;
+  assert.equal(restoredForm.confirmedRevision,1);assert.equal(restoredForm.revision,2);
+  assert.equal(restoredForm.lastReceipt?.operationId,connectedOperation);
+  assert.equal(restoredForm.pending,null);assert.equal((await restoredConnections.pending()).length,0);
+  assert.equal(restoredForm.form.note,newerForm.note);assert.equal(restoredForm.form.workout.exercises[0].sets[0].weight,'01.00');
+  assert.equal(restoredForm.form.workout.exercises[0].sets[1].weight,'');
+  const confirmedRemote=await connectionSession.api.workout(connectionWorkout.id);
+  assert.equal(confirmedRemote.version,1);assert.equal(confirmedRemote.note,'Original connected note');
+  assert.equal(confirmedRemote.sets[1].weight,1);
+  assert.equal(await createConnectedWorkoutStorage(connectedDisk,otherSession.scope).load(connectionWorkout.id),null);
+  await assert.rejects(restoredConnections.flush(otherSession),(e:unknown)=>e instanceof ApiError && e.code==='ACCOUNT_CHANGED');
+  const completedForm={...restoredForm.form,workout:updateSet(restoredForm.form.workout,'connected-squat','connected-copy',{weight:'3'})};
+  await restoredConnections.edit(connectionWorkout.id,restoredForm.revision,completedForm);
+  await restoredConnections.queueLatest(connectionWorkout.id,randomUUID());await restoredConnections.flush(connectionSession);
+  const latestConnected=await connectionSession.api.workout(connectionWorkout.id);
+  assert.equal(latestConnected.version,2);assert.equal(latestConnected.sets[1].weight,3);assert.equal(latestConnected.note,newerForm.note);
+  await connectionSession.api.cancel(connectionWorkout.id,latestConnected.version,true);
+  connectionSession.close();
   mappingSession.close();
   verified.close(); accountSession.close(); otherSession.close();
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping');
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);

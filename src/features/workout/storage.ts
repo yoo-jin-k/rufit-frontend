@@ -5,7 +5,7 @@ type Storage = { getItem(key: string): Promise<string | null>; setItem(key: stri
 const key = 'rufit.local-workouts.v1';
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
-function isWorkout(value: unknown): value is Workout {
+export function isWorkout(value: unknown): value is Workout {
   if (!object(value) || typeof value.id !== 'string' || !finite(value.startedAt) ||
     (value.finishedAt !== undefined && (!finite(value.finishedAt) || value.finishedAt < value.startedAt)) || !Array.isArray(value.exercises)) return false;
   return value.exercises.every(e => object(e) && typeof e.id === 'string' && typeof e.name === 'string' &&

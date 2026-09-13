@@ -3,9 +3,12 @@ import type { Draft, WorkoutSnapshot } from './client.ts';
 import type { AccountScope, RufitSession } from './session.ts';
 
 export type OutboxStorage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void> };
+export const MAX_PENDING_DRAFTS = 100;
 export type ConflictReason = 'STATE_CONFLICT' | 'RESOURCE_UNAVAILABLE' | 'REQUEST_REJECTED' | 'REMOTE_CHANGED';
 const conflictReasons: readonly string[] = ['STATE_CONFLICT','RESOURCE_UNAVAILABLE','REQUEST_REJECTED','REMOTE_CHANGED'];
 export type PendingDraft = { workoutId: string; draft: Draft; status: 'pending' | 'conflict'; remoteVersion: number | null; reason?: ConflictReason };
+export type DraftReceipt = { workoutId: string; operationId: string; appliedVersion: number; workout: WorkoutSnapshot };
+export type FlushOptions = { beforeRemove?: (receipt: DraftReceipt) => Promise<void> };
 type Archive = { schemaVersion: 1; scope: AccountScope; entries: PendingDraft[] };
 type FlushResult = { kind: 'idle' } | { kind: 'saved'; workout: WorkoutSnapshot } |
   { kind: 'conflict'; operationId: string; remoteVersion: number | null; reason?: ConflictReason };
@@ -44,7 +47,7 @@ export function createDraftOutbox(storage: OutboxStorage, scope: AccountScope) {
     if (raw === null) return {schemaVersion: 1, scope, entries: []};
     const v: unknown = JSON.parse(raw);
     if (!object(v) || v.schemaVersion !== 1 || !object(v.scope) || v.scope.server !== scope.server || v.scope.accountId !== scope.accountId ||
-      !Array.isArray(v.entries) || v.entries.length > 100 || !v.entries.every(e => object(e) && uuid(e.workoutId) && validDraft(e.draft) &&
+      !Array.isArray(v.entries) || v.entries.length > MAX_PENDING_DRAFTS || !v.entries.every(e => object(e) && uuid(e.workoutId) && validDraft(e.draft) &&
         (e.status === 'pending' || e.status === 'conflict') && (e.remoteVersion === null || version(e.remoteVersion)) &&
         (e.reason === undefined || (typeof e.reason === 'string' && conflictReasons.includes(e.reason)))))
       throw new Error('저장 대기 데이터를 읽지 못했습니다. 기존 데이터는 보존했습니다.');
@@ -68,12 +71,12 @@ export function createDraftOutbox(storage: OutboxStorage, scope: AccountScope) {
           if (existing.workoutId === workoutId && JSON.stringify(existing.draft) === JSON.stringify(copy)) return;
           throw new Error('이전 저장을 먼저 처리해 주세요. 대기 중인 변경 내용은 보존했습니다.');
         }
-        if (archive.entries.length >= 100) throw new Error('저장 대기 목록이 가득 찼습니다.');
+        if (archive.entries.length >= MAX_PENDING_DRAFTS) throw new Error('저장 대기 목록이 가득 찼습니다.');
         archive.entries.push({workoutId, draft: copy, status: 'pending', remoteVersion: null});
         await write(archive);
       });
     },
-    flushOne(session: RufitSession): Promise<FlushResult> {
+    flushOne(session: RufitSession, options: FlushOptions = {}): Promise<FlushResult> {
       return serial(async () => {
         if (!sameScope(scope, session.scope)) throw new ApiError(401, 'ACCOUNT_CHANGED', '다른 계정의 저장 대기 기록은 전송할 수 없습니다.');
         const archive = await read();
@@ -96,6 +99,8 @@ export function createDraftOutbox(storage: OutboxStorage, scope: AccountScope) {
           await write(archive);
           return {kind: 'conflict', operationId: entry.draft.operationId, remoteVersion: entry.remoteVersion, reason: entry.reason};
         }
+        // Retain the exact operation if saving its form binding/receipt fails or the app exits here.
+        await options.beforeRemove?.({workoutId:entry.workoutId, operationId:entry.draft.operationId, appliedVersion:result.appliedVersion, workout:result.workout});
         archive.entries = archive.entries.filter(e => e !== entry);
         await write(archive);
         return {kind: 'saved', workout: result.workout};
