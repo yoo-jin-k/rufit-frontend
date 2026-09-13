@@ -8,7 +8,8 @@ const finite = (value: unknown): value is number => typeof value === 'number' &&
 function isWorkout(value: unknown): value is Workout {
   if (!object(value) || typeof value.id !== 'string' || !finite(value.startedAt) ||
     (value.finishedAt !== undefined && (!finite(value.finishedAt) || value.finishedAt < value.startedAt)) || !Array.isArray(value.exercises)) return false;
-  return value.exercises.every(e => object(e) && typeof e.id === 'string' && typeof e.name === 'string' && Array.isArray(e.sets) &&
+  return value.exercises.every(e => object(e) && typeof e.id === 'string' && typeof e.name === 'string' &&
+    (e.catalogId === undefined || typeof e.catalogId === 'string') && Array.isArray(e.sets) &&
     e.sets.every(s => object(s) && typeof s.id === 'string' && typeof s.weight === 'string' && typeof s.reps === 'string' && typeof s.completed === 'boolean'));
 }
 export function decodeArchive(raw: string | null): WorkoutArchive {

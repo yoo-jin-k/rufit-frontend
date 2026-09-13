@@ -26,7 +26,9 @@ export function useWorkoutArchive() {
       if (current === generation.current) { setStatus('저장하지 못했습니다. 다시 저장해 주세요.'); setFailed(true); }
     });
   };
-  const setWorkout = (workout: Workout | null) => { if (ready) save(remember(latest.current, workout)); };
+  const setWorkout = (next: Workout | null | ((current: Workout | null) => Workout | null)) => {
+    if (ready) save(remember(latest.current, typeof next === 'function' ? next(latest.current.current) : next));
+  };
   const retry = () => { if (ready) save(latest.current); else void load(); };
   return { workout: archive.current, history: archive.history, setWorkout, ready, status, failed, retry };
 }

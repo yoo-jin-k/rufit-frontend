@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createRufitApi, ApiError } from '../src/api/client.ts';
+import { exerciseCatalog } from '../src/features/exercises/catalog.ts';
 
 const jar = process.env.RUFIT_BACKEND_JAR ?? fileURLToPath(new URL('../../rufit-backend/target/rufit-backend-0.0.1-SNAPSHOT.jar', import.meta.url));
 if (!existsSync(jar)) throw new Error('검증된 백엔드 JAR가 필요합니다. 먼저 백엔드에서 mvnw verify를 실행해 주세요.');
@@ -83,6 +84,16 @@ try {
   assert.deepEqual(await other.restPreferences(),restDefaults);
   await assert.rejects(api.saveRestPreferences(0,30),(e:unknown) => e instanceof ApiError && e.status === 409);
   assert.deepEqual(await api.restPreferences(),savedRest);
+  const sharedCatalog = await api.exercises({size: 100});
+  for (const expected of exerciseCatalog) {
+    const actual = sharedCatalog.items.find(item => item.id === expected.id);
+    assert.ok(actual, `Missing mobile catalog ID: ${expected.id}`);
+    assert.deepEqual({name: actual.name, bodyPart: actual.bodyPart, equipment: actual.equipment},
+      {name: expected.name, bodyPart: expected.bodyPart, equipment: expected.equipment});
+  }
+  const filteredSquats = await api.exercises({query: '스쿼트', bodyPart: 'LEGS', equipment: 'DUMBBELL'});
+  assert.equal(filteredSquats.totalElements, 1);
+  assert.equal(filteredSquats.items[0].id, '00000000-0000-4000-8000-000000000012');
   assert.equal(await api.active(), null);
   const key = randomUUID();
   let workout = await api.start(key);
