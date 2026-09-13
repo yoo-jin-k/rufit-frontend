@@ -17,6 +17,7 @@ export type RestPreferences = {version: number; defaultRestSeconds: number};
 export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null; sourceWorkoutId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
 export type ExerciseRecord = { workoutId: string; finishedAt: string; sets: SetInput[] };
+export type PreviousExerciseSets = {items: {exerciseId: string; exerciseName: string; record: ExerciseRecord | null}[]};
 export type WorkoutSummary = {workoutId: string; version: number; startedAt: string; finishedAt: string; durationSeconds: number;
   completedSets: number; totalReps: number; volumeKgReps: number; exercises: {exerciseId: string | null; exerciseName: string;
     completedSets: number; totalReps: number; volumeKgReps: number; heaviestWeight: number; repsAtHeaviestWeight: number}[]};
@@ -100,6 +101,7 @@ export function createRufitApi(options: Options) {
     archiveExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/archive`, {version}),
     restoreExercise: (id: string, version: number) => request<Exercise>('POST', `/exercises/${segment(id)}/restore`, {version}),
     exerciseHistoryById: (exerciseId: string, page = 0, size = 10) => request<Page<ExerciseRecord> & {exerciseName: string}>('GET', `/workouts/exercise-history?exerciseId=${segment(exerciseId)}&page=${page}&size=${size}`),
+    previousSets: (exerciseIds: readonly string[]) => request<PreviousExerciseSets>('GET', `/workouts/previous-sets?exerciseIds=${segment(exerciseIds.join(','))}`),
     routineFromWorkout: (workoutId: string, version: number, title: string, idempotencyKey: string) => request<Routine>('POST', `/routines/from-workout/${segment(workoutId)}`, {version, title}, {'Idempotency-Key': idempotencyKey}),
     copyRoutine: (id: string, version: number, title: string, idempotencyKey: string) => request<Routine>('POST', `/routines/${segment(id)}/copy`, {version, title}, {'Idempotency-Key': idempotencyKey}),
     deleteRoutine: (id: string, version: number, confirmed: true) => request<null>('POST', `/routines/${segment(id)}/delete`, {version, confirmed}),

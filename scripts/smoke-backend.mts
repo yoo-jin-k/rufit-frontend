@@ -173,6 +173,12 @@ try {
   assert.deepEqual(recovered.workout.completedSetIndexes, [0]);
   draftWorkout = await api.finish(draftWorkout.id, recovered.workout.version);
   assert.equal((await api.exerciseHistoryById(exercise.id)).items[0].sets[0].exerciseId, exercise.id);
+  const publicExerciseId = '00000000-0000-4000-8000-000000000001';
+  const previousSets = await api.previousSets([publicExerciseId,exercise.id,exercise.id]);
+  assert.equal(previousSets.items.length,2);assert.equal(previousSets.items[0].record,null);
+  assert.equal(previousSets.items[1].record?.workoutId,draftWorkout.id);
+  assert.equal(previousSets.items[1].record?.sets[0].weight,20);
+  await assert.rejects(other.previousSets([exercise.id]),(e:unknown) => e instanceof ApiError && e.status === 404);
   const replayAfterFinish = await api.saveDraft(draftWorkout.id, draft);
   assert.ok(replayAfterFinish.workout.version > replayAfterFinish.appliedVersion);
   const copyKey = randomUUID();
