@@ -17,6 +17,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "^57.0.2",
+    "sass": "^1.104.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -26,10 +27,17 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.tools.json",
     "lint": "eslint .",
-    "check": "npm run typecheck && npm run lint && npm test",
+    "check": "npm run styles:check && npm run typecheck && npm run lint && npm test",
     "export": "expo export --platform all",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "test:backend": "node --experimental-strip-types scripts/smoke-backend.mts"
+    "test:backend": "node --experimental-strip-types scripts/smoke-backend.mts",
+    "styles": "node --experimental-strip-types scripts/build-styles.mts",
+    "styles:check": "npm run styles -- --check",
+    "prestart": "npm run styles",
+    "preweb": "npm run styles",
+    "preios": "npm run styles",
+    "preandroid": "npm run styles",
+    "preexport": "npm run styles"
   },
   "private": true,
   "engines": {
