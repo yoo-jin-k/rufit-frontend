@@ -12,7 +12,7 @@ import { RestSetting, formatRest } from './RestSetting';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen() {
-  const { workout, setWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, status, failed, retry } = useWorkoutArchive();
+  const { workout, setWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, status, failed, retry, retryPending } = useWorkoutArchive();
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -93,7 +93,7 @@ export function WorkoutScreen() {
       </>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {ready && <Text accessibilityLiveRegion="polite" style={s.muted}>{status}</Text>}
-      {failed && <Button title="다시 시도" secondary onPress={retry} />}
+      {failed && <Button title="다시 시도" secondary disabled={retryPending} onPress={retry} />}
       {history.length > 0 && <Button title={`이전 기록 ${history.length}개 ${showHistory ? '접기' : '보기'}`} secondary onPress={() => setShowHistory(!showHistory)} />}
       {showHistory && [...history].reverse().map(w => <View key={w.id} style={s.card}>
         <Text style={s.heading}>{new Date(w.startedAt).toLocaleDateString()} 운동</Text>
