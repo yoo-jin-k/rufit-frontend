@@ -316,9 +316,17 @@ try {
   const connectionSession = await createRufitSession({baseUrl,getAccessToken:() => token(`connected-${run}`)});
   const connectionWorkout = await connectionSession.api.start(randomUUID());
   let failReceiptWrite = false;
+  let failDiscardWrite = false;
+  let failClosedWrite = false;
   const connectedDisk = {...disk,setItem:async(key:string,value:string)=>{
     if (failReceiptWrite && key.startsWith('rufit.connected-workouts') && JSON.parse(value).records[0].pending?.acknowledgedVersion != null) {
       failReceiptWrite=false;throw new Error('test receipt disk failure');
+    }
+    if (failDiscardWrite && key.startsWith('rufit.draft-outbox') && JSON.parse(value).entries.length===0) {
+      failDiscardWrite=false;throw new Error('test discard disk failure');
+    }
+    if (failClosedWrite && key.startsWith('rufit.connected-workouts') && JSON.parse(value).records[0].closed!=null) {
+      failClosedWrite=false;throw new Error('test closed disk failure');
     }
     await disk.setItem(key,value);
   }};
@@ -365,11 +373,56 @@ try {
   await restoredConnections.queueLatest(connectionWorkout.id,randomUUID());await restoredConnections.flush(connectionSession);
   const latestConnected=await connectionSession.api.workout(connectionWorkout.id);
   assert.equal(latestConnected.version,2);assert.equal(latestConnected.sets[1].weight,3);assert.equal(latestConnected.note,newerForm.note);
-  await connectionSession.api.cancel(connectionWorkout.id,latestConnected.version,true);
+  // A second device changes the same draft; resolution persists before removing the rejected request.
+  const beforeConflict=(await restoredConnections.load(connectionWorkout.id))!;
+  const conflictingForm={...beforeConflict.form,note:'Local choice survives an interrupted discard'};
+  const conflictingEdit=await restoredConnections.edit(connectionWorkout.id,beforeConflict.revision,conflictingForm);
+  const conflictingOperation=randomUUID();await restoredConnections.queueLatest(connectionWorkout.id,conflictingOperation);
+  const remoteEdit=await connectionSession.api.saveDraft(connectionWorkout.id,{operationId:randomUUID(),version:latestConnected.version,
+    note:'Changed on another device',sets:latestConnected.sets.map((set,i)=>({set,completed:latestConnected.completedSetIndexes.includes(i)})),restEndsAt:null,restSetIndex:null});
+  assert.equal((await restoredConnections.flush(connectionSession)).kind,'conflict');
+  const comparison=await restoredConnections.review(connectionSession,connectionWorkout.id);
+  assert.equal(comparison.remote.note,'Changed on another device');assert.equal(comparison.local.form.note,conflictingForm.note);
+  failDiscardWrite=true;
+  await assert.rejects(restoredConnections.resolve(connectionSession,connectionWorkout.id,{operationId:conflictingOperation,expectedRevision:conflictingEdit.revision,
+    remoteVersion:remoteEdit.workout.version,choice:'keep-local',confirmed:true}),/test discard disk failure/);
+  const afterDecision=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);await afterDecision.recover();
+  const resolved=(await afterDecision.load(connectionWorkout.id))!;
+  assert.equal(resolved.pending,null);assert.equal((await afterDecision.pending()).length,0);
+  assert.equal(resolved.backups![0].record.pending!.draft.operationId,conflictingOperation);
+  assert.equal(resolved.form.workout.exercises[0].sets[0].weight,'01.00');
+  await assert.rejects(afterDecision.queueLatest(connectionWorkout.id,conflictingOperation),/새 작업/);
+  await afterDecision.queueLatest(connectionWorkout.id,randomUUID());await afterDecision.flush(connectionSession);
+  assert.equal((await connectionSession.api.workout(connectionWorkout.id)).note,conflictingForm.note);
+  // Persisted close intent recovers from a successful server finish followed by a local disk failure.
+  const toFinish=(await afterDecision.load(connectionWorkout.id))!;failClosedWrite=true;
+  await assert.rejects(afterDecision.close(connectionSession,connectionWorkout.id,toFinish.revision,{action:'finish',confirmed:true,discardIncomplete:true}),/test closed disk failure/);
+  const serverFinished=await connectionSession.api.workout(connectionWorkout.id);assert.ok(serverFinished.finishedAt);assert.equal(serverFinished.sets.length,1);
+  const afterFinish=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
+  assert.ok((await afterFinish.load(connectionWorkout.id))!.closing);
+  assert.equal((await afterFinish.resumeClose(connectionSession,connectionWorkout.id)).kind,'closed');
+  const closed=(await afterFinish.load(connectionWorkout.id))!;
+  assert.equal(closed.closed!.version,serverFinished.version);assert.equal(closed.form.workout.exercises[0].sets.length,2);
+  await assert.rejects(afterFinish.edit(connectionWorkout.id,closed.revision,closed.form),/종료된 운동/);
+  await assert.rejects(afterFinish.queueLatest(connectionWorkout.id,randomUUID()),/종료된 운동/);
+  await connectionSession.api.deleteHistory(connectionWorkout.id,serverFinished.version,true);
+  // A lost cancellation response also recovers by reading the server, without repeating the POST.
+  const toCancel=await connectionSession.api.start(randomUUID());await afterFinish.link(connectionSession,toCancel.id);
+  let cancelPosts=0;
+  const lostCancelSession=await createRufitSession({baseUrl,getAccessToken:()=>token(`connected-${run}`),fetch:async(input,init)=>{
+    const response=await fetch(input,init);
+    if (String(input).endsWith('/cancel')) {cancelPosts++;assert.equal(response.status,200);throw new Error('test lost cancellation response');}
+    return response;
+  }});
+  await assert.rejects(afterFinish.close(lostCancelSession,toCancel.id,0,{action:'cancel',confirmed:true,discardIncomplete:false}),
+    (e:unknown)=>e instanceof ApiError && e.code==='NETWORK_ERROR' && e.outcomeUnknown);
+  const afterCancel=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
+  assert.equal((await afterCancel.resumeClose(lostCancelSession,toCancel.id)).kind,'closed');assert.equal(cancelPosts,1);
+  assert.ok((await afterCancel.load(toCancel.id))!.closed!.cancelledAt);lostCancelSession.close();
   connectionSession.close();
   mappingSession.close();
   verified.close(); accountSession.close(); otherSession.close();
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery');
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery/conflict-choice/close-recovery');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);

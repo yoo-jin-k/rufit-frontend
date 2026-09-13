@@ -19,11 +19,24 @@ function disk() {
 }
 function snapshot(): WorkoutSnapshot {return {id:randomUUID(),version:0,startedAt:'2026-09-13T00:00:00.000Z',finishedAt:null,cancelledAt:null,sourceRoutineId:null,sets:[],completedSetIndexes:[],restEndsAt:null,restSetIndex:null,note:'서버 메모'};}
 async function server(initial=snapshot(), accountId='alice', serverUrl=base) {
-  let current=clone(initial); let writes=0; let draftCalls=0; let getCalls=0;
+  let current=clone(initial); let writes=0; let draftCalls=0; let getCalls=0; let closeCalls=0;
   const operations=new Map<string,number>(); const bodies:Draft[]=[];
   let intercept: ((body:Draft,response:unknown)=>Promise<Response>|Response)|null=null;
+  let closeIntercept: ((response:WorkoutSnapshot)=>Promise<Response>|Response)|null=null;
   const session=await createRufitSession({baseUrl:serverUrl,getAccessToken:()=>'test-only-token',fetch:async(url,init)=>{
     if (String(url).endsWith('/me')) return Response.json({id:accountId});
+    if (/\/(finish|cancel)$/.test(String(url))) {
+      closeCalls++;
+      const body=JSON.parse(String(init?.body));
+      if (body.version!==current.version || current.finishedAt || current.cancelledAt) return Response.json({code:'STATE_CONFLICT'},{status:409});
+      const finish=String(url).endsWith('/finish');
+      if (finish) {
+        current.sets=current.sets.filter((_,i)=>current.completedSetIndexes.includes(i));
+        current.completedSetIndexes=current.sets.map((_,i)=>i);
+      }
+      current={...current,version:current.version+1,finishedAt:finish?'2026-09-13T01:00:00Z':null,cancelledAt:finish?null:'2026-09-13T01:00:00Z',restEndsAt:null,restSetIndex:null};
+      return closeIntercept ? closeIntercept(clone(current)) : Response.json(current);
+    }
     if (!String(url).endsWith('/draft')) {getCalls++;return Response.json(current);}
     draftCalls++; const body=JSON.parse(String(init?.body)) as Draft; bodies.push(clone(body));
     const applied=operations.get(body.operationId);
@@ -35,7 +48,7 @@ async function server(initial=snapshot(), accountId='alice', serverUrl=base) {
     const response={workout:clone(current),appliedVersion:operations.get(body.operationId),replayed:applied!==undefined};
     return intercept ? intercept(body,response) : Response.json(response);
   }});
-  return {session,bodies,id:initial.id,counts:()=>({writes,draftCalls,getCalls}),intercept:(fn:typeof intercept)=>{intercept=fn;},changeVersion:()=>{current.version++;},current:()=>clone(current)};
+  return {session,bodies,id:initial.id,counts:()=>({writes,draftCalls,getCalls,closeCalls}),closeIntercept:(fn:typeof closeIntercept)=>{closeIntercept=fn;},intercept:(fn:typeof intercept)=>{intercept=fn;},changeVersion:()=>{current.version++;},current:()=>clone(current)};
 }
 function edited(record:ConnectedRecord) {
   const original=record.form.workout;
@@ -189,4 +202,130 @@ test('대기 목록이 가득 차도 기존 요청을 처리한 뒤 원문에서
   assert.equal((await store.flush(api.session)).kind,'saved');
   const pending=await store.pending();assert.equal(pending.length,100);assert.ok(pending.some(p=>p.workoutId===lastId));
   assert.equal((await store.load(api.id))!.pending,null);
+});
+
+async function conflicted() {
+  const result=await staged();result.api.changeVersion();await result.store.flush(result.api.session);
+  return result;
+}
+function decision(operationId:string|null,expectedRevision:number,remoteVersion:number,choice:'keep-local'|'use-server'|'archive') {
+  return {operationId,expectedRevision,remoteVersion,choice,confirmed:true as const};
+}
+test('충돌 비교는 원문을 유지하고 로컬 선택은 새 작업으로만 재전송한다',async()=>{
+  const {store,api,operation}=await conflicted();
+  const compared=await store.review(api.session,api.id);
+  assert.equal(compared.local.form.note,'로컬 메모');assert.equal(compared.remote.note,'서버 메모');
+  const kept=await store.resolve(api.session,api.id,decision(operation,1,1,'keep-local'));
+  assert.equal(kept.form.workout.exercises[0].sets[0].weight,'01.00');
+  assert.equal(kept.pending,null);assert.equal(kept.backups![0].record.pending!.draft.operationId,operation);
+  assert.equal(kept.backups![0].remote.note,'서버 메모');assert.equal((await store.pending()).length,0);
+  assert.ok(kept.revision>kept.confirmedRevision);assert.equal(api.counts().writes,0);
+  await assert.rejects(store.queueLatest(api.id,operation),/새 작업/);
+  const next=randomUUID();await store.queueLatest(api.id,next);await store.flush(api.session);
+  assert.equal(api.bodies[1].operationId,next);assert.equal(api.bodies[1].version,1);assert.equal(api.current().version,2);
+});
+for (const step of ['choice','discard','cleanup'] as const) test(`명시적 서버 선택 ${step} 실패 뒤 재시작해 폐기 요청이 되살아나지 않는다`,async()=>{
+  const {store,storage,api,operation}=await conflicted();
+  const original=(await store.load(api.id))!.form;
+  storage.failOnce((key,value)=>step==='discard' ? key.includes('draft-outbox') && JSON.parse(value).entries.length===0 :
+    key.includes('connected-workouts') && (step==='choice' ? JSON.parse(value).records[0].resolution!=null : JSON.parse(value).records[0].backups?.length===1));
+  await assert.rejects(store.resolve(api.session,api.id,decision(operation,1,1,'use-server')),/disk full/);
+  const restarted=createConnectedWorkoutStorage(storage,scope);
+  if (step==='choice') {
+    await restarted.recover();assert.equal((await restarted.pending()).length,1);
+    assert.deepEqual((await restarted.load(api.id))!.form,original);
+    await restarted.resolve(api.session,api.id,decision(operation,1,1,'use-server'));
+  } else await restarted.recover();
+  const resolved=(await restarted.load(api.id))!;
+  assert.equal(resolved.resolution,null);assert.equal(resolved.pending,null);assert.equal(resolved.backups!.length,1);
+  assert.deepEqual(resolved.backups![0].record.form,original);assert.equal(resolved.form.note,'서버 메모');
+  assert.equal((await restarted.pending()).length,0);await restarted.recover();assert.equal((await restarted.queueLatest(api.id,randomUUID())).kind,'idle');
+  assert.equal(api.counts().draftCalls,1);
+});
+test('변경된 로컬/서버 비교와 계정 변경, 확인 없는 충돌 선택은 거부한다',async()=>{
+  const {store,api,operation}=await conflicted();
+  const other=await server(snapshot(),'bob');
+  await assert.rejects(store.resolve(other.session,api.id,decision(operation,1,1,'use-server')),(e:unknown)=>e instanceof ApiError && e.code==='ACCOUNT_CHANGED');
+  await assert.rejects(store.resolve(api.session,api.id,{...decision(operation,1,1,'use-server'),confirmed:false as unknown as true}));
+  api.changeVersion();await assert.rejects(store.resolve(api.session,api.id,decision(operation,1,1,'use-server')),/서버 기록이 다시/);
+  const record=(await store.load(api.id))!;await store.edit(api.id,record.revision,{...record.form,note:'선택 전 추가 입력'});
+  await assert.rejects(store.resolve(api.session,api.id,decision(operation,1,2,'use-server')),/로컬 기록이 변경/);
+  assert.equal((await store.pending()).length,1);assert.equal((await store.load(api.id))!.form.note,'선택 전 추가 입력');
+});
+test('정리 도중 편집을 막고 손상된 선택 원문은 보존한다',async()=>{
+  const {store,storage,api,operation}=await conflicted();
+  storage.failOnce(key=>key.includes('draft-outbox'));
+  await assert.rejects(store.resolve(api.session,api.id,decision(operation,1,1,'use-server')),/disk full/);
+  const record=(await store.load(api.id))!;
+  await assert.rejects(store.edit(api.id,record.revision,{...record.form,note:'수정'}),/처리 중/);
+  const key=[...storage.values.keys()].find(k=>k.includes('connected-workouts'))!;
+  const corrupt=JSON.parse(storage.values.get(key)!);corrupt.records[0].resolution.remote.id=randomUUID();
+  const raw=JSON.stringify(corrupt);storage.values.set(key,raw);
+  await assert.rejects(store.recover(),/기존 데이터는 보존/);assert.equal(storage.values.get(key),raw);assert.equal((await store.pending()).length,1);
+});
+test('종료는 최신 저장과 미완료 제외 확인을 요구하고 보관 원문을 수정하지 않는다',async()=>{
+  const {store,storage,api}=await staged();
+  const options={action:'finish' as const,confirmed:true as const,discardIncomplete:true};
+  await assert.rejects(store.close(api.session,api.id,1,options),/저장 대기/);
+  await store.flush(api.session);
+  await assert.rejects(store.close(api.session,api.id,1,{...options,discardIncomplete:false}),/완료 세트/);
+  const original=(await store.load(api.id))!.form;
+  assert.equal((await store.close(api.session,api.id,1,options)).kind,'closed');
+  const restarted=createConnectedWorkoutStorage(storage,scope);const closed=(await restarted.load(api.id))!;
+  assert.equal(closed.closed!.sets.length,1);assert.equal(closed.form.workout.exercises[0].sets.length,2);assert.deepEqual(closed.form,original);
+  await assert.rejects(restarted.edit(api.id,1,original),/종료된 운동/);await assert.rejects(restarted.queueLatest(api.id,randomUUID()),/종료된 운동/);
+  assert.equal((await restarted.resumeClose(api.session,api.id)).kind,'closed');assert.equal(api.counts().closeCalls,1);
+});
+for (const step of ['intent','response','receipt'] as const) test(`취소 ${step} 실패 후 서버 상태를 읽고 중복 취소 없이 복구한다`,async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);await store.link(api.session,api.id);
+  if (step==='response') api.closeIntercept(()=>{throw new Error('reply lost');});
+  else storage.failOnce((key,value)=>key.includes('connected-workouts') && (step==='intent' ? JSON.parse(value).records[0].closing!=null : JSON.parse(value).records[0].closed!=null));
+  await assert.rejects(store.close(api.session,api.id,0,{action:'cancel',confirmed:true,discardIncomplete:false}),(error:unknown)=>step==='response' ? error instanceof ApiError && error.code==='NETWORK_ERROR' : error instanceof Error && error.message==='disk full');
+  const restarted=createConnectedWorkoutStorage(storage,scope);await restarted.recover();
+  if (step==='intent') {assert.equal(api.counts().closeCalls,0);await restarted.close(api.session,api.id,0,{action:'cancel',confirmed:true,discardIncomplete:false});}
+  else {
+    assert.ok((await restarted.load(api.id))!.closing);await assert.rejects(restarted.queueLatest(api.id,randomUUID()),/처리 중/);
+    assert.equal((await restarted.resumeClose(api.session,api.id)).kind,'closed');
+  }
+  assert.equal(api.counts().closeCalls,1);assert.ok((await restarted.load(api.id))!.closed!.cancelledAt);
+});
+test('종료 대기 중 다른 기기 변경은 덮어쓰지 않고 비교 후 선택으로만 해제한다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);await store.link(api.session,api.id);api.changeVersion();
+  assert.equal((await store.close(api.session,api.id,0,{action:'cancel',confirmed:true,discardIncomplete:false})).kind,'conflict');
+  assert.equal(api.counts().closeCalls,0);
+  const resolved=await store.resolve(api.session,api.id,decision(null,0,1,'use-server'));
+  assert.equal(resolved.closing,null);assert.equal(resolved.backups![0].closing!.action,'cancel');
+  await store.close(api.session,api.id,resolved.revision,{action:'cancel',confirmed:true,discardIncomplete:false});
+  assert.equal(api.counts().closeCalls,1);
+});
+test('다른 기기에서 닫은 운동은 명시적 보관 선택 후 대기를 제거하고 원문을 읽기 전용으로 남긴다',async()=>{
+  const {store,api,operation}=await staged();
+  await api.session.api.cancel(api.id,0,true);
+  await assert.rejects(store.resolve(api.session,api.id,decision(operation,1,1,'keep-local')),/종료된 기록/);
+  const record=await store.resolve(api.session,api.id,decision(operation,1,1,'archive'));
+  assert.ok(record.closed!.cancelledAt);assert.equal(record.form.workout.exercises[0].sets[0].weight,'01.00');
+  assert.equal(record.backups![0].record.pending!.draft.operationId,operation);assert.equal((await store.pending()).length,0);
+  await assert.rejects(store.edit(api.id,record.revision,record.form),/종료된 운동/);
+  assert.equal(api.counts().draftCalls,0);
+});
+
+test('저장 확인 후 요청 삭제 실패와 다른 기기 변경이 겹쳐도 원문을 보관하고 충돌을 해결한다',async()=>{
+  const {storage,api,store,operation}=await staged();
+  storage.failOnce((key,value)=>key.includes('draft-outbox') && JSON.parse(value).entries.length===0);
+  await assert.rejects(store.flush(api.session),/disk full/);api.changeVersion();
+  assert.equal((await store.flush(api.session)).kind,'conflict');
+  const record=await store.resolve(api.session,api.id,decision(operation,1,2,'use-server'));
+  assert.equal(record.backups![0].record.pending!.acknowledgedVersion,1);assert.equal(record.version,2);assert.equal(record.pending,null);
+});
+
+test('이전 연결 자료를 읽고 첫 저장 때 새 형식으로 기록해 구버전의 잘못된 재편집을 막는다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  const linked=await store.link(api.session,api.id);
+  const key=[...storage.values.keys()].find(k=>k.includes('connected-workouts'))!;
+  const legacy=JSON.parse(storage.values.get(key)!);legacy.schemaVersion=1;storage.values.set(key,JSON.stringify(legacy));
+  const restarted=createConnectedWorkoutStorage(storage,scope);assert.deepEqual(await restarted.load(api.id),linked);
+  assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,1);
+  await restarted.edit(api.id,0,edited(linked));assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,2);
+  const future=JSON.parse(storage.values.get(key)!);future.schemaVersion=99;const raw=JSON.stringify(future);storage.values.set(key,raw);
+  await assert.rejects(restarted.load(api.id),/기존 데이터는 보존/);assert.equal(storage.values.get(key),raw);
 });
