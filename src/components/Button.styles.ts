@@ -4,6 +4,7 @@ import {colors, radius, spacing, typography, size} from '../theme/tokens';
 export const buttonStyles = StyleSheet.create({
   button: {minHeight: size.controlMin, paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderRadius: radius.button, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', width: '100%', minWidth: 0},
+  compact: {paddingHorizontal: spacing.xs},
   secondary: {backgroundColor: colors.primarySoft},
   pressed: {backgroundColor: colors.primaryPressed},
   secondaryPressed: {backgroundColor: colors.border},

@@ -16,4 +16,4 @@ export const typography = {
   caption: {fontSize: 14, lineHeight: 22, fontWeight: '400'},
 } as const;
 export const size = {controlMin: 48, contentMax: 640, mediumWindow: 375, wideWindow: 640,
-  largeTextScale: 1.3, focusWidth: 2, focusOffset: 2};
+  setRowInlineMin: 316, setInputMin: 64, borderWidth: 1, largeTextScale: 1.3, focusWidth: 2, focusOffset: 2};

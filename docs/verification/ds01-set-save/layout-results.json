@@ -1,0 +1,178 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 568,
+      "stacked": true,
+      "scrollWidth": 320,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 80,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 80,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 80,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "stacked": true,
+      "scrollWidth": 375,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 95.65625,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 95.671875,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 95.671875,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "stacked": false,
+      "scrollWidth": 390,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 48,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "stacked": false,
+      "scrollWidth": 430,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 48,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "stacked": false,
+      "scrollWidth": 768,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 48,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "stacked": false,
+      "scrollWidth": 1024,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 48,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "stacked": false,
+      "scrollWidth": 844,
+      "overflow": [],
+      "actions": [
+        {
+          "name": "스쿼트 1세트 완료 취소",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 삭제",
+          "width": 48,
+          "height": 48
+        },
+        {
+          "name": "스쿼트 1세트 복제",
+          "width": 48,
+          "height": 48
+        }
+      ]
+    }
+  ],
+  "fieldErrorFocus": true,
+  "resizePreservesDomCursorAndRaw": true,
+  "duplicateDeleteKeepOriginal": true,
+  "invalidCompletedEditClearsRest": true,
+  "nativeFontScaleTested": false,
+  "errors": []
+}

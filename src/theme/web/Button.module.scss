@@ -11,6 +11,7 @@
   min-width: 0;
   &:focus-visible { outline: t.$size-focusWidth solid t.$colors-focus; outline-offset: t.$size-focusOffset; }
 }
+.compact { padding-left: t.$spacing-xs; padding-right: t.$spacing-xs; }
 .secondary { background-color: t.$colors-primarySoft; }
 .pressed { background-color: t.$colors-primaryPressed; }
 .secondaryPressed { background-color: t.$colors-border; }
