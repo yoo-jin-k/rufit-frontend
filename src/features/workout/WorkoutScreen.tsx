@@ -6,12 +6,15 @@ import { colors } from '../../theme/tokens';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
 import { exerciseImages } from '../exercises/images';
+import { routineFromWorkout, startWorkoutFromRoutine } from '../routines/model';
+import { useRoutineLibrary } from '../routines/useRoutineLibrary';
 import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, formatRestTime, restRemainingMs, setCompletedWithRest, extendRestTimer, clearRestTimer, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen() {
   const { workout, setWorkout, history, ready, status, failed, retry } = useWorkoutArchive();
+  const routineLibrary = useRoutineLibrary();
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -32,6 +35,12 @@ export function WorkoutScreen() {
   function act(fn: (current: Workout) => Workout) {
     try { change(fn); } catch (e) { setError(e instanceof Error ? e.message : '다시 시도해 주세요.'); }
   }
+  function saveAsRoutine(source: Workout) {
+    try {
+      routineLibrary.saveRoutine(routineFromWorkout(source, `workout:${source.id}`, Date.now()));
+      setError('');
+    } catch (e) { setError(e instanceof Error ? e.message : '루틴을 저장하지 못했습니다.'); }
+  }
   const finished = workout?.finishedAt !== undefined;
   const total = workout?.exercises.reduce((count, e) => count + e.sets.length, 0) ?? 0;
   const completed = workout?.exercises.reduce((count, e) => count + e.sets.filter(set => set.completed).length, 0) ?? 0;
@@ -41,7 +50,18 @@ export function WorkoutScreen() {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       <View style={s.topline}><Text style={s.brand}>루핏</Text><Text style={s.muted}>나의 운동 노트</Text></View>
       <View style={s.intro}><Text style={s.title}>오늘의 운동</Text><Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text></View>
-      {!ready ? <Text>{status}</Text> : !workout ? <View style={s.card}><Text style={s.heading}>내 페이스로 시작해요</Text><Text style={s.muted}>종목을 고르고 오늘의 무게와 횟수를 기록해요.</Text><Button title="자유 운동 시작" onPress={() => setWorkout(startWorkout(nextId(), Date.now()))} /></View> : <>
+      {!ready ? <Text>{status}</Text> : !workout ? <>
+        <View style={s.card}><Text style={s.heading}>내 페이스로 시작해요</Text><Text style={s.muted}>종목을 고르고 오늘의 무게와 횟수를 기록해요.</Text><Button title="자유 운동 시작" onPress={() => setWorkout(startWorkout(nextId(), Date.now()))} /></View>
+        {routineLibrary.ready && routineLibrary.routines.length > 0 && <View style={s.card}>
+          <View><Text style={s.heading}>내 루틴</Text><Text style={s.muted}>완료한 운동을 저장해 두고 같은 구성으로 바로 시작해요.</Text></View>
+          {[...routineLibrary.routines].reverse().map(routine => <View key={routine.id} style={s.routineRow}>
+            <View style={s.routineInfo}><Text style={s.routineName}>{routine.name}</Text><Text style={s.muted}>{routine.exercises.length}종목 · {routine.exercises.reduce((count, exercise) => count + exercise.sets.length, 0)}세트</Text></View>
+            <Button title="시작" secondary onPress={() => setWorkout(startWorkoutFromRoutine(routine, nextId(), Date.now()))} />
+          </View>)}
+        </View>}
+        {!routineLibrary.ready && <Text style={s.muted}>{routineLibrary.status}</Text>}
+        {routineLibrary.failed && <Button title="루틴 다시 불러오기" secondary onPress={routineLibrary.retry} />}
+      </> : <>
         <View style={s.summary}><Text style={s.heading}>{finished ? '오늘도 해냈어요!' : '운동 기록 중'}</Text><Text style={s.progress}>{completed} / {total}세트 완료</Text></View>
         <View style={s.card}>
           <Text style={s.heading} accessibilityLabel="운동 진행 시간">{formatWorkoutTime(elapsedWorkoutMs(workout, now))}</Text>
@@ -84,7 +104,10 @@ export function WorkoutScreen() {
             <Button title="운동 종료" onPress={() => { try { change(w => finishWorkout(w, Date.now())); } catch (e) {
               if (e instanceof IncompleteSetsError) { setError(''); setConfirmFinish(true); } else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
             } }} />}
-        </> : <Button title="새 운동 준비" onPress={() => setWorkout(null)} />}
+        </> : <>
+          <Button title="이 운동을 내 루틴으로 저장" secondary disabled={!routineLibrary.ready} onPress={() => saveAsRoutine(workout)} />
+          <Button title="새 운동 준비" onPress={() => setWorkout(null)} />
+        </>}
       </>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {ready && <Text accessibilityLiveRegion="polite" style={s.muted}>{status}</Text>}
@@ -94,8 +117,10 @@ export function WorkoutScreen() {
         <Text style={s.heading}>{new Date(w.startedAt).toLocaleDateString()} 운동</Text>
         <Text style={s.muted}>운동시간 {formatWorkoutTime(elapsedWorkoutMs(w, now))}</Text>
         {w.exercises.map(e => <Text key={e.id}>{e.name}: {e.sets.map(set => `${set.weight}kg × ${set.reps}회`).join(', ')}</Text>)}
+        <Button title="이 기록을 루틴으로 저장" secondary disabled={!routineLibrary.ready} onPress={() => saveAsRoutine(w)} />
       </View>)}
-      <Text style={s.muted}>이 기기에 기록을 보관합니다. 서버 동기화는 아직 연결되지 않았습니다.</Text>
+      {routineLibrary.ready && routineLibrary.routines.length > 0 && <Text accessibilityLiveRegion="polite" style={s.muted}>{routineLibrary.status}</Text>}
+      <Text style={s.muted}>이 기기에 기록과 루틴을 보관합니다. 서버 동기화는 아직 이 화면에 연결되지 않았습니다.</Text>
     </ScrollView>
     {showPicker && <ExercisePicker selectedIds={workout?.exercises.flatMap(e => e.catalogId ? [e.catalogId] : []) ?? []} onClose={() => setShowPicker(false)} onSelect={exercise => change(w => addExercise(w, nextId(), exercise.name, exercise.id))} />}
   </KeyboardAvoidingView></SafeAreaView>;
@@ -107,8 +132,9 @@ const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background }, content: { padding: 16, paddingBottom: 32, gap: 18, maxWidth: 640, width: '100%', alignSelf: 'center' },
   topline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 }, intro: { gap: 8, marginBottom: 4 },
   brand: { color: colors.primary, fontWeight: '800', fontSize: 22 }, title: { color: colors.text, fontWeight: '800', fontSize: 30 },
-  heading: { color: colors.text, fontWeight: '700', fontSize: 19, lineHeight: 27 }, muted: { color: colors.muted, lineHeight: 22, fontSize: 13 },
+  heading: { color: colors.text, fontWeight: '700', fontSize: 19, lineHeight: 27 }, muted: { color: colors.muted, lineHeight: 22, fontSize: 13 }, routineName: { color: colors.text, fontSize: 15, fontWeight: '700' },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }, progress: { color: colors.primary, fontSize: 13, fontWeight: '600' }, restTime: { color: colors.primary, fontSize: 36, fontWeight: '800', letterSpacing: 1 },
+  routineRow: { gap: 10, paddingTop: 4, borderTopWidth: 1, borderTopColor: colors.border }, routineInfo: { gap: 2 },
   empty: { paddingVertical: 24, gap: 10 }, card: { backgroundColor: colors.surface, borderRadius: 20, padding: 12, gap: 12 },
   exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 4, marginBottom: 4 }, exerciseInfo: { flex: 1, gap: 4 }, picture: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.background },
   labels: { flexDirection: 'row', gap: 4, alignItems: 'center' }, indexLabel: { width: 24, fontSize: 10, color: colors.muted, textAlign: 'center' }, weightLabel: { flex: 1, minWidth: 44, fontSize: 11, color: colors.muted, textAlign: 'center' }, repsLabel: { flex: 1, minWidth: 36, fontSize: 11, color: colors.muted, textAlign: 'center' }, actionLabel: { width: 140, fontSize: 10, color: colors.muted, textAlign: 'center' },
