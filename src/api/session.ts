@@ -17,6 +17,7 @@ export async function createRufitSession(options: Options) {
   return {
     scope: Object.freeze(scope),
     api: Object.freeze(api),
+    isActive: () => !closed,
     saveDraft: (id: string, draft: Draft) => api.saveDraft(id, draft),
     close: () => { closed = true; },
   };

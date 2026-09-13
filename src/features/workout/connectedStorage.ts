@@ -4,6 +4,7 @@ import type { AccountScope, RufitSession } from '../../api/session.ts';
 import { prepareWorkoutDraft, type DraftPreparation, type RestTarget } from './draftMapping.ts';
 import { isWorkout } from './storage.ts';
 import type { Workout } from './model.ts';
+import { describeRecovery, describeRemoteRecovery, type RecoveryCheck } from './recoveryOverview.ts';
 
 export type ConnectedForm = { workout: Workout; note: string; rest: RestTarget | null };
 type Ready = Extract<DraftPreparation, {kind: 'ready'}>;
@@ -160,7 +161,10 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
   // The network coordinator and form write queue are distinct so typing can persist during a slow request.
   const formSerial = <T>(fn:()=>Promise<T>) => serial(storage,key,fn);
   const coordinate = <T>(fn:()=>Promise<T>) => serial(storage,`${key}:network`,fn);
-  const checkSession = (session:RufitSession) => { if (!scopeMatches(scope,session.scope)) throw new ApiError(401,'ACCOUNT_CHANGED','다른 계정의 연결 정보를 사용할 수 없습니다.'); };
+  const checkSession = (session:RufitSession) => {
+    if (!scopeMatches(scope,session.scope)) throw new ApiError(401,'ACCOUNT_CHANGED','다른 계정의 연결 정보를 사용할 수 없습니다.');
+    if (!session.isActive()) throw new ApiError(401,'AUTHENTICATION_REQUIRED','로그인이 필요합니다.');
+  };
   async function read(): Promise<Archive> {
     const raw = await storage.getItem(key);
     if (raw === null) return {schemaVersion:2,scope,records:[]};
@@ -234,6 +238,17 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
     if (snapshot.id!==id) throw new Error('다른 운동의 응답입니다.');
     return snapshot;
   }
+  async function overview() {
+    const queued=await outbox.list();
+    const records=await formSerial(async()=>(await read()).records);
+    for (const entry of queued) {
+      const record=records.find(r=>r.remoteId===entry.workoutId || r.pending?.draft.operationId===entry.draft.operationId);
+      if (record && (record.remoteId!==entry.workoutId || !record.pending || !same(record.pending.draft,entry.draft)))
+        throw new Error('연결 정보와 저장 대기 요청이 다릅니다. 두 원본을 보존했습니다.');
+    }
+    return {scope:copy(scope), records:records.map(record=>describeRecovery(record,queued.find(e=>e.workoutId===record.remoteId)??null)),
+      unlinkedRequests:queued.filter(e=>!records.some(r=>r.remoteId===e.workoutId))};
+  }
   async function resumeClose(session:RufitSession,remoteId:string) {
     checkSession(session); await recover();
     const record=await formSerial(async()=>find(await read(),remoteId));
@@ -257,6 +272,29 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
     return {kind:'closed' as const,workout:snapshot};
   }
   return {
+    /** Offline inventory; do not restore closed/closing/cleanup items as active editors. */
+    overview:()=>coordinate(overview),
+    recheck(session:RufitSession,remoteId:string): Promise<RecoveryCheck> {
+      return coordinate(async()=>{
+        checkSession(session);
+        if (!(await overview()).records.some(r=>r.record.remoteId===remoteId)) throw new Error('연결된 운동을 찾을 수 없습니다.');
+        let snapshot: WorkoutSnapshot | null;
+        try { snapshot=await remote(session,remoteId); }
+        catch (error) {
+          if (!(error instanceof ApiError) || ![404,410].includes(error.status)) throw error;
+          snapshot=null;
+        }
+        checkSession(session);
+        // Typing can continue while GET is in flight. Describe the latest durable form.
+        const local=(await overview()).records.find(r=>r.record.remoteId===remoteId)!;
+        checkSession(session);
+        if (!snapshot) return {...local, state:local.record.closed ? 'closed' : 'unavailable', canEdit:false,
+          nextAction:'none', remote:{kind:'unavailable'}};
+        if (snapshot.version<local.record.version || local.record.closed && !validateSnapshot(snapshot))
+          throw new Error('서버 기록 상태가 이전보다 낮습니다. 원문을 보존했습니다.');
+        return describeRemoteRecovery(local,snapshot);
+      });
+    },
     /** Comparison is read-only; callers must show both versions before submitting a decision. */
     review(session:RufitSession,remoteId:string) {
       return coordinate(async()=>{
@@ -284,7 +322,8 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
           if (choice.operationId!==null) {
             if (!record.pending || record.pending.draft.operationId!==choice.operationId || !entry || !same(entry.draft,record.pending.draft) ||
               entry.status!=='conflict' && choice.choice!=='archive') throw new Error('선택한 충돌 요청을 확인하지 못했습니다.');
-          } else if (record.pending || entry || !record.closing && choice.choice!=='archive') throw new Error('먼저 저장 대기 요청의 충돌을 확인해 주세요.');
+          } else if (record.pending || entry || !record.closing && choice.choice!=='archive' && snapshot.version<=record.version)
+            throw new Error('먼저 변경된 서버 기록이나 저장 대기 요청의 충돌을 확인해 주세요.');
           record.resolution={operationId:choice.operationId,revision:record.revision,remote:copy(snapshot),choice:choice.choice};
           await write(archive);
         });

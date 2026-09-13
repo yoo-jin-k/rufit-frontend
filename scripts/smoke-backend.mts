@@ -400,12 +400,18 @@ try {
   const serverFinished=await connectionSession.api.workout(connectionWorkout.id);assert.ok(serverFinished.finishedAt);assert.equal(serverFinished.sets.length,1);
   const afterFinish=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
   assert.ok((await afterFinish.load(connectionWorkout.id))!.closing);
+  assert.equal((await afterFinish.overview()).records[0].state,'closing');
+  const closeCheck=await afterFinish.recheck(connectionSession,connectionWorkout.id);
+  assert.equal(closeCheck.remote.kind,'closed');assert.equal(closeCheck.nextAction,'resume-close');assert.equal(closeCheck.canEdit,false);
   assert.equal((await afterFinish.resumeClose(connectionSession,connectionWorkout.id)).kind,'closed');
   const closed=(await afterFinish.load(connectionWorkout.id))!;
   assert.equal(closed.closed!.version,serverFinished.version);assert.equal(closed.form.workout.exercises[0].sets.length,2);
   await assert.rejects(afterFinish.edit(connectionWorkout.id,closed.revision,closed.form),/종료된 운동/);
   await assert.rejects(afterFinish.queueLatest(connectionWorkout.id,randomUUID()),/종료된 운동/);
   await connectionSession.api.deleteHistory(connectionWorkout.id,serverFinished.version,true);
+  const unavailable=await afterFinish.recheck(connectionSession,connectionWorkout.id);
+  assert.equal(unavailable.remote.kind,'unavailable');assert.equal(unavailable.state,'closed');
+  assert.equal(unavailable.record.form.workout.exercises[0].sets.length,2);
   // A lost cancellation response also recovers by reading the server, without repeating the POST.
   const toCancel=await connectionSession.api.start(randomUUID());await afterFinish.link(connectionSession,toCancel.id);
   let cancelPosts=0;
@@ -419,10 +425,28 @@ try {
   const afterCancel=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
   assert.equal((await afterCancel.resumeClose(lostCancelSession,toCancel.id)).kind,'closed');assert.equal(cancelPosts,1);
   assert.ok((await afterCancel.load(toCancel.id))!.closed!.cancelledAt);lostCancelSession.close();
+  // Recheck another-device edits without issuing writes or dropping locally typed strings.
+  const reviewWorkout=await connectionSession.api.start(randomUUID());
+  const reviewLinked=await afterCancel.link(connectionSession,reviewWorkout.id);
+  await afterCancel.edit(reviewWorkout.id,0,{...reviewLinked.form,note:'Unsaved local review note'});
+  const reviewedRemote=await connectionSession.api.saveDraft(reviewWorkout.id,{operationId:randomUUID(),version:0,
+    note:'Another device note',sets:[],restSetIndex:null,restEndsAt:null});
+  const recoveredOverview=createConnectedWorkoutStorage(connectedDisk,connectionSession.scope);
+  const remoteCheck=await recoveredOverview.recheck(connectionSession,reviewWorkout.id);
+  assert.equal(remoteCheck.state,'remote-changed');assert.equal(remoteCheck.canEdit,false);
+  assert.equal(remoteCheck.record.form.note,'Unsaved local review note');assert.equal(remoteCheck.record.version,0);
+  assert.equal((await connectionSession.api.workout(reviewWorkout.id)).version,reviewedRemote.workout.version);
+  await recoveredOverview.resolve(connectionSession,reviewWorkout.id,{operationId:null,expectedRevision:1,
+    remoteVersion:reviewedRemote.workout.version,choice:'use-server',confirmed:true});
+  const accepted=(await recoveredOverview.load(reviewWorkout.id))!;
+  assert.equal(accepted.form.note,'Another device note');assert.equal(accepted.backups![0].record.form.note,'Unsaved local review note');
+  assert.equal((await recoveredOverview.overview()).records.find(r=>r.record.remoteId===reviewWorkout.id)!.state,'synced');
+  await assert.rejects(recoveredOverview.recheck(otherSession,reviewWorkout.id),(e:unknown)=>e instanceof ApiError && e.code==='ACCOUNT_CHANGED');
+  await recoveredOverview.close(connectionSession,reviewWorkout.id,accepted.revision,{action:'cancel',confirmed:true,discardIncomplete:false});
   connectionSession.close();
   mappingSession.close();
   verified.close(); accountSession.close(); otherSession.close();
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery/conflict-choice/close-recovery');
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery/conflict-choice/close-recovery/account-recovery-overview');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);

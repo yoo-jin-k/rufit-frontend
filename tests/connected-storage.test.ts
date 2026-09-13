@@ -23,6 +23,7 @@ async function server(initial=snapshot(), accountId='alice', serverUrl=base) {
   const operations=new Map<string,number>(); const bodies:Draft[]=[];
   let intercept: ((body:Draft,response:unknown)=>Promise<Response>|Response)|null=null;
   let closeIntercept: ((response:WorkoutSnapshot)=>Promise<Response>|Response)|null=null;
+  let getIntercept: ((response:WorkoutSnapshot)=>Promise<Response>|Response)|null=null;
   const session=await createRufitSession({baseUrl:serverUrl,getAccessToken:()=>'test-only-token',fetch:async(url,init)=>{
     if (String(url).endsWith('/me')) return Response.json({id:accountId});
     if (/\/(finish|cancel)$/.test(String(url))) {
@@ -37,7 +38,7 @@ async function server(initial=snapshot(), accountId='alice', serverUrl=base) {
       current={...current,version:current.version+1,finishedAt:finish?'2026-09-13T01:00:00Z':null,cancelledAt:finish?null:'2026-09-13T01:00:00Z',restEndsAt:null,restSetIndex:null};
       return closeIntercept ? closeIntercept(clone(current)) : Response.json(current);
     }
-    if (!String(url).endsWith('/draft')) {getCalls++;return Response.json(current);}
+    if (!String(url).endsWith('/draft')) {getCalls++;return getIntercept ? getIntercept(clone(current)) : Response.json(current);}
     draftCalls++; const body=JSON.parse(String(init?.body)) as Draft; bodies.push(clone(body));
     const applied=operations.get(body.operationId);
     if (applied===undefined) {
@@ -48,7 +49,7 @@ async function server(initial=snapshot(), accountId='alice', serverUrl=base) {
     const response={workout:clone(current),appliedVersion:operations.get(body.operationId),replayed:applied!==undefined};
     return intercept ? intercept(body,response) : Response.json(response);
   }});
-  return {session,bodies,id:initial.id,counts:()=>({writes,draftCalls,getCalls,closeCalls}),closeIntercept:(fn:typeof closeIntercept)=>{closeIntercept=fn;},intercept:(fn:typeof intercept)=>{intercept=fn;},changeVersion:()=>{current.version++;},current:()=>clone(current)};
+  return {session,bodies,id:initial.id,counts:()=>({writes,draftCalls,getCalls,closeCalls}),getIntercept:(fn:typeof getIntercept)=>{getIntercept=fn;},closeIntercept:(fn:typeof closeIntercept)=>{closeIntercept=fn;},intercept:(fn:typeof intercept)=>{intercept=fn;},changeVersion:()=>{current.version++;},current:()=>clone(current)};
 }
 function edited(record:ConnectedRecord) {
   const original=record.form.workout;
@@ -328,4 +329,182 @@ test('이전 연결 자료를 읽고 첫 저장 때 새 형식으로 기록해 �
   await restarted.edit(api.id,0,edited(linked));assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,2);
   const future=JSON.parse(storage.values.get(key)!);future.schemaVersion=99;const raw=JSON.stringify(future);storage.values.set(key,raw);
   await assert.rejects(restarted.load(api.id),/기존 데이터는 보존/);assert.equal(storage.values.get(key),raw);
+});
+
+test('복구 목록은 저장된 원문을 바꾸지 않고 저장 완료·수정·빈 입력을 구분한다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  assert.deepEqual(await store.overview(),{scope,records:[],unlinkedRequests:[]});
+  assert.equal(storage.values.size,0);
+  const linked=await store.link(api.session,api.id);
+  assert.equal((await store.overview()).records[0].state,'synced');
+  const changed=await store.edit(api.id,0,edited(linked));
+  const before=new Map(storage.values);
+  const item=(await store.overview()).records[0];
+  assert.equal(item.state,'edited');assert.equal(item.nextAction,'queue');assert.equal(item.canEdit,true);
+  assert.equal(item.hasUnconfirmedChanges,true);assert.deepEqual(storage.values,before);
+  const form={...changed.form,workout:updateSet(changed.form.workout,'local-exercise','copy',{weight:''})};
+  await store.edit(api.id,changed.revision,form);
+  const blocked=(await createConnectedWorkoutStorage(storage,scope).overview()).records[0];
+  assert.equal(blocked.state,'blocked-input');assert.equal(blocked.nextAction,'fix-input');
+  assert.ok(blocked.issues.some(i=>i.code==='SET_INPUT'));assert.equal(api.counts().draftCalls,0);
+});
+test('복구 목록은 요청 복원 대기와 확인 후 정리 대기를 자동 처리하지 않는다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  const linked=await store.link(api.session,api.id);await store.edit(api.id,0,edited(linked));
+  storage.failOnce(key=>key.includes('draft-outbox'));
+  await assert.rejects(store.queueLatest(api.id,randomUUID()),/disk full/);
+  const before=new Map(storage.values);
+  let item=(await store.overview()).records[0];
+  assert.equal(item.state,'pending');assert.equal(item.nextAction,'recover');assert.deepEqual(storage.values,before);
+  await store.recover();item=(await store.overview()).records[0];assert.equal(item.nextAction,'flush');
+  storage.failOnce((key,value)=>key.includes('connected-workouts') && JSON.parse(value).records[0].pending===null);
+  await assert.rejects(store.flush(api.session),/disk full/);
+  item=(await createConnectedWorkoutStorage(storage,scope).overview()).records[0];
+  assert.equal(item.state,'cleanup');assert.equal(item.nextAction,'recover');assert.equal(api.counts().draftCalls,1);
+});
+test('재확인 중 새 입력은 최신 수정 번호로 반환하고 GET만 수행한다',{timeout:5000},async()=>{
+  const {storage,api,store}=await staged();
+  let started!:()=>void;let release!:()=>void;
+  const begin=new Promise<void>(r=>{started=r;});const gate=new Promise<void>(r=>{release=r;});
+  api.getIntercept(async response=>{started();await gate;return Response.json(response);});
+  const checking=store.recheck(api.session,api.id);await begin;
+  const current=(await store.load(api.id))!;
+  const form={...current.form,note:'재확인 도중 입력',workout:updateSet(current.form.workout,'local-exercise','copy',{weight:''})};
+  await store.edit(api.id,current.revision,form);const before=new Map(storage.values);release();
+  const checked=await checking;
+  assert.equal(checked.state,'pending');assert.equal(checked.remote.kind,'current');
+  assert.equal(checked.record.revision,2);assert.equal(checked.record.form.note,form.note);
+  assert.equal(checked.record.form.workout.exercises[0].sets[1].weight,'');
+  assert.deepEqual(storage.values,before);assert.equal(api.counts().draftCalls,0);assert.equal(api.counts().closeCalls,0);
+});
+test('서버 저장 응답 유실 후 GET 버전 증가를 충돌이나 저장 확인으로 단정하지 않는다',async()=>{
+  const {storage,api,store,operation}=await staged();
+  api.intercept(()=>{throw new Error('lost reply');});await assert.rejects(store.flush(api.session));
+  const before=new Map(storage.values);
+  const restarted=createConnectedWorkoutStorage(storage,scope);const checked=await restarted.recheck(api.session,api.id);
+  assert.equal(checked.remote.kind,'advanced');assert.equal(checked.state,'pending');assert.equal(checked.nextAction,'flush');
+  assert.equal(checked.record.confirmedRevision,0);assert.equal(checked.pending!.draft.operationId,operation);
+  assert.deepEqual(storage.values,before);assert.equal(api.counts().writes,1);
+  api.intercept(null);await restarted.flush(api.session);
+  assert.equal(api.counts().writes,1);assert.equal((await restarted.overview()).records[0].state,'synced');
+});
+test('요청 없는 서버 변경도 비교 후 명시적으로 선택하며 원문을 백업한다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  const linked=await store.link(api.session,api.id);const changed=await store.edit(api.id,0,edited(linked));
+  api.changeVersion();const before=new Map(storage.values);
+  const checked=await store.recheck(api.session,api.id);
+  assert.equal(checked.state,'remote-changed');assert.equal(checked.canEdit,false);assert.equal(checked.nextAction,'review');
+  assert.deepEqual(storage.values,before);
+  const decision={operationId:null,expectedRevision:changed.revision,remoteVersion:1,choice:'keep-local' as const,confirmed:true as const};
+  api.changeVersion();await assert.rejects(store.resolve(api.session,api.id,decision),/다시 변경/);
+  assert.deepEqual(storage.values,before);
+  const selected=await store.resolve(api.session,api.id,{...decision,remoteVersion:2});
+  assert.deepEqual(selected.form,changed.form);assert.equal(selected.backups!.length,1);assert.equal(selected.version,2);
+  assert.equal((await store.overview()).records[0].state,'edited');assert.equal(api.counts().draftCalls,0);
+  await store.queueLatest(api.id,randomUUID());await store.flush(api.session);assert.equal(api.current().version,3);
+});
+test('다른 기기에서 종료된 운동은 원문을 활성화하지 않고 명시적 보관을 기다린다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  const linked=await store.link(api.session,api.id);await store.edit(api.id,0,edited(linked));
+  await api.session.api.cancel(api.id,0,true);const before=new Map(storage.values);
+  const checked=await store.recheck(api.session,api.id);
+  assert.equal(checked.state,'remote-closed');assert.equal(checked.canEdit,false);assert.equal(checked.remote.kind,'closed');
+  assert.deepEqual(storage.values,before);
+  await store.resolve(api.session,api.id,{operationId:null,expectedRevision:1,remoteVersion:1,choice:'archive',confirmed:true});
+  const closed=(await createConnectedWorkoutStorage(storage,scope).overview()).records[0];
+  assert.equal(closed.state,'closed');assert.equal(closed.canEdit,false);assert.equal(closed.nextAction,'none');
+  assert.equal(closed.record.form.workout.exercises[0].sets[0].weight,'01.00');
+  assert.equal(closed.record.form.workout.finishedAt,undefined);assert.equal(closed.record.backups!.length,1);
+});
+test('종료 처리 중 재확인은 종료 POST를 보내지 않고 변경된 서버 버전을 비교로 안내한다',async()=>{
+  const storage=disk();const api=await server();const store=createConnectedWorkoutStorage(storage,scope);
+  await store.link(api.session,api.id);api.getIntercept(()=>{throw new Error('offline');});
+  await assert.rejects(store.close(api.session,api.id,0,{action:'cancel',confirmed:true,discardIncomplete:false}));
+  let item=(await store.overview()).records[0];assert.equal(item.state,'closing');assert.equal(item.canEdit,false);
+  api.getIntercept(null);const before=new Map(storage.values);
+  assert.equal((await store.recheck(api.session,api.id)).nextAction,'resume-close');
+  api.changeVersion();item=await store.recheck(api.session,api.id);
+  assert.equal(item.state,'conflict');assert.equal(item.nextAction,'review');assert.equal(api.counts().closeCalls,0);
+  assert.deepEqual(storage.values,before);
+});
+test('404·410과 인증·네트워크·잘못된 서버 응답에도 원문과 대기 요청을 보존한다',async()=>{
+  const {storage,api,store}=await staged();const before=new Map(storage.values);
+  for (const status of [404,410]) {
+    api.getIntercept(()=>Response.json({code:'NOT_FOUND'},{status}));
+    const item=await store.recheck(api.session,api.id);
+    assert.equal(item.state,'unavailable');assert.equal(item.canEdit,false);assert.equal(item.remote.kind,'unavailable');
+  }
+  api.getIntercept(()=>Response.json({code:'UNAUTHORIZED'},{status:401}));
+  await assert.rejects(store.recheck(api.session,api.id),(e:unknown)=>e instanceof ApiError && e.status===401);
+  api.getIntercept(()=>{throw new Error('offline');});await assert.rejects(store.recheck(api.session,api.id));
+  api.getIntercept(response=>Response.json({...response,id:randomUUID()}));await assert.rejects(store.recheck(api.session,api.id),/다른 운동/);
+  api.getIntercept(()=>Response.json({id:api.id}));await assert.rejects(store.recheck(api.session,api.id));
+  assert.deepEqual(storage.values,before);assert.equal(api.counts().draftCalls,0);assert.equal(api.counts().closeCalls,0);
+});
+test('다른 계정과 로그아웃 세션은 재확인을 거절하고 도중 로그아웃한 응답도 반환하지 않는다',{timeout:5000},async()=>{
+  const {storage,api,store}=await staged();const other=await server(api.current(),'bob');
+  await assert.rejects(store.recheck(other.session,api.id),(e:unknown)=>e instanceof ApiError && e.code==='ACCOUNT_CHANGED');
+  assert.equal(other.counts().getCalls,0);
+  let started!:()=>void;let release!:()=>void;
+  const begin=new Promise<void>(r=>{started=r;});const gate=new Promise<void>(r=>{release=r;});
+  api.getIntercept(async response=>{started();await gate;return Response.json(response);});
+  const before=new Map(storage.values);const checking=store.recheck(api.session,api.id);
+  const rejected=assert.rejects(checking,(e:unknown)=>e instanceof ApiError && e.code==='AUTHENTICATION_REQUIRED');
+  await begin;api.session.close();release();await rejected;
+  const calls=api.counts().getCalls;await assert.rejects(store.recheck(api.session,api.id));
+  assert.equal(api.counts().getCalls,calls);assert.deepEqual(storage.values,before);
+  assert.equal((await store.overview()).records[0].state,'pending');
+});
+test('연결 없는 요청은 별도 목록에 남기고 불일치·손상 데이터는 초기화하지 않는다',async()=>{
+  const {storage,api,store}=await staged();const outbox=createDraftOutbox(storage,scope);
+  const orphanId=randomUUID();await outbox.enqueue(orphanId,{operationId:randomUUID(),version:0,sets:[],note:'orphan',restSetIndex:null,restEndsAt:null});
+  const before=new Map(storage.values);const overview=await store.overview();
+  assert.equal(overview.unlinkedRequests.length,1);assert.equal(overview.unlinkedRequests[0].workoutId,orphanId);
+  assert.deepEqual(storage.values,before);assert.equal(api.counts().draftCalls,0);
+  const key=[...storage.values.keys()].find(k=>k.includes('draft-outbox'))!;
+  const value=JSON.parse(storage.values.get(key)!);value.entries[0].draft.note='mismatch';storage.values.set(key,JSON.stringify(value));
+  const mismatched=new Map(storage.values);await assert.rejects(store.overview(),/다릅니다/);assert.deepEqual(storage.values,mismatched);
+  storage.values.set(key,'broken');await assert.rejects(store.overview());assert.equal(storage.values.get(key),'broken');
+});
+
+test('확인 저장·충돌 선택 정리 중인 원문은 복구 목록에서 활성 편집으로 표시하지 않는다',async()=>{
+  const {storage,api,store}=await staged();
+  storage.failOnce((key,value)=>key.includes('draft-outbox') && JSON.parse(value).entries.length===0);
+  await assert.rejects(store.flush(api.session),/disk full/);
+  let item=(await store.overview()).records[0];
+  assert.equal(item.state,'cleanup');assert.equal(item.nextAction,'flush');assert.equal(item.canEdit,false);
+  api.changeVersion();await store.flush(api.session);
+  item=(await store.overview()).records[0];assert.equal(item.state,'conflict');assert.equal(item.canEdit,false);
+  storage.failOnce((key,value)=>key.includes('draft-outbox') && JSON.parse(value).entries.length===0);
+  await assert.rejects(store.resolve(api.session,api.id,{operationId:item.pending!.draft.operationId,
+    expectedRevision:item.record.revision,remoteVersion:api.current().version,choice:'keep-local',confirmed:true}),/disk full/);
+  const before=new Map(storage.values);
+  item=(await createConnectedWorkoutStorage(storage,scope).overview()).records[0];
+  assert.equal(item.state,'cleanup');assert.equal(item.nextAction,'recover');assert.equal(item.canEdit,false);
+  assert.deepEqual(storage.values,before);assert.ok(item.record.resolution);
+});
+test('이전 서버 버전은 거절하고 새 서버 선택은 원문을 백업한 뒤 저장 완료로 표시한다',async()=>{
+  const {storage,api,store}=await staged();await store.flush(api.session);
+  const before=new Map(storage.values);
+  api.getIntercept(response=>Response.json({...response,version:0}));
+  await assert.rejects(store.recheck(api.session,api.id),/이전보다 낮/);assert.deepEqual(storage.values,before);
+  api.getIntercept(null);api.changeVersion();
+  const local=(await store.load(api.id))!;
+  const selected=await store.resolve(api.session,api.id,{operationId:null,expectedRevision:local.revision,
+    remoteVersion:api.current().version,choice:'use-server',confirmed:true});
+  assert.equal(selected.backups![0].record.form.workout.exercises[0].sets[0].weight,'01.00');
+  assert.equal((await store.overview()).records[0].state,'synced');
+  assert.equal((await store.recheck(api.session,api.id)).remote.kind,'current');
+  await assert.rejects(store.resolve(api.session,api.id,{operationId:null,expectedRevision:selected.revision,
+    remoteVersion:api.current().version,choice:'keep-local',confirmed:true}),/먼저 변경된/);
+});
+test('서버 응답 후 로컬 파일을 다시 읽는 중 로그아웃해도 재확인 결과를 반환하지 않는다',{timeout:5000},async()=>{
+  const {storage,api,store}=await staged();const read=storage.getItem;let pause=false;
+  let started!:()=>void;let release!:()=>void;
+  const begin=new Promise<void>(r=>{started=r;});const gate=new Promise<void>(r=>{release=r;});
+  storage.getItem=async key=>{if(pause && key.includes('connected-workouts')) {pause=false;started();await gate;}return read(key);};
+  api.getIntercept(response=>{pause=true;return Response.json(response);});
+  const before=new Map(storage.values);const checking=store.recheck(api.session,api.id);
+  const rejected=assert.rejects(checking,(e:unknown)=>e instanceof ApiError && e.code==='AUTHENTICATION_REQUIRED');
+  await begin;api.session.close();release();await rejected;assert.deepEqual(storage.values,before);
 });
