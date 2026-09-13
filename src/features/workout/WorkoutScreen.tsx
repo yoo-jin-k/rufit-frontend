@@ -18,6 +18,7 @@ export function WorkoutScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now);
+  // 표시만 주기적으로 갱신한다. 접기·회전·백그라운드 전환은 운동을 자동 정지하지 않는다.
   useEffect(() => {
     const refresh = () => setNow(Date.now());
     const tick = setInterval(refresh, 1000);

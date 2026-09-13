@@ -56,6 +56,8 @@ test('휴식 10초 조절은 해당 종료시각만 바꾸고 0~3600초 범위�
   assert.equal(adjustLocalRest(a,-9999,2000).rest!.endsAt,2000);
   assert.equal(adjustLocalRest(a,9999,2000).rest!.endsAt,3602000);
   assert.deepEqual(adjustLocalRest(a,10,2000).current,a.current);
+  assert.equal(adjustLocalRest(a,10,999000).rest!.endsAt,1009000);
+  assert.equal(adjustLocalRest(a,-10,999000).rest!.endsAt,999000);
 });
 test('이전 저장 형식을 보존하고 손상된 설정이나 휴식 연결을 초기화하지 않는다',()=>{
   const a=archive();
@@ -68,4 +70,32 @@ test('이전 저장 형식을 보존하고 손상된 설정이나 휴식 연결�
     {rest:{...completed.rest,setId:'missing'}},{rest:{...completed.rest,endsAt:-1}},{rest:{...completed.rest,endsAt:1.5}}])
     assert.throws(()=>decodeArchive(JSON.stringify({...completed,...patch})));
   for(const seconds of [-1,3601,1.5,NaN]) assert.throws(()=>setPersonalRest(a,a.current!.exercises[0],seconds));
+});
+
+// 저장 재시도는 이미 계산한 저장본을 다시 쓴다. 휴식 +10초를 다시 계산하면 안 된다.
+test('만료 후 조절한 휴식을 저장 실패 뒤 재저장해도 한 번만 적용하고 재시작 복구한다', async () => {
+  const completed = completeWithRest(archive(), 'e', 'e-1', true, 1000);
+  const adjusted = adjustLocalRest(completed, 10, 999000);
+  let raw = JSON.stringify(completed);
+  let fail = true;
+  const disk = {getItem: async () => raw, setItem: async (_: string, value: string) => {
+    if (fail) { fail = false; throw new Error('disk full'); }
+    raw = value;
+  }};
+  const storage = createWorkoutStorage(disk);
+  await assert.rejects(storage.save(adjusted));
+  assert.deepEqual(decodeArchive(raw), completed);
+  await storage.save(adjusted);
+  const reopened = await createWorkoutStorage(disk).load();
+  assert.equal(reopened.rest!.endsAt, 1009000);
+  assert.deepEqual(reopened.current, completed.current);
+  assert.deepEqual(reopened.personalRest, completed.personalRest);
+});
+
+test('휴식 없는 상태와 닫힌 휴식은 조절만으로 새로 생기지 않는다', () => {
+  const a = archive();
+  assert.equal(adjustLocalRest(a, 10, 1000), a);
+  const completed = completeWithRest(a, 'e', 'e-1', true, 1000);
+  const closed = remember(completed, finishWorkout(completed.current!, 2000));
+  assert.equal(adjustLocalRest(closed, 10, 3000).rest, null);
 });

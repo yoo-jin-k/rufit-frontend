@@ -1,6 +1,7 @@
 export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean };
 export type Exercise = { id: string; name: string; catalogId?: string; sets: WorkoutSet[] };
 export type Workout = { id: string; startedAt: number; finishedAt?: number; pausedAt?: number; pausedDurationMs?: number; exercises: Exercise[] };
+// 새 운동을 시작한다. 화면 크기 변경이나 재실행에서는 저장된 운동을 복구해야 한다.
 export function startWorkout(id: string, now: number): Workout {
   return { id, startedAt: now, exercises: [] };
 }
@@ -8,19 +9,23 @@ export const MAX_WORKOUT_SETS = 300;
 function editable(workout: Workout) {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
 }
+// 시작·종료·정지 시각으로 계산하므로 앱을 닫아도 진행 시간은 이어진다.
 export function elapsedWorkoutMs(workout: Workout, now: number): number {
   return Math.max(0, (workout.finishedAt ?? workout.pausedAt ?? now) - workout.startedAt - (workout.pausedDurationMs ?? 0));
 }
+// 운동시간을 시:분:초로 표시한다.
 export function formatWorkoutTime(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000);
   return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(n => String(n).padStart(2, '0')).join(':');
 }
+// 명시적인 정지 버튼에서만 호출해 정지 시각을 보존한다.
 export function pauseWorkout(workout: Workout, now: number): Workout {
   editable(workout);
   if (workout.pausedAt !== undefined) return workout;
   if (!Number.isSafeInteger(now) || now < workout.startedAt + (workout.pausedDurationMs ?? 0)) throw new Error('운동 시각을 확인해 주세요.');
   return { ...workout, pausedAt: now };
 }
+// 정지한 구간만 누적하고, 정지하지 않았다면 그대로 반환한다.
 export function resumeWorkout(workout: Workout, now: number): Workout {
   editable(workout);
   if (workout.pausedAt === undefined) return workout;
@@ -32,6 +37,7 @@ function capacity(workout: Workout) {
   if (workout.exercises.reduce((count, e) => count + e.sets.length, 0) >= MAX_WORKOUT_SETS)
     throw new Error('한 운동에는 최대 300세트까지 기록할 수 있습니다.');
 }
+// 종목과 빈 첫 세트를 추가한다.
 export function addExercise(workout: Workout, id: string, name: string, catalogId?: string): Workout {
   editable(workout);
   capacity(workout);
@@ -39,6 +45,7 @@ export function addExercise(workout: Workout, id: string, name: string, catalogI
   if (workout.exercises.some(e => e.id === id)) throw new Error('중복된 운동입니다.');
   return { ...workout, exercises: [...workout.exercises, { id, name: name.trim(), ...(catalogId ? { catalogId } : {}), sets: [{ id: `${id}-1`, weight: '', reps: '', completed: false }] }] };
 }
+// 선택한 세트의 입력을 복제하되 새 세트의 완료 표시는 초기화한다.
 export function addSet(workout: Workout, exerciseId: string, newId: string, sourceId?: string): Workout {
   editable(workout);
   capacity(workout);
@@ -53,15 +60,18 @@ export function addSet(workout: Workout, exerciseId: string, newId: string, sour
     ...e, sets: [...e.sets.slice(0, index + 1), set, ...e.sets.slice(index + 1)],
   }) };
 }
+// 지정한 ID의 세트만 삭제한다. 휴식 대상 정리는 저장소가 처리한다.
 export function removeSet(workout: Workout, exerciseId: string, setId: string): Workout {
   editable(workout);
   if (!workout.exercises.find(e => e.id === exerciseId)?.sets.some(s => s.id === setId)) throw new Error('세트를 찾을 수 없습니다.');
   return { ...workout, exercises: workout.exercises.map(e => e.id !== exerciseId ? e : { ...e, sets: e.sets.filter(s => s.id !== setId) }) };
 }
+// 무게·횟수의 입력 범위를 확인하며 빈 초안은 완료 처리하지 않는다.
 export function validSet(set: WorkoutSet): boolean {
   return /^\d+(\.\d{1,2})?$/.test(set.weight) && Number(set.weight) <= 1500 &&
     /^\d+$/.test(set.reps) && Number(set.reps) > 0 && Number(set.reps) <= 1000;
 }
+// 입력 문자열을 보존하고 완료할 때만 유효성을 검사한다.
 export function updateSet(workout: Workout, exerciseId: string, setId: string, patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'completed'>>): Workout {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
   const target = workout.exercises.find(e => e.id === exerciseId)?.sets.find(s => s.id === setId);
@@ -74,6 +84,7 @@ export function updateSet(workout: Workout, exerciseId: string, setId: string, p
 export class IncompleteSetsError extends Error {
   constructor() { super('미완료 세트를 제외하고 종료할까요?'); }
 }
+// 미완료 제외 확인 후 기록을 닫고 마지막 정지 구간까지 반영한다.
 export function finishWorkout(workout: Workout, now: number, discardIncomplete = false): Workout {
   if (workout.finishedAt !== undefined) throw new Error('이미 종료한 운동입니다.');
   const sets = workout.exercises.flatMap(e => e.sets);

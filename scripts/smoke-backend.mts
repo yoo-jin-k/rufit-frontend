@@ -473,6 +473,12 @@ try {
   restWorkout=await restApi.appendSet(restWorkout.id,restWorkout.version,{exerciseId:squatRestId,exerciseName:'스쿼트',weight:1,reps:2});
   restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,true);
   assert.ok(Date.parse(restWorkout.restEndsAt!)-Date.now()>178000);
+  const beforeAdjustment=restWorkout;
+  restWorkout=await restApi.adjustRest(restWorkout.id,restWorkout.version,10);
+  assert.ok(Math.abs(Date.parse(restWorkout.restEndsAt!)-Date.parse(beforeAdjustment.restEndsAt!)-10000)<=1);
+  await assert.rejects(restApi.adjustRest(restWorkout.id,beforeAdjustment.version,10),(e:unknown)=>e instanceof ApiError && e.status===409);
+  restWorkout=await restApi.adjustRest(restWorkout.id,restWorkout.version,-10);
+  assert.ok(Math.abs(Date.parse(restWorkout.restEndsAt!)-Date.parse(beforeAdjustment.restEndsAt!))<=2);
   const originalRestEnd=restWorkout.restEndsAt;
   await restApi.saveExerciseRest(squatRestId,0,'PERSONAL',45);
   assert.equal((await restApi.workout(restWorkout.id)).restEndsAt,originalRestEnd);

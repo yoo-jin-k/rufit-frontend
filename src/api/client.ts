@@ -122,6 +122,8 @@ export function createRufitApi(options: Options) {
     exerciseRest: (id: string) => request<ExerciseRest>('GET', `/exercises/${segment(id)}/rest`),
     saveExerciseRest: (id: string, version: number, mode: 'RECOMMENDED' | 'PERSONAL', restSeconds?: number | null) => request<ExerciseRest>('PUT', `/exercises/${segment(id)}/rest`, {version, mode, restSeconds}),
     skipRest: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/rest/skip`, { version }),
+    // 조절은 한 번만 전송한다. 응답 유실·409 뒤에는 workout 조회로 확인하고 새 사용자 조작에 최신 버전을 쓴다.
+    adjustRest: (id: string, version: number, seconds: -10 | 10) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/rest/adjust`, { version, seconds }),
     pause: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/pause`, { version }),
     resume: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/resume`, { version }),
     finish: (id: string, version: number, discardIncomplete = false) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/finish`, { version, discardIncomplete }),

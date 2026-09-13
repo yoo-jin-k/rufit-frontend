@@ -6,6 +6,7 @@ type Storage = { getItem(key: string): Promise<string | null>; setItem(key: stri
 const key = 'rufit.local-workouts.v1';
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+// 저장된 운동의 시간과 입력 구조를 검사해 손상된 기록을 잘못 복구하지 않는다.
 export function isWorkout(value: unknown): value is Workout {
   if (!object(value) || typeof value.id !== 'string' || !finite(value.startedAt) ||
     (value.finishedAt !== undefined && (!finite(value.finishedAt) || value.finishedAt < value.startedAt)) || !Array.isArray(value.exercises)) return false;
@@ -17,6 +18,7 @@ export function isWorkout(value: unknown): value is Workout {
     (e.catalogId === undefined || typeof e.catalogId === 'string') && Array.isArray(e.sets) &&
     e.sets.every(s => object(s) && typeof s.id === 'string' && typeof s.weight === 'string' && typeof s.reps === 'string' && typeof s.completed === 'boolean'));
 }
+// 이전 저장 형식을 보존해 읽고, 잘못된 자료는 빈 기록으로 덮어쓰지 않는다.
 export function decodeArchive(raw: string | null): WorkoutArchive {
   if (raw === null) return emptyArchive();
   const value: unknown = JSON.parse(raw);
@@ -34,10 +36,12 @@ function restMatches(rest: LocalRest, workout: Workout | null) {
   return workout !== null && workout.finishedAt === undefined && workout.id === rest.workoutId && rest.endsAt >= workout.startedAt &&
     workout.exercises.find(e => e.id === rest.exerciseId)?.sets.some(s => s.id === rest.setId && s.completed) === true;
 }
+// 운동 변경과 이력을 반영하고 사라진/취소한 완료 세트의 휴식을 정리한다.
 export function remember(archive: WorkoutArchive, workout: Workout | null): WorkoutArchive {
   return { ...archive, current: workout, rest: archive.rest && restMatches(archive.rest, workout) ? archive.rest : null, history: workout?.finishedAt === undefined ? archive.history :
     [...archive.history.filter(w => w.id !== workout.id), workout] };
 }
+// 저장을 순서대로 실행해 느린 이전 저장이 최신 입력을 덮어쓰지 않게 한다.
 export function createWorkoutStorage(storage: Storage) {
   let tail: Promise<void> = Promise.resolve();
   return {

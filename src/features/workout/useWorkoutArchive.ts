@@ -4,6 +4,7 @@ import { createWorkoutStorage, emptyArchive, remember, type WorkoutArchive } fro
 import type { Exercise, Workout } from './model';
 import { completeWithRest, exerciseRest, setPersonalRest, adjustLocalRest } from './localRest';
 const storage = createWorkoutStorage(AsyncStorage);
+// 화면 입력·세트 완료·휴식 설정을 하나의 기기 저장 흐름으로 관리한다.
 export function useWorkoutArchive() {
   const [archive, setArchive] = useState<WorkoutArchive>(emptyArchive);
   const latest = useRef(archive);
@@ -19,6 +20,7 @@ export function useWorkoutArchive() {
     });
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // 저장 완료/실패는 가장 최근 요청만 표시한다. 실패 시 현재 입력으로 재시도할 수 있다.
   const save = (value: WorkoutArchive) => {
     latest.current = value; setArchive(value);
     const current = ++generation.current;
