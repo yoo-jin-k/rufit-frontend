@@ -30,8 +30,9 @@ export function restRemainingMs(workout: Workout, now: number): number {
 export function clearRestTimer(workout: Workout): Workout {
   editable(workout);
   if (!workout.restTimer) return workout;
-  const { restTimer: _restTimer, ...rest } = workout;
-  return rest;
+  const next = { ...workout };
+  delete next.restTimer;
+  return next;
 }
 export function extendRestTimer(workout: Workout, additionalMs: number): Workout {
   editable(workout);
@@ -82,9 +83,7 @@ export function removeSet(workout: Workout, exerciseId: string, setId: string): 
   editable(workout);
   if (!workout.exercises.find(e => e.id === exerciseId)?.sets.some(s => s.id === setId)) throw new Error('세트를 찾을 수 없습니다.');
   const next = { ...workout, exercises: workout.exercises.map(e => e.id !== exerciseId ? e : { ...e, sets: e.sets.filter(s => s.id !== setId) }) };
-  if (next.restTimer?.setId !== setId) return next;
-  const { restTimer: _restTimer, ...rest } = next;
-  return rest;
+  return next.restTimer?.setId === setId ? clearRestTimer(next) : next;
 }
 export function validSet(set: WorkoutSet): boolean {
   return /^\d+(\.\d{1,2})?$/.test(set.weight) && Number(set.weight) <= 1500 &&
@@ -98,9 +97,7 @@ export function updateSet(workout: Workout, exerciseId: string, setId: string, p
   if (patch.completed === true && !validSet(updated)) throw new Error('무게와 횟수를 올바르게 입력해 주세요.');
   if (updated.completed && !validSet(updated)) updated.completed = false;
   const next = { ...workout, exercises: workout.exercises.map(e => e.id !== exerciseId ? e : { ...e, sets: e.sets.map(s => s.id !== setId ? s : updated) }) };
-  if (updated.completed || next.restTimer?.setId !== setId) return next;
-  const { restTimer: _restTimer, ...rest } = next;
-  return rest;
+  return !updated.completed && next.restTimer?.setId === setId ? clearRestTimer(next) : next;
 }
 export function setCompletedWithRest(workout: Workout, exerciseId: string, setId: string, completed: boolean, now: number, durationMs = DEFAULT_REST_MS): Workout {
   const next = updateSet(workout, exerciseId, setId, { completed });
@@ -119,7 +116,6 @@ export function finishWorkout(workout: Workout, now: number, discardIncomplete =
   if (!completed.length || completed.some(s => !validSet(s))) throw new Error('올바르게 입력하고 완료한 세트가 1개 이상 필요합니다.');
   if (!Number.isSafeInteger(now) || now < (workout.pausedAt ?? workout.startedAt)) throw new Error('종료 시각을 확인해 주세요.');
   if (completed.length !== sets.length && !discardIncomplete) throw new IncompleteSetsError();
-  const resumed = resumeWorkout(workout, now);
-  const { restTimer: _restTimer, ...withoutRestTimer } = resumed;
+  const withoutRestTimer = clearRestTimer(resumeWorkout(workout, now));
   return { ...withoutRestTimer, finishedAt: now, exercises: workout.exercises.map(e => ({ ...e, sets: e.sets.filter(s => s.completed) })).filter(e => e.sets.length > 0) };
 }
