@@ -117,6 +117,18 @@ try {
   workout = await rotatedSession.api.replaceSets(workout.id, workout.version, [{exerciseName:'스쿼트', weight:40.5, reps:10}]);
   workout = await api.completeSet(workout.id, workout.version, 0, true, 90);
   assert.ok(workout.restEndsAt);
+  const restBeforePause=workout.restEndsAt;
+  const beforePauseVersion=workout.version;
+  await assert.rejects(other.pause(workout.id,workout.version),(e:unknown)=>e instanceof ApiError && e.status===404);
+  workout=await api.pause(workout.id,workout.version);
+  assert.ok(workout.pausedAt);assert.equal(workout.restEndsAt,restBeforePause);
+  const pausedAt=workout.pausedAt;
+  assert.equal((await api.active())?.pausedAt,pausedAt);
+  assert.equal((await api.pause(workout.id,workout.version)).pausedAt,pausedAt);
+  await assert.rejects(api.resume(workout.id,beforePauseVersion),(e:unknown)=>e instanceof ApiError && e.status===409);
+  workout=await api.resume(workout.id,workout.version);
+  assert.equal(workout.pausedAt,null);assert.ok((workout.pausedDurationMs??-1)>=0);
+  assert.equal(workout.restEndsAt,restBeforePause);
   workout = await api.appendSet(workout.id, workout.version, {exerciseName:'푸시업', weight:0, reps:8});
   const staleVersion = workout.version;
   workout = await api.editSet(workout.id, workout.version, 1, {exerciseName:'푸시업', weight:0, reps:12});

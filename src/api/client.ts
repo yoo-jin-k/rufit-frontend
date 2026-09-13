@@ -2,6 +2,7 @@ export type SetInput = { exerciseId?: string | null; exerciseName: string; weigh
 export type WorkoutSnapshot = {
   id: string; startedAt: string; finishedAt: string | null; cancelledAt: string | null; sourceRoutineId: string | null;
   version: number; sets: SetInput[]; completedSetIndexes: number[]; restEndsAt: string | null; restSetIndex: number | null; note: string;
+  pausedAt?: string | null; pausedDurationMs?: number;
 };
 export type Draft = { note?: string | null; operationId: string; version: number; sets: {set: SetInput; completed: boolean}[]; restSetIndex: number | null; restEndsAt: string | null };
 export type DraftSave = { workout: WorkoutSnapshot; appliedVersion: number; replayed: boolean };
@@ -118,6 +119,8 @@ export function createRufitApi(options: Options) {
     completeSet: (id: string, version: number, index: number, completed: boolean, restSeconds: number) =>
       request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/sets/${index}/completion`, { version, completed, restSeconds }),
     skipRest: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/rest/skip`, { version }),
+    pause: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/pause`, { version }),
+    resume: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/resume`, { version }),
     finish: (id: string, version: number, discardIncomplete = false) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/finish`, { version, discardIncomplete }),
     cancel: (id: string, version: number, confirmed: true) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/cancel`, { version, confirmed }),
     correctHistory: (id: string, version: number, sets: SetInput[]) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/history`, { version, sets }),

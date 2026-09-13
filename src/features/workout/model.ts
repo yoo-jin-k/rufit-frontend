@@ -1,12 +1,32 @@
 export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean };
 export type Exercise = { id: string; name: string; catalogId?: string; sets: WorkoutSet[] };
-export type Workout = { id: string; startedAt: number; finishedAt?: number; exercises: Exercise[] };
+export type Workout = { id: string; startedAt: number; finishedAt?: number; pausedAt?: number; pausedDurationMs?: number; exercises: Exercise[] };
 export function startWorkout(id: string, now: number): Workout {
   return { id, startedAt: now, exercises: [] };
 }
 export const MAX_WORKOUT_SETS = 300;
 function editable(workout: Workout) {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
+}
+export function elapsedWorkoutMs(workout: Workout, now: number): number {
+  return Math.max(0, (workout.finishedAt ?? workout.pausedAt ?? now) - workout.startedAt - (workout.pausedDurationMs ?? 0));
+}
+export function formatWorkoutTime(milliseconds: number): string {
+  const seconds = Math.floor(milliseconds / 1000);
+  return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(n => String(n).padStart(2, '0')).join(':');
+}
+export function pauseWorkout(workout: Workout, now: number): Workout {
+  editable(workout);
+  if (workout.pausedAt !== undefined) return workout;
+  if (!Number.isSafeInteger(now) || now < workout.startedAt + (workout.pausedDurationMs ?? 0)) throw new Error('운동 시각을 확인해 주세요.');
+  return { ...workout, pausedAt: now };
+}
+export function resumeWorkout(workout: Workout, now: number): Workout {
+  editable(workout);
+  if (workout.pausedAt === undefined) return workout;
+  if (!Number.isSafeInteger(now) || now < workout.pausedAt) throw new Error('진행 시각이 정지 시각보다 빠릅니다.');
+  const { pausedAt, ...rest } = workout;
+  return { ...rest, pausedDurationMs: (workout.pausedDurationMs ?? 0) + now - pausedAt };
 }
 function capacity(workout: Workout) {
   if (workout.exercises.reduce((count, e) => count + e.sets.length, 0) >= MAX_WORKOUT_SETS)
@@ -59,7 +79,7 @@ export function finishWorkout(workout: Workout, now: number, discardIncomplete =
   const sets = workout.exercises.flatMap(e => e.sets);
   const completed = sets.filter(s => s.completed);
   if (!completed.length || completed.some(s => !validSet(s))) throw new Error('올바르게 입력하고 완료한 세트가 1개 이상 필요합니다.');
-  if (now < workout.startedAt) throw new Error('종료 시간이 시작 시간보다 빠릅니다.');
+  if (!Number.isSafeInteger(now) || now < (workout.pausedAt ?? workout.startedAt)) throw new Error('종료 시각을 확인해 주세요.');
   if (completed.length !== sets.length && !discardIncomplete) throw new IncompleteSetsError();
-  return { ...workout, finishedAt: now, exercises: workout.exercises.map(e => ({ ...e, sets: e.sets.filter(s => s.completed) })).filter(e => e.sets.length > 0) };
+  return { ...resumeWorkout(workout, now), finishedAt: now, exercises: workout.exercises.map(e => ({ ...e, sets: e.sets.filter(s => s.completed) })).filter(e => e.sets.length > 0) };
 }

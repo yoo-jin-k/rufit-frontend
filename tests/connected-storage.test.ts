@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createConnectedWorkoutStorage, type ConnectedRecord } from '../src/features/workout/connectedStorage.ts';
-import { addExercise, addSet, updateSet } from '../src/features/workout/model.ts';
+import { addExercise, addSet, updateSet, elapsedWorkoutMs, resumeWorkout } from '../src/features/workout/model.ts';
 import { createRufitSession } from '../src/api/session.ts';
 import { ApiError, type Draft, type WorkoutSnapshot } from '../src/api/client.ts';
 import { createDraftOutbox } from '../src/api/outbox.ts';
@@ -56,6 +56,26 @@ function edited(record:ConnectedRecord) {
   const withSet=updateSet(addExercise(original,'local-exercise','스쿼트',squat),'local-exercise','local-exercise-1',{weight:'01.00',reps:'02',completed:true});
   return {workout:addSet(withSet,'local-exercise','copy','local-exercise-1'),note:'로컬 메모',rest:{exerciseId:'local-exercise',setId:'local-exercise-1',endsAt:'2030-01-01T00:00:00.123Z'}};
 }
+test('서버 정지 상태를 다시 열어 보존하고 일반 입력 저장으로 타이머를 변경하지 않는다', async()=>{
+  const initial={...snapshot(),pausedAt:'2026-09-13T00:01:00Z',pausedDurationMs:10000};
+  const api=await server(initial);const storage=disk();const store=createConnectedWorkoutStorage(storage,scope);
+  const linked=await store.link(api.session,api.id);
+  assert.equal(elapsedWorkoutMs(linked.form.workout,Date.parse('2026-09-14T00:00:00Z')),50000);
+  await assert.rejects(store.edit(api.id,0,{...linked.form,workout:resumeWorkout(linked.form.workout,Date.parse('2026-09-13T01:00:00Z'))}),/서버에서/);
+  await store.edit(api.id,0,{...linked.form,note:'정지 중 메모'});
+  await store.queueLatest(api.id,randomUUID());assert.equal((await store.flush(api.session)).kind,'saved');
+  const restored=(await createConnectedWorkoutStorage(storage,scope).load(api.id))!;
+  assert.equal(restored.form.workout.pausedAt,Date.parse(initial.pausedAt));
+  assert.equal(restored.form.workout.pausedDurationMs,10000);assert.equal(restored.form.note,'정지 중 메모');
+});
+test('잘못된 서버 타이머를 연결하지 않고 디스크에 기록을 만들지 않는다', async()=>{
+  for(const clock of [{pausedAt:'invalid'},{pausedAt:'2026-09-12T00:00:00Z'},{pausedDurationMs:-1},
+    {pausedAt:'2026-09-13T00:01:00Z',pausedDurationMs:60001}]) {
+    const api=await server({...snapshot(),...clock});const storage=disk();
+    await assert.rejects(createConnectedWorkoutStorage(storage,scope).link(api.session,api.id));
+    assert.equal(storage.values.size,0);
+  }
+});
 async function staged() {
   const storage=disk(); const api=await server(); const store=createConnectedWorkoutStorage(storage,scope);
   const linked=await store.link(api.session,api.id);
@@ -326,7 +346,7 @@ test('이전 연결 자료를 읽고 첫 저장 때 새 형식으로 기록해 �
   const legacy=JSON.parse(storage.values.get(key)!);legacy.schemaVersion=1;storage.values.set(key,JSON.stringify(legacy));
   const restarted=createConnectedWorkoutStorage(storage,scope);assert.deepEqual(await restarted.load(api.id),linked);
   assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,1);
-  await restarted.edit(api.id,0,edited(linked));assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,2);
+  await restarted.edit(api.id,0,edited(linked));assert.equal(JSON.parse(storage.values.get(key)!).schemaVersion,3);
   const future=JSON.parse(storage.values.get(key)!);future.schemaVersion=99;const raw=JSON.stringify(future);storage.values.set(key,raw);
   await assert.rejects(restarted.load(api.id),/기존 데이터는 보존/);assert.equal(storage.values.get(key),raw);
 });

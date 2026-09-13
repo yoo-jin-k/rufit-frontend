@@ -24,7 +24,7 @@ export type ConnectedRecord = RecordCore & {
   closed?: WorkoutSnapshot | null;
   backups?: { record: RecordCore; closing: CloseIntent | null; choice: ResolutionChoice; remote: WorkoutSnapshot }[];
 };
-type Archive = { schemaVersion: 2; scope: AccountScope; records: ConnectedRecord[] };
+type Archive = { schemaVersion: 3; scope: AccountScope; records: ConnectedRecord[] };
 const locks = new WeakMap<OutboxStorage, Map<string, Promise<unknown>>>();
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const integer = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
@@ -43,13 +43,23 @@ function validForm(v: unknown): v is ConnectedForm {
   const result = prepareWorkoutDraft(v.workout, {operationId:'00000000-0000-4000-8000-000000000000',version:0,note:v.note as string,rest:v.rest as RestTarget | null});
   return result.kind === 'ready' || result.issues.every(i => i.code === 'SET_INPUT' || i.code === 'REST_TARGET');
 }
+function timerFields(snapshot: WorkoutSnapshot): Pick<Workout, 'pausedAt' | 'pausedDurationMs'> {
+  if (snapshot.pausedAt !== undefined && snapshot.pausedAt !== null && (typeof snapshot.pausedAt !== 'string' || !Number.isFinite(Date.parse(snapshot.pausedAt))) ||
+    snapshot.pausedDurationMs !== undefined && !integer(snapshot.pausedDurationMs)) throw new Error('서버 운동시간을 확인하지 못했습니다.');
+  return { ...(snapshot.pausedAt != null ? {pausedAt: Date.parse(snapshot.pausedAt)} : {}),
+    ...(snapshot.pausedDurationMs !== undefined ? {pausedDurationMs: snapshot.pausedDurationMs} : {}) };
+}
+function sameTimer(a: Workout, b: Workout) {
+  return a.pausedAt === b.pausedAt && (a.pausedDurationMs ?? 0) === (b.pausedDurationMs ?? 0);
+}
 function hydrate(snapshot: WorkoutSnapshot): ConnectedForm {
   if (!object(snapshot) || !uuid(snapshot.id) || !integer(snapshot.version) || typeof snapshot.startedAt !== 'string' || !Number.isFinite(Date.parse(snapshot.startedAt)) ||
     snapshot.finishedAt !== null || snapshot.cancelledAt !== null || typeof snapshot.note !== 'string' || !Array.isArray(snapshot.sets) || !Array.isArray(snapshot.completedSetIndexes))
     throw new Error('진행 중인 서버 운동을 확인하지 못했습니다.');
   const completed = new Set(snapshot.completedSetIndexes);
   if (completed.size !== snapshot.completedSetIndexes.length || [...completed].some(i => !integer(i) || i >= snapshot.sets.length)) throw new Error('서버 완료 상태를 확인하지 못했습니다.');
-  const workout: Workout = {id:`server:${snapshot.id}`,startedAt:Date.parse(snapshot.startedAt),exercises:[]};
+  const workout: Workout = {id:`server:${snapshot.id}`,startedAt:Date.parse(snapshot.startedAt),exercises:[],...timerFields(snapshot)};
+  if (!isWorkout(workout)) throw new Error('서버 운동시간을 확인하지 못했습니다.');
   const rows: {exerciseId:string;setId:string}[] = [];
   snapshot.sets.forEach((set, i) => {
     if (!object(set) || typeof set.exerciseName !== 'string' || (set.exerciseId != null && !uuid(set.exerciseId)) ||
@@ -80,7 +90,7 @@ function receiptMatches(receipt: DraftReceipt, record: ConnectedRecord): boolean
   hydrate(receipt.workout);
   const expected = pending.draft;
   const actual = receipt.workout;
-  return actual.note === expected.note && actual.sets.length === expected.sets.length && actual.sets.every((set, i) => {
+  return sameTimer(hydrate(actual).workout, pending.form.workout) && actual.note === expected.note && actual.sets.length === expected.sets.length && actual.sets.every((set, i) => {
     const e = expected.sets[i].set;
     return (set.exerciseId ?? null) === (e.exerciseId ?? null) && (e.exerciseId != null || set.exerciseName === e.exerciseName) && set.weight === e.weight && set.reps === e.reps;
   }) && same(actual.completedSetIndexes, expected.sets.flatMap((s,i) => s.completed ? [i] : [])) &&
@@ -115,6 +125,7 @@ function validateSnapshot(snapshot: WorkoutSnapshot): boolean {
     const end = snapshot.finishedAt ?? snapshot.cancelledAt;
     if (snapshot.finishedAt !== null && snapshot.cancelledAt !== null || typeof end !== 'string' || !Number.isFinite(Date.parse(end)) ||
       Date.parse(end) < Date.parse(snapshot.startedAt) || snapshot.restEndsAt !== null || snapshot.restSetIndex !== null ||
+      snapshot.pausedAt != null || (snapshot.pausedDurationMs ?? 0) > Date.parse(end) - Date.parse(snapshot.startedAt) ||
       snapshot.finishedAt !== null && (snapshot.sets.length === 0 || snapshot.completedSetIndexes.length !== snapshot.sets.length))
       throw new Error('종료된 운동 상태를 확인하지 못했습니다.');
   }
@@ -167,12 +178,12 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
   };
   async function read(): Promise<Archive> {
     const raw = await storage.getItem(key);
-    if (raw === null) return {schemaVersion:2,scope,records:[]};
+    if (raw === null) return {schemaVersion:3,scope,records:[]};
     try {
       const value: unknown = JSON.parse(raw);
-      if (!object(value) || !([1,2].includes(value.schemaVersion as number)) || !object(value.scope) || !scopeMatches(value.scope as AccountScope,scope) || !Array.isArray(value.records) ||
+      if (!object(value) || !([1,2,3].includes(value.schemaVersion as number)) || !object(value.scope) || !scopeMatches(value.scope as AccountScope,scope) || !Array.isArray(value.records) ||
         !value.records.every(validRecord) || new Set(value.records.map(r => r.remoteId)).size !== value.records.length) throw new Error();
-      return {...value,schemaVersion:2} as Archive;
+      return {...value,schemaVersion:3} as Archive;
     } catch { throw new Error('운동 연결 정보를 읽지 못했습니다. 기존 데이터는 보존했습니다.'); }
   }
   const write = (archive:Archive) => storage.setItem(key,JSON.stringify(archive));
@@ -210,7 +221,12 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
           current.version=resolution.remote.version;current.revision++;
           if (resolution.choice==='archive') current.closed=copy(resolution.remote);
           else if (resolution.choice==='use-server') {current.form=hydrate(resolution.remote);current.confirmedRevision=current.revision;}
-          else current.confirmedRevision=current.revision-1;
+          else {
+            // Keep local set inputs, but the server remains authoritative for explicit timer actions.
+            const {pausedAt: _pausedAt, pausedDurationMs: _pausedDurationMs, ...input}=current.form.workout;
+            current.form.workout={...input,...timerFields(resolution.remote)};
+            current.confirmedRevision=current.revision-1;
+          }
           await write(archive);
         });
         continue;
@@ -376,6 +392,7 @@ export function createConnectedWorkoutStorage(storage: OutboxStorage, accountSco
         requireEditable(record);
         if (!integer(expectedRevision) || record.revision!==expectedRevision) throw new Error('입력이 변경되었습니다. 최신 기록을 다시 읽어 주세요.');
         if (!validForm(form) || form.workout.id!==record.form.workout.id || form.workout.startedAt!==record.form.workout.startedAt) throw new Error('연결된 운동의 입력 형식을 확인해 주세요.');
+        if (!sameTimer(form.workout,record.form.workout)) throw new Error('연결된 운동의 정지·진행은 서버에서 처리해야 합니다.');
         if (same(form,record.form)) return copy(record);
         if (!Number.isSafeInteger(record.revision+1)) throw new Error('기록 변경 번호의 한도를 초과했습니다.');
         record.form=form; record.revision++; await write(archive); return copy(record);
