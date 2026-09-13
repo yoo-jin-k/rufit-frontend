@@ -13,13 +13,13 @@
   "rows": [
     {
       "width": 320,
-      "height": 740,
+      "height": 568,
       "scrollWidth": 320,
       "buttonOverflow": []
     },
     {
       "width": 375,
-      "height": 812,
+      "height": 667,
       "scrollWidth": 375,
       "buttonOverflow": []
     },
