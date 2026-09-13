@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { colors } from '../../theme/tokens';
 import { ExercisePicker } from '../exercises/ExercisePicker';
@@ -9,6 +9,10 @@ import { exerciseImages } from '../exercises/images';
 import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 import { RestSetting, formatRest } from './RestSetting';
+import {WorkoutTimerCard} from './WorkoutTimerCard';
+import {RestTimerCard} from './RestTimerCard';
+import {restTimerView, workoutViewport} from './timerView';
+import {timerStyles} from './TimerCard.styles';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen() {
@@ -18,6 +22,10 @@ export function WorkoutScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now);
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const viewport = workoutViewport(window.width, insets.left, insets.right, window.fontScale);
+  const restView = rest ? restTimerView(rest.endsAt, now) : null;
   // 표시만 주기적으로 갱신한다. 접기·회전·백그라운드 전환은 운동을 자동 정지하지 않는다.
   useEffect(() => {
     const refresh = () => setNow(Date.now());
@@ -38,25 +46,18 @@ export function WorkoutScreen() {
   const total = workout?.exercises.reduce((count, e) => count + e.sets.length, 0) ?? 0;
   const completed = workout?.exercises.reduce((count, e) => count + e.sets.filter(set => set.completed).length, 0) ?? 0;
   return <SafeAreaView style={s.page}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[timerStyles.content, {paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding}]}>
       <View style={s.topline}><Text style={s.brand}>루핏</Text><Text style={s.muted}>나의 운동 노트</Text></View>
       <View style={s.intro}><Text style={s.title}>오늘의 운동</Text><Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text></View>
       {!ready ? <Text>{status}</Text> : !workout ? <View style={s.card}><Text style={s.heading}>내 페이스로 시작해요</Text><Text style={s.muted}>종목을 고르고 오늘의 무게와 횟수를 기록해요.</Text><Button title="자유 운동 시작" onPress={() => setWorkout(startWorkout(nextId(), Date.now()))} /></View> : <>
         <View style={s.summary}><Text style={s.heading}>{finished ? '오늘도 해냈어요!' : '운동 기록 중'}</Text><Text style={s.progress}>{completed} / {total}세트 완료</Text></View>
-        <View style={s.card}>
-          <Text style={s.heading} accessibilityLabel="운동 진행 시간">{formatWorkoutTime(elapsedWorkoutMs(workout, now))}</Text>
-          <Text style={s.muted}>{finished ? '정지한 시간을 제외한 운동시간' : workout.pausedAt !== undefined ? '운동시간 정지 중 · 진행을 눌러 다시 시작하세요.' : '앱을 닫아도 운동시간은 계속 흘러갑니다.'}</Text>
-          {!finished && <Button title={workout.pausedAt !== undefined ? '운동 진행' : '운동 정지'} secondary onPress={() => act(w => w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()))} />}
-        </View>
-        {rest && <View style={s.card}>
-          <Text style={s.heading}>세트 휴식 {formatRest(Math.max(0, Math.ceil((rest.endsAt - now) / 1000)))}</Text>
-          <Text style={s.muted}>{workout.exercises.find(e => e.id === rest.exerciseId)?.name} · 운동시간 정지와 별도로 흐릅니다.</Text>
-          <View style={s.summary}>
-            <Button title="휴식 −10초" secondary onPress={() => {adjustRest(-10);setNow(Date.now());}} />
-            <Button title="휴식 +10초" secondary onPress={() => {adjustRest(10);setNow(Date.now());}} />
-            <Button title="휴식 닫기" secondary onPress={skipRest} />
-          </View>
-        </View>}
+        <WorkoutTimerCard phase={finished ? 'finished' : workout.pausedAt !== undefined ? 'paused' : 'running'}
+          elapsedLabel={formatWorkoutTime(elapsedWorkoutMs(workout, now))}
+          onPause={() => act(w => pauseWorkout(w, Date.now()))} onResume={() => act(w => resumeWorkout(w, Date.now()))} />
+        {rest && restView && <RestTimerCard phase={restView.phase} remainingLabel={formatRest(restView.seconds)}
+          exerciseName={workout.exercises.find(e => e.id === rest.exerciseId)?.name ?? ''}
+          canSubtract={restView.canSubtract} canAdd={restView.canAdd} stackActions={viewport.stackRestActions}
+          onAdjust={seconds => {adjustRest(seconds);setNow(Date.now());}} onSkip={skipRest} />}
         {!workout.exercises.length && <View style={s.empty}><Text style={s.heading}>어떤 운동부터 할까요?</Text><Text style={s.muted}>사진과 운동 부위를 보고 종목을 선택해요.</Text></View>}
         {workout.exercises.map(e => {
           const catalog = findCatalogExercise(e.catalogId);
@@ -109,7 +110,7 @@ function IconButton({ label, symbol, selected = false, disabled, onPress }: { la
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled, selected }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.icon, selected && s.iconSelected, { opacity: disabled ? 0.45 : pressed ? 0.6 : 1 }]}><Text style={[s.iconText, selected && s.iconTextSelected]}>{symbol}</Text></Pressable>;
 }
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background }, content: { padding: 16, paddingBottom: 32, gap: 18, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  page: { flex: 1, backgroundColor: colors.background },
   topline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 }, intro: { gap: 8, marginBottom: 4 },
   brand: { color: colors.primary, fontWeight: '800', fontSize: 22 }, title: { color: colors.text, fontWeight: '800', fontSize: 30 },
   heading: { color: colors.text, fontWeight: '700', fontSize: 19, lineHeight: 27 }, muted: { color: colors.muted, lineHeight: 22, fontSize: 13 },

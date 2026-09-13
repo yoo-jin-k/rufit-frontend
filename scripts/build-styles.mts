@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { compileString } from 'sass';
-import { colors, spacing, radius, typography, size, interaction } from '../src/theme/tokens.ts';
+import { colors, spacing, radius, typography, size } from '../src/theme/tokens.ts';
 
 // 단일 토큰을 Sass 변수로 변환한 뒤 웹 CSS를 사전 생성한다. Metro의 Sass 파일 간 import 제한을 피한다.
 const root = new URL('../src/theme/web/', import.meta.url);
@@ -8,11 +8,11 @@ function variables(value: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(value).flatMap(([key, entry]) => {
     const name = prefix ? `${prefix}-${key}` : key;
     if (typeof entry === 'object' && entry !== null) return variables(entry as Record<string, unknown>, name);
-    const unit = typeof entry === 'number' && !key.endsWith('Opacity') ? 'px' : '';
+    const unit = typeof entry === 'number' && !key.endsWith('Scale') ? 'px' : '';
     return [`$${name}: ${entry}${unit};`];
   });
 }
-const generated = `// 자동 생성: src/theme/tokens.ts 수정 후 npm run styles\n${variables({colors, spacing, radius, typography, size, interaction}).join('\n')}\n`;
+const generated = `// 자동 생성: src/theme/tokens.ts 수정 후 npm run styles\n${variables({colors, spacing, radius, typography, size}).join('\n')}\n`;
 const tokensUrl = new URL('tokens.generated.scss', root);
 const source = await readFile(new URL('Button.module.scss', root), 'utf8');
 const mixins = await readFile(new URL('_mixins.scss', root), 'utf8');
