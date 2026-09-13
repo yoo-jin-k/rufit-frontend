@@ -16,6 +16,8 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createRufitApi, ApiError } from '../src/api/client.ts';
 import { exerciseCatalog } from '../src/features/exercises/catalog.ts';
+import { prepareWorkoutDraft } from '../src/features/workout/draftMapping.ts';
+import { addExercise, addSet, removeSet, startWorkout, updateSet } from '../src/features/workout/model.ts';
 
 const jar = process.env.RUFIT_BACKEND_JAR ?? fileURLToPath(new URL('../../rufit-backend/target/rufit-backend-0.0.1-SNAPSHOT.jar', import.meta.url));
 if (!existsSync(jar)) throw new Error('검증된 백엔드 JAR가 필요합니다. 먼저 백엔드에서 mvnw verify를 실행해 주세요.');
@@ -276,8 +278,43 @@ try {
   assert.equal((await afterDelete.list()).length,1);
   assert.equal((await afterDelete.flushOne(verified)).kind,'idle');
   await api.cancel(followingWorkout.id,followingResult.workout.version,true);
+  const mappingSession = await createRufitSession({baseUrl,getAccessToken:() => token(`mapping-${run}`)});
+  const mappingWorkout = await mappingSession.api.start(randomUUID());
+  let form = updateSet(addExercise(startWorkout('local-form',Date.now()),'local-squat','스쿼트',publicExerciseId),
+    'local-squat','local-squat-1',{weight:'01.00',reps:'02',completed:true});
+  form = updateSet(addSet(form,'local-squat','resting','local-squat-1'),'local-squat','resting',{weight:'2',reps:'3',completed:true});
+  form = addSet(form,'local-squat','copy','local-squat-1');
+  form = removeSet(form,'local-squat','local-squat-1');
+  const restDeadline = new Date(Date.now()+90000).toISOString();
+  const prepared = prepareWorkoutDraft(form,{operationId:randomUUID(),version:mappingWorkout.version,
+    note:'Mapped form retains note and rest',rest:{exerciseId:'local-squat',setId:'resting',endsAt:restDeadline}});
+  assert.equal(prepared.kind,'ready');
+  if (prepared.kind !== 'ready') throw new Error('Expected form to be ready');
+  assert.deepEqual(prepared.rows,[{exerciseId:'local-squat',setId:'copy'},{exerciseId:'local-squat',setId:'resting'}]);
+  assert.equal(prepared.draft.restSetIndex,1);
+  const mappingQueue = createDraftOutbox(disk,mappingSession.scope);
+  await mappingQueue.enqueue(mappingWorkout.id,prepared.draft);
+  form = updateSet(form,'local-squat','copy',{weight:''});
+  const blocked = prepareWorkoutDraft(form,{operationId:randomUUID(),version:mappingWorkout.version,note:prepared.draft.note!,rest:null});
+  assert.equal(blocked.kind,'blocked');
+  assert.equal('draft' in blocked,false);
+  const mappedResult = await createDraftOutbox(disk,mappingSession.scope).flushOne(mappingSession);
+  assert.equal(mappedResult.kind,'saved');
+  if (mappedResult.kind !== 'saved') throw new Error('Expected mapped draft to save');
+  const mappedSnapshot = await mappingSession.api.workout(mappingWorkout.id);
+  assert.deepEqual(mappedSnapshot.sets,prepared.draft.sets.map(row=>row.set));
+  assert.deepEqual(mappedSnapshot.completedSetIndexes,[1]);
+  assert.equal(mappedSnapshot.restSetIndex,1);
+  assert.equal(Date.parse(mappedSnapshot.restEndsAt!),Date.parse(restDeadline));
+  assert.equal(mappedSnapshot.note,prepared.draft.note);
+  assert.equal(prepared.source.exercises[0].sets[0].weight,'01.00');
+  assert.equal(form.exercises[0].sets[0].weight,'');
+  assert.equal((await mappingQueue.list()).length,0);
+  await assert.rejects(other.workout(mappingWorkout.id),(e:unknown)=>e instanceof ApiError && e.status===404);
+  await mappingSession.api.cancel(mappingWorkout.id,mappedSnapshot.version,true);
+  mappingSession.close();
   verified.close(); accountSession.close(); otherSession.close();
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox');
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);
