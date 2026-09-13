@@ -8,6 +8,8 @@ import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/ca
 import { exerciseImages } from '../exercises/images';
 import { routineFromWorkout, startWorkoutFromRoutine } from '../routines/model';
 import { useRoutineLibrary } from '../routines/useRoutineLibrary';
+import { PreviousRecordHint } from './PreviousRecordHint';
+import { applyPreviousExerciseRecord } from './previousRecord';
 import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, formatRestTime, restRemainingMs, setCompletedWithRest, extendRestTimer, clearRestTimer, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 let counter = 0;
@@ -83,6 +85,7 @@ export function WorkoutScreen() {
               {catalog && <Image source={exerciseImages[catalog.id]} style={s.picture} resizeMode="contain" accessibilityLabel={`${e.name} 동작 사진`} />}
               <View style={s.exerciseInfo}><Text style={s.heading}>{e.name}</Text><Text style={s.muted}>{catalog ? `${bodyParts[catalog.bodyPart]} · ${equipmentLabels[catalog.equipment]}` : '직접 추가한 종목'}</Text></View>
             </View>
+            <PreviousRecordHint history={history} exercise={e} disabled={finished} onApply={previous => act(w => applyPreviousExerciseRecord(w, e.id, previous, nextId()))} />
             {!!e.sets.length && <View style={s.labels}><Text style={s.indexLabel}>세트</Text><Text style={s.weightLabel}>무게 kg</Text><Text style={s.repsLabel}>횟수</Text><Text style={s.actionLabel}>완료 · 삭제 · 복제</Text></View>}
             {e.sets.map((set, i) => <View style={[s.row, set.completed && s.completedRow]} key={set.id}>
               <Text style={s.index}>{i + 1}</Text>
