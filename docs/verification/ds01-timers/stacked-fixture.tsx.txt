@@ -1,0 +1,11 @@
+import {ScrollView, Text, View} from 'react-native';
+import {RestTimerCard} from '../features/workout/RestTimerCard';
+import {useLocalWorkoutArchive} from '../features/workout/useLocalWorkoutArchive';
+import {emptyArchive} from '../features/workout/storage';
+import {addExercise, pauseWorkout, startWorkout, updateSet} from '../features/workout/model';
+import {completeWithRest} from '../features/workout/localRest';
+const now=Date.now();
+const workout=pauseWorkout(updateSet(addExercise(startWorkout('review',now-60000),'exercise','휴식 세로 배치 검사'),'exercise','exercise-1',{weight:'2',reps:'20',completed:false}),now);
+const archive=completeWithRest({...emptyArchive(),current:workout},'exercise','exercise-1',true,now);
+const storage={load:async()=>archive,save:async()=>{}};
+export default function App(){const value=useLocalWorkoutArchive(storage);return <ScrollView contentContainerStyle={{padding:24,backgroundColor:'#F5F6F8'}}><View style={{width:560}}><Text testID="fixture-record" style={{position:'absolute',width:1,height:1,overflow:'hidden'}}>{JSON.stringify({workout:value.workout,rest:value.rest,setting:value.workout?value.restFor(value.workout.exercises[0]):null})}</Text>{value.rest&&<View testID="rest-fixture"><RestTimerCard phase="active" remainingLabel="1:30" exerciseName="휴식 세로 배치 검사" canSubtract canAdd stackActions onAdjust={value.adjustRest} onSkip={value.skipRest}/></View>}</View></ScrollView>}

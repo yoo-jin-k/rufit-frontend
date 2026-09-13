@@ -8,7 +8,7 @@ export const timerStyles = StyleSheet.create({
   description: {...typography.caption, color: colors.textSecondary},
   adjustments: {flexDirection: 'row', gap: spacing.sm},
   stacked: {flexDirection: 'column'},
-  action: {flex: 1, minWidth: 0},
-  stackedAction: {flex: 0},
+  action: {flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0},
+  stackedAction: {flexGrow: 0, flexShrink: 0, flexBasis: 'auto'},
   content: {gap: spacing.lg, paddingBottom: spacing.bottom, maxWidth: size.contentMax, width: '100%', alignSelf: 'center'},
 });
