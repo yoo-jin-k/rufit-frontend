@@ -40,7 +40,7 @@ test('여러 번 정지한 뒤 정지 상태로 종료해도 기록에는 실제
 test('이전 기록 형식을 보존해 읽고 새 저장에서는 정지 정보를 이해하는 형식을 쓴다', () => {
   const old={schemaVersion:1,current:startWorkout('w',0),history:[]};
   const archive=decodeArchive(JSON.stringify(old));
-  assert.equal(archive.schemaVersion,2);assert.deepEqual(archive.current,old.current);
+  assert.equal(archive.schemaVersion,3);assert.deepEqual(archive.current,old.current);
   assert.equal(elapsedWorkoutMs(archive.current!,60000),60000);
 });
 test('잘못된 정지 정보와 역행한 시각을 거부하고 원본을 유지한다', () => {

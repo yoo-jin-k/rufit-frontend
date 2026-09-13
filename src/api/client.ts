@@ -9,11 +9,12 @@ export type DraftSave = { workout: WorkoutSnapshot; appliedVersion: number; repl
 export type BodyPart = 'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'FULL_BODY';
 export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIGHT' | 'OTHER';
 export type ExerciseInput = { name: string; bodyPart: BodyPart; equipment: Equipment };
-export type Exercise = ExerciseInput & { id: string; custom: boolean; archivedAt: string | null; version: number };
+export type Exercise = ExerciseInput & { id: string; custom: boolean; archivedAt: string | null; version: number; recommendedRestSeconds?: number | null };
 export type ExerciseSearch = { query?: string; bodyPart?: BodyPart; equipment?: Equipment; page?: number; size?: number; includeArchived?: boolean };
 export type ProfileFields = { nickname: string; bio: string; experience: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | null;
   goals: ('GENERAL_FITNESS' | 'STRENGTH' | 'MUSCLE_GAIN' | 'WEIGHT_MANAGEMENT')[] };
 export type Profile = ProfileFields & {version: number; visibility: 'PRIVATE'};
+export type ExerciseRest = {exerciseId: string; version: number; recommendedRestSeconds: number | null; personalRestSeconds: number | null; effectiveRestSeconds: number; source: 'RECOMMENDED' | 'PERSONAL' | 'DEFAULT'};
 export type RestPreferences = {version: number; defaultRestSeconds: number};
 export type Routine = { id: string; title: string; version: number; sets: SetInput[]; sourceRoutineId: string | null; sourceWorkoutId: string | null };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; hasNext: boolean };
@@ -116,8 +117,10 @@ export function createRufitApi(options: Options) {
     appendSet: (id: string, version: number, set: SetInput) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/sets`, { version, set }),
     editSet: (id: string, version: number, index: number, set: SetInput) => request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/sets/${index}`, { version, set }),
     removeSet: (id: string, version: number, index: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/sets/${index}/remove`, { version }),
-    completeSet: (id: string, version: number, index: number, completed: boolean, restSeconds: number) =>
+    completeSet: (id: string, version: number, index: number, completed: boolean, restSeconds?: number | null) =>
       request<WorkoutSnapshot>('PUT', `${workoutPath(id)}/sets/${index}/completion`, { version, completed, restSeconds }),
+    exerciseRest: (id: string) => request<ExerciseRest>('GET', `/exercises/${segment(id)}/rest`),
+    saveExerciseRest: (id: string, version: number, mode: 'RECOMMENDED' | 'PERSONAL', restSeconds?: number | null) => request<ExerciseRest>('PUT', `/exercises/${segment(id)}/rest`, {version, mode, restSeconds}),
     skipRest: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/rest/skip`, { version }),
     pause: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/pause`, { version }),
     resume: (id: string, version: number) => request<WorkoutSnapshot>('POST', `${workoutPath(id)}/resume`, { version }),

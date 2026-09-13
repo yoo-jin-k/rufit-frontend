@@ -91,12 +91,23 @@ try {
   for (const expected of exerciseCatalog) {
     const actual = sharedCatalog.items.find(item => item.id === expected.id);
     assert.ok(actual, `Missing mobile catalog ID: ${expected.id}`);
+    assert.equal(actual.recommendedRestSeconds,expected.recommendedRestSeconds);
     assert.deepEqual({name: actual.name, bodyPart: actual.bodyPart, equipment: actual.equipment},
       {name: expected.name, bodyPart: expected.bodyPart, equipment: expected.equipment});
   }
   const filteredSquats = await api.exercises({query: '스쿼트', bodyPart: 'LEGS', equipment: 'DUMBBELL'});
   assert.equal(filteredSquats.totalElements, 1);
   assert.equal(filteredSquats.items[0].id, '00000000-0000-4000-8000-000000000012');
+  const squatRestId='00000000-0000-4000-8000-000000000001';
+  const curlRestId='00000000-0000-4000-8000-000000000009';
+  assert.equal((await api.exerciseRest(squatRestId)).effectiveRestSeconds,180);
+  assert.equal((await api.exerciseRest(curlRestId)).effectiveRestSeconds,90);
+  let exerciseRest=await api.saveExerciseRest(squatRestId,0,'PERSONAL',45);
+  assert.equal(exerciseRest.effectiveRestSeconds,45);assert.equal(exerciseRest.source,'PERSONAL');
+  assert.equal((await other.exerciseRest(squatRestId)).effectiveRestSeconds,180);
+  await assert.rejects(api.saveExerciseRest(squatRestId,0,'PERSONAL',60),(e:unknown)=>e instanceof ApiError && e.status===409);
+  exerciseRest=await api.saveExerciseRest(squatRestId,exerciseRest.version,'RECOMMENDED');
+  assert.equal(exerciseRest.effectiveRestSeconds,180);assert.equal(exerciseRest.personalRestSeconds,null);
   assert.equal(await api.active(), null);
   const key = randomUUID();
   let workout = await api.start(key);
@@ -457,8 +468,24 @@ try {
   await recoveredOverview.close(connectionSession,reviewWorkout.id,accepted.revision,{action:'cancel',confirmed:true,discardIncomplete:false});
   connectionSession.close();
   mappingSession.close();
+  const restApi=createRufitApi({baseUrl,getAccessToken:()=>token(`exercise-rest-${run}`)});
+  let restWorkout=await restApi.start(randomUUID());
+  restWorkout=await restApi.appendSet(restWorkout.id,restWorkout.version,{exerciseId:squatRestId,exerciseName:'스쿼트',weight:1,reps:2});
+  restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,true);
+  assert.ok(Date.parse(restWorkout.restEndsAt!)-Date.now()>178000);
+  const originalRestEnd=restWorkout.restEndsAt;
+  await restApi.saveExerciseRest(squatRestId,0,'PERSONAL',45);
+  assert.equal((await restApi.workout(restWorkout.id)).restEndsAt,originalRestEnd);
+  restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,false);
+  restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,true,null);
+  assert.ok(Date.parse(restWorkout.restEndsAt!)-Date.now()>43000);
+  assert.ok(Date.parse(restWorkout.restEndsAt!)-Date.now()<=45000);
+  restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,false);
+  restWorkout=await restApi.completeSet(restWorkout.id,restWorkout.version,0,true,0);
+  assert.equal(restWorkout.restEndsAt,null);
+  await restApi.finish(restWorkout.id,restWorkout.version);
   verified.close(); accountSession.close(); otherSession.close();
-  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery/conflict-choice/close-recovery/account-recovery-overview');
+  console.log('PASS: typed client → signed OIDC → PostgreSQL, workouts/routines/history/calendar/rest/recovery/ownership/conflicts/catalog/account/atomic-save/lost-acknowledgement/durable-outbox/local-form-mapping/account-form-recovery/conflict-choice/close-recovery/account-recovery-overview/workout-pause/exercise-rest');
 } catch (error) {
   const diagnostics = logs.split('\n').filter(line => /ERROR|Caused by:/.test(line)).slice(-8).join('\n');
   if (diagnostics) console.error(diagnostics);

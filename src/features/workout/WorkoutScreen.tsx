@@ -8,10 +8,11 @@ import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/ca
 import { exerciseImages } from '../exercises/images';
 import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
+import { RestSetting, formatRest } from './RestSetting';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen() {
-  const { workout, setWorkout, history, ready, status, failed, retry } = useWorkoutArchive();
+  const { workout, setWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, status, failed, retry } = useWorkoutArchive();
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -46,6 +47,15 @@ export function WorkoutScreen() {
           <Text style={s.muted}>{finished ? '정지한 시간을 제외한 운동시간' : workout.pausedAt !== undefined ? '운동시간 정지 중 · 진행을 눌러 다시 시작하세요.' : '앱을 닫아도 운동시간은 계속 흘러갑니다.'}</Text>
           {!finished && <Button title={workout.pausedAt !== undefined ? '운동 진행' : '운동 정지'} secondary onPress={() => act(w => w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()))} />}
         </View>
+        {rest && <View style={s.card}>
+          <Text style={s.heading}>세트 휴식 {formatRest(Math.max(0, Math.ceil((rest.endsAt - now) / 1000)))}</Text>
+          <Text style={s.muted}>{workout.exercises.find(e => e.id === rest.exerciseId)?.name} · 운동시간 정지와 별도로 흐릅니다.</Text>
+          <View style={s.summary}>
+            <Button title="휴식 −10초" secondary onPress={() => {adjustRest(-10);setNow(Date.now());}} />
+            <Button title="휴식 +10초" secondary onPress={() => {adjustRest(10);setNow(Date.now());}} />
+            <Button title="휴식 닫기" secondary onPress={skipRest} />
+          </View>
+        </View>}
         {!workout.exercises.length && <View style={s.empty}><Text style={s.heading}>어떤 운동부터 할까요?</Text><Text style={s.muted}>사진과 운동 부위를 보고 종목을 선택해요.</Text></View>}
         {workout.exercises.map(e => {
           const catalog = findCatalogExercise(e.catalogId);
@@ -54,12 +64,15 @@ export function WorkoutScreen() {
               {catalog && <Image source={exerciseImages[catalog.id]} style={s.picture} resizeMode="contain" accessibilityLabel={`${e.name} 동작 사진`} />}
               <View style={s.exerciseInfo}><Text style={s.heading}>{e.name}</Text><Text style={s.muted}>{catalog ? `${bodyParts[catalog.bodyPart]} · ${equipmentLabels[catalog.equipment]}` : '직접 추가한 종목'}</Text></View>
             </View>
+            <RestSetting name={e.name} {...restFor(e)} finished={finished} onSave={seconds => saveRest(e, seconds)} />
             {!!e.sets.length && <View style={s.labels}><Text style={s.indexLabel}>세트</Text><Text style={s.weightLabel}>무게 kg</Text><Text style={s.repsLabel}>횟수</Text><Text style={s.actionLabel}>완료 · 삭제 · 복제</Text></View>}
             {e.sets.map((set, i) => <View style={[s.row, set.completed && s.completedRow]} key={set.id}>
               <Text style={s.index}>{i + 1}</Text>
               <TextInput style={[s.input, s.weight]} accessibilityLabel={`${e.name} ${i + 1}세트 무게`} placeholder="0" keyboardType="decimal-pad" value={set.weight} editable={!finished} maxLength={7} onChangeText={weight => act(w => updateSet(w, e.id, set.id, { weight }))} />
               <TextInput style={[s.input, s.reps]} accessibilityLabel={`${e.name} ${i + 1}세트 횟수`} placeholder="0" keyboardType="number-pad" value={set.reps} editable={!finished} maxLength={4} onChangeText={reps => act(w => updateSet(w, e.id, set.id, { reps }))} />
-              <IconButton label={`${e.name} ${i + 1}세트 ${set.completed ? '완료 취소' : '완료'}`} symbol="✓" selected={set.completed} disabled={finished} onPress={() => act(w => updateSet(w, e.id, set.id, { completed: !w.exercises.find(ex => ex.id === e.id)?.sets.find(s => s.id === set.id)?.completed }))} />
+              <IconButton label={`${e.name} ${i + 1}세트 ${set.completed ? '완료 취소' : '완료'}`} symbol="✓" selected={set.completed} disabled={finished} onPress={() => {
+                try {completeSet(e.id, set.id, !set.completed);setNow(Date.now());setError('');setConfirmFinish(false);} catch (error) {setError(error instanceof Error ? error.message : '세트를 확인해 주세요.');}
+              }} />
               <IconButton label={`${e.name} ${i + 1}세트 삭제`} symbol="−" disabled={finished} onPress={() => act(w => removeSet(w, e.id, set.id))} />
               <IconButton label={`${e.name} ${i + 1}세트 복제`} symbol="+" disabled={finished} onPress={() => act(w => addSet(w, e.id, nextId(), set.id))} />
             </View>)}
