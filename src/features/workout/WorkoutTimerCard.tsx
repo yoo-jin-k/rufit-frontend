@@ -17,6 +17,6 @@ export function WorkoutTimerCard({phase, elapsedLabel, onPause, onResume}: {
     <Text style={s.phase} accessibilityLiveRegion="polite">{labels[phase]}</Text>
     <Text style={s.time} accessibilityLabel={`운동 진행 시간 ${elapsedLabel}`}>{wrappableTime(elapsedLabel)}</Text>
     <Text style={s.description}>{descriptions[phase]}</Text>
-    {phase !== 'finished' && <Button title={phase === 'paused' ? '운동 재개' : '일시정지'} secondary onPress={phase === 'paused' ? onResume : onPause} />}
+    {phase !== 'finished' && <Button title={phase === 'paused' ? '운동 재개' : '일시정지'} secondary={phase !== 'paused'} onPress={phase === 'paused' ? onResume : onPause} />}
   </View>;
 }
