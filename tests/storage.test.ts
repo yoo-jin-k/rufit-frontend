@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorkoutStorage, emptyArchive, remember, decodeArchive } from '../src/features/workout/storage.ts';
-import { startWorkout, addExercise, updateSet, finishWorkout, IncompleteSetsError } from '../src/features/workout/model.ts';
+import { startWorkout, addExercise, updateSet, finishWorkout, IncompleteSetsError, setCompletedWithRest } from '../src/features/workout/model.ts';
 test('입력 중인 빈 값과 완료 이력을 저장하고 다시 읽는다', async () => {
   let raw: string | null = null;
   const adapter = { getItem: async () => raw, setItem: async (_: string, value: string) => { raw = value; } };
@@ -57,4 +57,15 @@ test('종료 시 미완료 세트 제외는 확인이 필요하다', () => {
   assert.equal(finishWorkout(partial, 100, true).exercises.length, 1);
   assert.equal(partial.exercises.length, 2);
   assert.throws(() => updateSet(partial, 'other', 'other-1', { completed: true }));
+});
+test('휴식 타이머도 앱 재시작 뒤 복구하고 손상된 타이머는 거부한다', async () => {
+  let raw: string | null = null;
+  const adapter = { getItem: async () => raw, setItem: async (_: string, value: string) => { raw = value; } };
+  const storage = createWorkoutStorage(adapter);
+  const input = updateSet(addExercise(startWorkout('w', 1_000), 'e', '스쿼트'), 'e', 'e-1', { weight: '60', reps: '10' });
+  const resting = setCompletedWithRest(input, 'e', 'e-1', true, 2_000);
+  await storage.save(remember(emptyArchive(), resting));
+  assert.deepEqual((await storage.load()).current?.restTimer, { setId: 'e-1', startedAt: 2_000, durationMs: 90_000 });
+  const corrupt = JSON.stringify({ schemaVersion: 2, current: { ...resting, restTimer: { ...resting.restTimer, setId: 'missing' } }, history: [] });
+  assert.throws(() => decodeArchive(corrupt), /저장된 기록/);
 });

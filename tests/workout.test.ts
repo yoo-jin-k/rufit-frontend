@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startWorkout, addExercise, updateSet, finishWorkout, validSet, addSet, removeSet } from '../src/features/workout/model.ts';
+import { startWorkout, addExercise, updateSet, finishWorkout, validSet, addSet, removeSet, setCompletedWithRest, restRemainingMs, extendRestTimer, clearRestTimer, formatRestTime } from '../src/features/workout/model.ts';
 test('운동 시작 → 종목 → 입력 → 종료, 원본 보존', () => {
   const original = startWorkout('w', 100);
   const added = addExercise(original, 'e', ' 스쿼트 ');
@@ -79,4 +79,28 @@ test('완료한 세트를 잘못된 값으로 수정하면 완료가 해제된�
   const edited = updateSet(w, 'e', 'e-1', {reps: ''});
   assert.equal(edited.exercises[0].sets[0].completed, false);
   assert.throws(() => finishWorkout(edited, 1));
+});
+test('세트 완료 시 90초 휴식을 시작하고 남은 시간을 계산한다', () => {
+  const input = updateSet(addExercise(startWorkout('w', 1_000), 'e', '스쿼트'), 'e', 'e-1', {weight: '60', reps: '10'});
+  const completed = setCompletedWithRest(input, 'e', 'e-1', true, 2_000);
+  assert.deepEqual(completed.restTimer, {setId: 'e-1', startedAt: 2_000, durationMs: 90_000});
+  assert.equal(restRemainingMs(completed, 32_000), 60_000);
+  assert.equal(formatRestTime(60_001), '01:01');
+  assert.equal(restRemainingMs(completed, 100_000), 0);
+});
+test('휴식은 30초 연장·건너뛰기 가능하고 완료 취소·세트 삭제·운동 종료 때 정리된다', () => {
+  const input = updateSet(addExercise(startWorkout('w', 0), 'e', '스쿼트'), 'e', 'e-1', {weight: '60', reps: '10'});
+  const active = setCompletedWithRest(input, 'e', 'e-1', true, 1_000);
+  assert.equal(extendRestTimer(active, 30_000).restTimer?.durationMs, 120_000);
+  assert.equal(clearRestTimer(active).restTimer, undefined);
+  assert.equal(setCompletedWithRest(active, 'e', 'e-1', false, 2_000).restTimer, undefined);
+  assert.equal(removeSet(active, 'e', 'e-1').restTimer, undefined);
+  assert.equal(finishWorkout(active, 2_000).restTimer, undefined);
+});
+test('휴식 타이머 입력은 안전 범위를 벗어나면 거부한다', () => {
+  const input = updateSet(addExercise(startWorkout('w', 1_000), 'e', '스쿼트'), 'e', 'e-1', {weight: '60', reps: '10'});
+  assert.throws(() => setCompletedWithRest(input, 'e', 'e-1', true, 999));
+  assert.throws(() => setCompletedWithRest(input, 'e', 'e-1', true, 2_000, 0));
+  const active = setCompletedWithRest(input, 'e', 'e-1', true, 2_000, 30 * 60_000);
+  assert.throws(() => extendRestTimer(active, 1_000), /30분/);
 });

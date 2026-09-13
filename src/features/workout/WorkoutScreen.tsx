@@ -6,7 +6,7 @@ import { colors } from '../../theme/tokens';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
 import { exerciseImages } from '../exercises/images';
-import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, IncompleteSetsError, type Workout } from './model';
+import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, formatRestTime, restRemainingMs, setCompletedWithRest, extendRestTimer, clearRestTimer, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
@@ -35,6 +35,8 @@ export function WorkoutScreen() {
   const finished = workout?.finishedAt !== undefined;
   const total = workout?.exercises.reduce((count, e) => count + e.sets.length, 0) ?? 0;
   const completed = workout?.exercises.reduce((count, e) => count + e.sets.filter(set => set.completed).length, 0) ?? 0;
+  const restRemaining = workout ? restRemainingMs(workout, now) : 0;
+  const restTarget = workout?.restTimer ? workout.exercises.flatMap(e => e.sets.map(set => ({ exercise: e.name, set }))).find(row => row.set.id === workout.restTimer?.setId) : undefined;
   return <SafeAreaView style={s.page}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
       <View style={s.topline}><Text style={s.brand}>루핏</Text><Text style={s.muted}>나의 운동 노트</Text></View>
@@ -46,6 +48,13 @@ export function WorkoutScreen() {
           <Text style={s.muted}>{finished ? '정지한 시간을 제외한 운동시간' : workout.pausedAt !== undefined ? '운동시간 정지 중 · 진행을 눌러 다시 시작하세요.' : '앱을 닫아도 운동시간은 계속 흘러갑니다.'}</Text>
           {!finished && <Button title={workout.pausedAt !== undefined ? '운동 진행' : '운동 정지'} secondary onPress={() => act(w => w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()))} />}
         </View>
+        {!finished && workout.restTimer && <View style={s.card} accessibilityLiveRegion="polite">
+          <Text style={s.heading}>휴식 타이머</Text>
+          <Text style={s.restTime} accessibilityLabel={`남은 휴식 시간 ${formatRestTime(restRemaining)}`}>{formatRestTime(restRemaining)}</Text>
+          <Text style={s.muted}>{restRemaining > 0 ? `${restTarget?.exercise ?? '방금 세트'} 완료 · 다음 세트를 준비해요.` : '휴식 끝! 다음 세트를 시작해도 좋아요.'}</Text>
+          <Button title="＋ 30초" secondary onPress={() => act(w => extendRestTimer(w, 30_000))} />
+          <Button title={restRemaining > 0 ? '휴식 건너뛰기' : '휴식 타이머 닫기'} secondary onPress={() => act(clearRestTimer)} />
+        </View>}
         {!workout.exercises.length && <View style={s.empty}><Text style={s.heading}>어떤 운동부터 할까요?</Text><Text style={s.muted}>사진과 운동 부위를 보고 종목을 선택해요.</Text></View>}
         {workout.exercises.map(e => {
           const catalog = findCatalogExercise(e.catalogId);
@@ -59,7 +68,7 @@ export function WorkoutScreen() {
               <Text style={s.index}>{i + 1}</Text>
               <TextInput style={[s.input, s.weight]} accessibilityLabel={`${e.name} ${i + 1}세트 무게`} placeholder="0" keyboardType="decimal-pad" value={set.weight} editable={!finished} maxLength={7} onChangeText={weight => act(w => updateSet(w, e.id, set.id, { weight }))} />
               <TextInput style={[s.input, s.reps]} accessibilityLabel={`${e.name} ${i + 1}세트 횟수`} placeholder="0" keyboardType="number-pad" value={set.reps} editable={!finished} maxLength={4} onChangeText={reps => act(w => updateSet(w, e.id, set.id, { reps }))} />
-              <IconButton label={`${e.name} ${i + 1}세트 ${set.completed ? '완료 취소' : '완료'}`} symbol="✓" selected={set.completed} disabled={finished} onPress={() => act(w => updateSet(w, e.id, set.id, { completed: !w.exercises.find(ex => ex.id === e.id)?.sets.find(s => s.id === set.id)?.completed }))} />
+              <IconButton label={`${e.name} ${i + 1}세트 ${set.completed ? '완료 취소' : '완료'}`} symbol="✓" selected={set.completed} disabled={finished} onPress={() => act(w => setCompletedWithRest(w, e.id, set.id, !w.exercises.find(ex => ex.id === e.id)?.sets.find(s => s.id === set.id)?.completed, Date.now()))} />
               <IconButton label={`${e.name} ${i + 1}세트 삭제`} symbol="−" disabled={finished} onPress={() => act(w => removeSet(w, e.id, set.id))} />
               <IconButton label={`${e.name} ${i + 1}세트 복제`} symbol="+" disabled={finished} onPress={() => act(w => addSet(w, e.id, nextId(), set.id))} />
             </View>)}
@@ -67,7 +76,7 @@ export function WorkoutScreen() {
           </View>;
         })}
         {!finished ? <>
-          <Text style={s.hint}>＋ 같은 무게·횟수로 세트 추가   − 해당 세트 삭제</Text>
+          <Text style={s.hint}>✓ 세트 완료 시 1분 30초 휴식 시작   ＋ 같은 기록 복제   − 삭제</Text>
           <Button title="＋ 종목 추가" secondary onPress={() => setShowPicker(true)} />
           {confirmFinish ? <View style={s.card}><Text>미완료 세트를 제외하고 종료할까요?</Text>
             <Button title="완료한 세트만 저장하고 종료" onPress={() => act(w => finishWorkout(w, Date.now(), true))} />
@@ -99,7 +108,7 @@ const s = StyleSheet.create({
   topline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 }, intro: { gap: 8, marginBottom: 4 },
   brand: { color: colors.primary, fontWeight: '800', fontSize: 22 }, title: { color: colors.text, fontWeight: '800', fontSize: 30 },
   heading: { color: colors.text, fontWeight: '700', fontSize: 19, lineHeight: 27 }, muted: { color: colors.muted, lineHeight: 22, fontSize: 13 },
-  summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }, progress: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+  summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }, progress: { color: colors.primary, fontSize: 13, fontWeight: '600' }, restTime: { color: colors.primary, fontSize: 36, fontWeight: '800', letterSpacing: 1 },
   empty: { paddingVertical: 24, gap: 10 }, card: { backgroundColor: colors.surface, borderRadius: 20, padding: 12, gap: 12 },
   exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 4, marginBottom: 4 }, exerciseInfo: { flex: 1, gap: 4 }, picture: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.background },
   labels: { flexDirection: 'row', gap: 4, alignItems: 'center' }, indexLabel: { width: 24, fontSize: 10, color: colors.muted, textAlign: 'center' }, weightLabel: { flex: 1, minWidth: 44, fontSize: 11, color: colors.muted, textAlign: 'center' }, repsLabel: { flex: 1, minWidth: 36, fontSize: 11, color: colors.muted, textAlign: 'center' }, actionLabel: { width: 140, fontSize: 10, color: colors.muted, textAlign: 'center' },

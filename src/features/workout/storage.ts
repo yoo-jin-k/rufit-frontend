@@ -5,16 +5,26 @@ type Storage = { getItem(key: string): Promise<string | null>; setItem(key: stri
 const key = 'rufit.local-workouts.v1';
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const safeInteger = (value: unknown): value is number => Number.isSafeInteger(value);
 export function isWorkout(value: unknown): value is Workout {
   if (!object(value) || typeof value.id !== 'string' || !finite(value.startedAt) ||
     (value.finishedAt !== undefined && (!finite(value.finishedAt) || value.finishedAt < value.startedAt)) || !Array.isArray(value.exercises)) return false;
   if (value.pausedAt !== undefined && (!finite(value.pausedAt) || value.pausedAt < value.startedAt || value.finishedAt !== undefined)) return false;
-  if (value.pausedDurationMs !== undefined && (!finite(value.pausedDurationMs) || !Number.isSafeInteger(value.pausedDurationMs) || value.pausedDurationMs < 0)) return false;
+  if (value.pausedDurationMs !== undefined && (!finite(value.pausedDurationMs) || !safeInteger(value.pausedDurationMs) || value.pausedDurationMs < 0)) return false;
   const until = value.finishedAt ?? value.pausedAt;
-  if (finite(until) && (value.pausedDurationMs as number ?? 0) > until - value.startedAt) return false;
-  return value.exercises.every(e => object(e) && typeof e.id === 'string' && typeof e.name === 'string' &&
+  if (finite(until) && ((value.pausedDurationMs as number | undefined) ?? 0) > until - value.startedAt) return false;
+  const exercisesValid = value.exercises.every(e => object(e) && typeof e.id === 'string' && typeof e.name === 'string' &&
     (e.catalogId === undefined || typeof e.catalogId === 'string') && Array.isArray(e.sets) &&
     e.sets.every(s => object(s) && typeof s.id === 'string' && typeof s.weight === 'string' && typeof s.reps === 'string' && typeof s.completed === 'boolean'));
+  if (!exercisesValid) return false;
+  if (value.restTimer !== undefined) {
+    if (!object(value.restTimer) || typeof value.restTimer.setId !== 'string' || !value.restTimer.setId ||
+      !safeInteger(value.restTimer.startedAt) || value.restTimer.startedAt < value.startedAt ||
+      !safeInteger(value.restTimer.durationMs) || value.restTimer.durationMs <= 0 || value.restTimer.durationMs > 30 * 60_000 || value.finishedAt !== undefined) return false;
+    const target = value.exercises.flatMap(e => e.sets).find(s => object(s) && s.id === value.restTimer?.setId);
+    if (!target || !target.completed) return false;
+  }
+  return true;
 }
 export function decodeArchive(raw: string | null): WorkoutArchive {
   if (raw === null) return emptyArchive();
