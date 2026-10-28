@@ -45,7 +45,7 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
           <Pressable style={s.close} accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose}><Text style={s.closeText}>×</Text></Pressable></View>
         {/* 낮은 창에서도 검색과 목록을 같은 영역에서 스크롤해 선택할 수 있어요. */}
         <FlatList ref={listRef} data={results} extraData={selectedIds} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          initialNumToRender={8} maxToRenderPerBatch={10} windowSize={7} removeClippedSubviews={Platform.OS === 'android'} style={s.scroll} contentContainerStyle={s.list}
+          initialNumToRender={8} maxToRenderPerBatch={10} windowSize={7} style={s.scroll} contentContainerStyle={s.list}
           ListHeaderComponent={<View>
             <TextInput style={s.search} accessibilityLabel="종목 이름 검색" placeholder="종목 이름 검색 (예: 스쿼트)" value={query} onChangeText={setQuery} maxLength={80} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
