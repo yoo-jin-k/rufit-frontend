@@ -38,26 +38,45 @@ function fakeBrowser(fixtureUser: 'alice' | 'bob') {
 
 async function runLogin(provider: SocialProvider, client: AuthClient, fixtureUser: 'alice' | 'bob') {
   const store = memoryStore();
+  let accessForRevocationProbe: string | null = null;
+  const sessionFetch: typeof fetch = async (input, init) => {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    if (url.pathname === '/api/v1/me') {
+      const authorization = new Headers(init?.headers).get('Authorization');
+      if (authorization?.startsWith('Bearer ')) accessForRevocationProbe = authorization.slice(7);
+    }
+    return fetch(input, init);
+  };
   const coordinator = new AuthCoordinator({
-    api: createAuthApi({baseUrl, fetch, allowInsecureHttp: true}), fetch, store, createPkce,
+    api: createAuthApi({baseUrl, fetch, allowInsecureHttp: true}), fetch: sessionFetch, store, createPkce,
     browser: fakeBrowser(fixtureUser), logoutWaitMs: 1000,
   });
-  await coordinator.login(provider, client, 'rufit://auth/callback');
-  const signedIn = coordinator.getState();
-  assert.equal(signedIn.kind, 'signed-in');
-  if (signedIn.kind !== 'signed-in' || !store.value) throw new Error('로그인 상태를 확인하지 못했습니다.');
-  const accountId = signedIn.accountId;
-  const sessionId = store.value.sessionId;
-  assert.equal(JSON.stringify(store.value).includes('accessToken'), false);
-  await coordinator.refresh();
-  const refreshed = coordinator.getState();
-  assert.equal(refreshed.kind, 'signed-in');
-  assert.equal(store.value?.account.id, accountId);
-  assert.equal(store.value?.sessionId, sessionId);
-  await coordinator.logout();
-  assert.equal(coordinator.getState().kind, 'signed-out');
-  assert.equal(store.value, null);
-  return accountId;
+  try {
+    await coordinator.login(provider, client, 'rufit://auth/callback');
+    const signedIn = coordinator.getState();
+    assert.equal(signedIn.kind, 'signed-in');
+    if (signedIn.kind !== 'signed-in' || !store.value) throw new Error('로그인 상태를 확인하지 못했습니다.');
+    const accountId = signedIn.accountId;
+    const sessionId = store.value.sessionId;
+    assert.equal(Object.hasOwn(store.value, 'accessToken'), false);
+    await coordinator.refresh();
+    const refreshed = coordinator.getState();
+    assert.equal(refreshed.kind, 'signed-in');
+    assert.equal(store.value?.account.id, accountId);
+    assert.equal(store.value?.sessionId, sessionId);
+    await coordinator.logout();
+    assert.equal(coordinator.getState().kind, 'signed-out');
+    assert.equal(store.value, null);
+    if (!accessForRevocationProbe) throw new Error('폐기 확인용 access를 관찰하지 못했습니다.');
+    const revoked = await fetch(new URL('/api/v1/me', root), {redirect: 'error', credentials: 'omit', headers: {Authorization: `Bearer ${accessForRevocationProbe}`}});
+    accessForRevocationProbe = null;
+    assert.equal(revoked.status, 401);
+    return accountId;
+  } finally {
+    // 중간 assertion 실패에도 이 시나리오가 만든 현재 grant만 닫고 다른 세션은 건드리지 않는다.
+    if (coordinator.getSession()) await coordinator.logout().catch(() => {});
+    accessForRevocationProbe = null;
+  }
 }
 
 async function main() {
@@ -67,7 +86,7 @@ async function main() {
   const googleBob = await runLogin('GOOGLE', 'IOS', 'bob');
   const kakaoAlice = await runLogin('KAKAO', 'ANDROID', 'alice');
   assert.equal(new Set([googleAlice, googleBob, kakaoAlice]).size, 3);
-  console.log('PASS: FE AuthCoordinator + 실제 Spring/fake OAuth의 두 공급자 로그인·계정 구분·me·refresh·logout. 비밀값 출력 없음.');
+  console.log('PASS: FE AuthCoordinator + 실제 Spring/fake OAuth의 두 공급자 로그인·계정 구분·me·refresh·logout·로그아웃 후 401. 비밀값 출력 없음.');
 }
 
 main().catch(error => {
