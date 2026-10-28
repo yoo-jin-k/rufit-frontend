@@ -188,24 +188,29 @@ test('취소 뒤 늦게 도착한 session exchange는 보안 저장과 성공 �
   assert.equal(store.value, null);
 });
 
-test('refresh가 다른 계정이나 sessionId를 반환하면 기존 세션을 닫고 다시 로그인을 요구한다', async () => {
-  const changed = {...tokens, account: {...tokens.account, id: 'other-account'}, accessToken: 'other-access', refreshToken: 'N'.repeat(43)};
-  const store = memoryStore();
-  let closed = false;
-  const api = {
-    server: 'https://api.example.com',
-    startLogin: async () => ({attemptId, authorizationUrl: 'https://kauth.kakao.com/oauth/authorize', expiresAt: '2099-01-01T00:00:00Z'}),
-    exchange: async () => tokens, refresh: async () => changed, logout: async () => {},
-  } as AuthApi;
-  const coordinator = new AuthCoordinator({api, store, createPkce: async () => ({verifier, challenge}),
-    createSession: async () => ({scope: Object.freeze({server: api.server, accountId: tokens.account.id}), api: Object.freeze({}), isActive: () => !closed, saveDraft: async () => { throw new Error(); }, close: () => { closed = true; }}) as never,
-    browser: {open: async () => ({type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`})}});
-  await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
-  await coordinator.refresh();
-  assert.equal(closed, true);
-  assert.equal(store.value, null);
-  assert.equal(coordinator.getState().kind, 'error');
-  assert.equal(coordinator.getSession(), null);
+test('refresh가 다른 계정이나 sessionId를 반환하면 기존 세션을 닫고 다시 로그인을 요구한다', async t => {
+  const cases: [string, SessionTokens][] = [
+    ['다른 account.id', {...tokens, account: {...tokens.account, id: 'other-account'}, accessToken: 'other-access', refreshToken: 'N'.repeat(43)}],
+    ['같은 계정의 다른 sessionId', {...tokens, sessionId: '33333333-3333-4333-8333-333333333333', accessToken: 'other-session-access', refreshToken: 'S'.repeat(43)}],
+  ];
+  for (const [name, changed] of cases) await t.test(name, async () => {
+    const store = memoryStore();
+    let closed = false;
+    const api = {
+      server: 'https://api.example.com',
+      startLogin: async () => ({attemptId, authorizationUrl: 'https://kauth.kakao.com/oauth/authorize', expiresAt: '2099-01-01T00:00:00Z'}),
+      exchange: async () => tokens, refresh: async () => changed, logout: async () => {},
+    } as AuthApi;
+    const coordinator = new AuthCoordinator({api, store, createPkce: async () => ({verifier, challenge}),
+      createSession: async () => ({scope: Object.freeze({server: api.server, accountId: tokens.account.id}), api: Object.freeze({}), isActive: () => !closed, saveDraft: async () => { throw new Error(); }, close: () => { closed = true; }}) as never,
+      browser: {open: async () => ({type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`})}});
+    await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
+    await coordinator.refresh();
+    assert.equal(closed, true);
+    assert.equal(store.value, null);
+    assert.equal(coordinator.getState().kind, 'error');
+    assert.equal(coordinator.getSession(), null);
+  });
 });
 
 test('logout 서버 응답이 제한 시간을 넘으면 로컬 로그아웃을 끝내고 서버 미확인으로 구분한다', async () => {
