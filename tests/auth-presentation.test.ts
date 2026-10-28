@@ -6,7 +6,7 @@ import type {AuthErrorReason, AuthStatus} from '../src/features/auth/types.ts';
 test('보안저장·만료·변조응답 오류를 서로 다른 제목과 명시적 복구로 표시한다', () => {
   const titles: Record<AuthErrorReason, string> = {
     'secure-store': '로그인 정보를 저장하지 못했어요.',
-    'reauth-required': '로그인이 만료됐어요.',
+    'reauth-required': '다시 로그인이 필요해요.',
     'rejected-callback': '로그인 응답을 확인하지 못했어요.',
     'login-failed': '로그인하지 못했어요.',
     'logout-local': '기기의 로그인 정보를 지우지 못했어요.',
@@ -17,6 +17,11 @@ test('보안저장·만료·변조응답 오류를 서로 다른 제목과 명�
   }
   assert.deepEqual(loginRecovery({kind: 'error', reason: 'rejected-callback', message: '안내', action: 'retry-login', provider: 'KAKAO'}), {label: '다시 시도', provider: 'KAKAO'});
   assert.deepEqual(loginRecovery({kind: 'error', reason: 'reauth-required', message: '안내', action: 'retry-login'}), {label: '다시 로그인', provider: null});
+  const network = authStatusCopy({kind: 'error', reason: 'reauth-required', message: '서버 연결을 확인해 주세요.', action: 'retry-login'});
+  const expired = authStatusCopy({kind: 'error', reason: 'reauth-required', message: '세션이 만료되었습니다.', action: 'retry-login'});
+  assert.equal(network?.title, '다시 로그인이 필요해요.');
+  assert.equal(expired?.title, '다시 로그인이 필요해요.');
+  assert.doesNotMatch(network?.title ?? '', /만료/);
 });
 
 test('로그아웃 확인은 닫힘·세션 교체 reset에서 닫히고 현재 세션의 open에서만 열린다', () => {

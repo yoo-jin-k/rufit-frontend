@@ -13,7 +13,7 @@ export function authStatusCopy(status: AuthStatus) {
   if (status.kind === 'error') {
     const title = status.reason === 'logout-local' ? '기기의 로그인 정보를 지우지 못했어요.'
       : status.reason === 'secure-store' ? '로그인 정보를 저장하지 못했어요.'
-        : status.reason === 'reauth-required' ? '로그인이 만료됐어요.'
+        : status.reason === 'reauth-required' ? '다시 로그인이 필요해요.'
           : status.reason === 'rejected-callback' ? '로그인 응답을 확인하지 못했어요.' : '로그인하지 못했어요.';
     return {title, body: status.message};
   }
