@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { createExerciseSearch, exerciseCatalog, searchExercises, type CatalogExercise } from '../src/features/exercises/catalog.ts';
+import { catalogVersion, createExerciseSearch, exerciseCatalog, searchExercises, type CatalogExercise } from '../src/features/exercises/catalog.ts';
 import { addExercise, addSet, removeSet, startWorkout, updateSet } from '../src/features/workout/model.ts';
 import { decodeArchive, emptyArchive, remember } from '../src/features/workout/storage.ts';
 
 test('한글·영문·별칭 검색과 부위/도구 필터가 동시에 적용된다', () => {
-  assert.deepEqual(searchExercises('스쿼트').map(e => e.name), ['스쿼트', '맨몸 스쿼트', '덤벨 스쿼트', '프론트 스쿼트']);
+  assert.deepEqual(searchExercises('스쿼트').map(e => e.name), ['스쿼트', '맨몸 스쿼트', '덤벨 스쿼트', '프론트 스쿼트', '덤벨 불가리안 스플릿 스쿼트', '핵 스쿼트 머신']);
   assert.equal(searchExercises('  DUMBBELL SQUAT  ')[0].name, '덤벨 스쿼트');
   assert.equal(searchExercises('사레레')[0].name, '덤벨 사이드 레터럴 레이즈');
   assert.equal(searchExercises('스쿼트', 'LEGS', 'DUMBBELL')[0].name, '덤벨 스쿼트');
@@ -16,6 +16,17 @@ test('한글·영문·별칭 검색과 부위/도구 필터가 동시에 적용�
   assert.equal(searchExercises('없는종목').length, 0);
   assert.equal(searchExercises('   ').length, exerciseCatalog.length);
   assert.ok(searchExercises('', 'SHOULDERS', 'DUMBBELL').every(e => e.equipment === 'DUMBBELL' && e.bodyPart === 'SHOULDERS'));
+  assert.equal(searchExercises('kettlebell swing')[0].name, '케틀벨 스윙');
+});
+test('확정 v2 원본 110개를 순서와 nullable 휴식값까지 그대로 사용한다', () => {
+  const source = JSON.parse(readFileSync('assets/exercises/catalog-v2.json', 'utf8'));
+  assert.equal(catalogVersion, '2026-10-29.v2');
+  assert.equal(source.catalogVersion, catalogVersion);
+  assert.equal(source.exerciseCount, 110);
+  assert.equal(exerciseCatalog.length, 110);
+  assert.deepEqual(exerciseCatalog, source.exercises);
+  assert.equal(exerciseCatalog.slice(18).length, 92);
+  assert.ok(exerciseCatalog.slice(18).every(item => item.recommendedRestSeconds === null));
 });
 test('큰 오프라인 목록도 색인 뒤 원본 순서와 검색·필터 결과를 유지한다', () => {
   const largeCatalog: CatalogExercise[] = Array.from({length: 1000}, (_, index) => ({
