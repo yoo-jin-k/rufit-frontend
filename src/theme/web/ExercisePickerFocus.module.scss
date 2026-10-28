@@ -1,0 +1,6 @@
+@use 'tokens.generated' as t;
+
+.field:focus-within {
+  border-color: t.$colors-focus;
+  border-width: t.$size-focusWidth;
+}

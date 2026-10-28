@@ -20,3 +20,4 @@ export const exerciseImages: Record<string, ImageSourcePropType> = {
   '00000000-0000-4000-8000-000000000017': require('../../../assets/exercises/17.jpg'),
   '00000000-0000-4000-8000-000000000018': require('../../../assets/exercises/18.jpg'),
 };
+export const hasExerciseImage = (id: string) => exerciseImages[id] !== undefined;

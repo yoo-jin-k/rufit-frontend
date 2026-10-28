@@ -9,7 +9,7 @@ function preferenceKey(exercise: Exercise) {
 export function exerciseRest(archive: WorkoutArchive, exercise: Exercise) {
   const key = preferenceKey(exercise);
   const personal = Object.hasOwn(archive.personalRest, key) ? archive.personalRest[key] : undefined;
-  const recommended = findCatalogExercise(exercise.catalogId)?.recommendedRestSeconds;
+  const recommended = findCatalogExercise(exercise.catalogId)?.recommendedRestSeconds ?? undefined;
   return {seconds: personal ?? recommended ?? 90, source: personal !== undefined ? '개인 설정' : recommended !== undefined ? '권장' : '기본', recommended};
 }
 // 종목별 개인 시간을 저장한다. null이면 추천 사용으로 복귀하며 현재 휴식은 유지한다.
