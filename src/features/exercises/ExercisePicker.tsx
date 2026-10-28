@@ -9,8 +9,14 @@ import {ExerciseMedia} from './ExerciseMedia';
 import {exercisePickerFocusStyles} from './ExercisePickerFocus.styles';
 import {exerciseRowAccessibility, stackedExerciseItem} from './exercisePickerView';
 import {hasExerciseImage} from './images';
+import {useExerciseResultAnnouncement} from './useExerciseResultAnnouncement';
 
 type Props = {visible: boolean; selectedIds: string[]; onClose(): void; onSelect(exercise: Pick<CatalogExercise, 'name'> & {id?: string}): void};
+const announceResult = (message: string) => {if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);};
+function ExerciseResultAnnouncement({signature, count}: {signature: string; count: number}) {
+  const message = useExerciseResultAnnouncement(signature, count, announceResult);
+  return Platform.OS !== 'ios' ? <Text testID="exercise-result-announcement" style={s.announcement} accessibilityLiveRegion="polite" aria-atomic>{message}</Text> : null;
+}
 
 export function ExercisePicker({visible, selectedIds, onClose, onSelect}: Props) {
   const insets = useSafeAreaInsets();
@@ -30,25 +36,11 @@ export function ExercisePicker({visible, selectedIds, onClose, onSelect}: Props)
   const errorOffset = useRef<number | null>(null);
   const revealPending = useRef(false);
   const choosing = useRef(false);
-  const announcedResults = useRef<string | null>(null);
-  const [resultAnnouncement, setResultAnnouncement] = useState('');
   const results = useMemo(() => searchExercises(query, bodyPart, equipment), [bodyPart, equipment, query]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const hasConditions = !!(query || bodyPart || equipment);
   const conditionLabel = [bodyPart ? bodyParts[bodyPart] : '', equipment ? equipmentLabels[equipment] : ''].filter(Boolean).join(' · ');
   const resultSignature = results.map(item => item.id).join('|');
-
-  useEffect(() => {
-    // 화면 결과는 즉시 바꾸되 연속 입력 중에는 마지막 결과만 보조기술에 알린다.
-    const timer = setTimeout(() => {
-      if (announcedResults.current === resultSignature) return;
-      announcedResults.current = resultSignature;
-      const message = `검색 결과 ${results.length}개`;
-      setResultAnnouncement(message);
-      if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [bodyPart, equipment, query, resultSignature, results.length]);
 
   useEffect(() => {
     // 반응형 렌더와 같은 창 크기 값을 사용해 회전 뒤에도 같은 검색 노드와 커서를 복구한다.
@@ -152,7 +144,8 @@ export function ExercisePicker({visible, selectedIds, onClose, onSelect}: Props)
             <Text style={s.credit}>동작 사진 · Free Exercise DB · Unlicense</Text>
             <Pressable accessibilityRole="link" style={s.sourceLink} onPress={() => {void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() => reportError('출처 링크를 열지 못했어요', '잠시 후 다시 시도해 주세요.'));}}><Text style={s.link}>사진 출처 보기</Text></Pressable>
           </View>} />
-        {Platform.OS !== 'ios' && <Text testID="exercise-result-announcement" style={s.announcement} accessibilityLiveRegion="polite" aria-atomic>{resultAnnouncement}</Text>}
+        {/* 항상 mount되는 Picker와 분리해 닫을 때 예약을 취소하고 재개방 때 알림 서명을 초기화한다. */}
+        {visible && <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />}
       </View>
     </KeyboardAvoidingView>
   </Modal>;
