@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
@@ -17,7 +17,7 @@ import {SetRow} from './SetRow';
 import {LocalSaveStatus} from './LocalSaveStatus';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
-export function WorkoutScreen() {
+export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?: string; onOpenAuth?: () => void}) {
   const { workout, setWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, state, unsavedAfterFailure, retry, retryPending } = useWorkoutArchive();
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -49,7 +49,9 @@ export function WorkoutScreen() {
   const completed = workout?.exercises.reduce((count, e) => count + e.sets.filter(set => set.completed).length, 0) ?? 0;
   return <SafeAreaView style={s.page}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[timerStyles.content, {paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding}]}>
-      <View style={s.topline}><Text style={s.brand}>루핏</Text><Text style={s.muted}>나의 운동 노트</Text></View>
+      <View style={s.topline}><Text style={s.brand}>루핏</Text>{onOpenAuth
+        ? <Pressable accessibilityRole="button" accessibilityLabel={`${authLabel} 화면 열기`} onPress={onOpenAuth} style={s.authEntry}><Text style={s.authEntryText}>{authLabel}</Text></Pressable>
+        : <Text style={s.muted}>나의 운동 노트</Text>}</View>
       <View style={s.intro}><Text style={s.title}>오늘의 운동</Text><Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text></View>
       <LocalSaveStatus state={state} ready={ready} unsavedAfterFailure={unsavedAfterFailure} retryPending={retryPending} onRetry={retry} />
       {!ready ? null : !workout ? <View style={s.card}><Text style={s.heading}>내 페이스로 시작해요</Text><Text style={s.muted}>종목을 고르고 오늘의 무게와 횟수를 기록해요.</Text><Button title="자유 운동 시작" onPress={() => setWorkout(startWorkout(nextId(), Date.now()))} /></View> : <>
@@ -104,6 +106,7 @@ export function WorkoutScreen() {
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   topline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 }, intro: { gap: 8, marginBottom: 4 },
+  authEntry: {minWidth: 48, minHeight: 48, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center'}, authEntryText: {...typography.caption, color: colors.primary, fontWeight: '700'},
   brand: { ...typography.heading, color: colors.primary }, title: { ...typography.title, color: colors.text },
   heading: { ...typography.heading, color: colors.text }, muted: { ...typography.caption, color: colors.textSecondary },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }, progress: { color: colors.primary, fontSize: 13, fontWeight: '600' },
