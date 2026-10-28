@@ -46,4 +46,6 @@ npm run auth:mock
 
 ## 검증 한계
 
-HTTP 계약과 웹 반응형 UI는 자동 검증한다. 공급자 앱 등록, universal/app link, iOS·Android 실기기의 시스템 브라우저 복귀 및 SecureStore 동작은 등록된 개발 빌드에서 별도로 확인해야 한다.
+HTTP 계약과 웹 반응형 UI는 자동 검증한다. `expo/fetch` SDK 57의 iOS 구현이 URLSession redirect delegate에서 요청을 중단하고 Android 구현이 OkHttp 자동 redirect를 끄는 것은 설치된 네이티브 소스로 확인했으며, iOS·Android 번들 생성도 통과했다. 이는 실기기 네트워크 실행 결과가 아니다.
+
+공급자 앱 등록, universal/app link, iOS·Android 실기기의 redirect 차단, 시스템 브라우저 복귀 및 SecureStore 동작은 등록된 개발 빌드에서 별도로 확인해야 한다. 프론트의 `auth:mock` 성공은 백엔드 실제 서버와 가짜 OAuth 공급자를 연결한 통합 시험 성공으로 보지 않는다.
