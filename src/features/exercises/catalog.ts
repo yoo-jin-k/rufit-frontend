@@ -1,8 +1,8 @@
 import type { BodyPart, Equipment } from '../../api/client.ts';
 export const bodyParts: Record<BodyPart, string> = { CHEST: '가슴', BACK: '등', LEGS: '하체', SHOULDERS: '어깨', ARMS: '팔', CORE: '복부', FULL_BODY: '전신' };
 export const equipmentLabels: Record<Equipment, string> = { BARBELL: '바벨', DUMBBELL: '덤벨', MACHINE: '머신', CABLE: '케이블', BODYWEIGHT: '맨몸', OTHER: '기타' };
-export type CatalogExercise = { id: string; name: string; bodyPart: BodyPart; equipment: Equipment; recommendedRestSeconds: number; aliases: string[] };
-export const exerciseCatalog: CatalogExercise[] = [
+export type CatalogExercise = { readonly id: string; readonly name: string; readonly bodyPart: BodyPart; readonly equipment: Equipment; readonly recommendedRestSeconds: number; readonly aliases: readonly string[] };
+export const exerciseCatalog: readonly CatalogExercise[] = [
   {
     "id": "00000000-0000-4000-8000-000000000001",
     "recommendedRestSeconds": 180,
@@ -203,10 +203,19 @@ export const exerciseCatalog: CatalogExercise[] = [
   }
 ];
 const normalize = (value: string) => value.normalize('NFKC').toLocaleLowerCase().replace(/[\s_-]+/g, '');
+
+// 목록이 커져도 매 입력마다 모든 이름·별칭을 다시 정규화하지 않도록 원본별 검색 색인을 한 번 만든다.
+export function createExerciseSearch(catalog: readonly CatalogExercise[]) {
+  const indexed = catalog.map(exercise => ({exercise, terms: [exercise.name, ...exercise.aliases].map(normalize)}));
+  return (query = '', bodyPart?: BodyPart, equipment?: Equipment): CatalogExercise[] => {
+    const term = normalize(query);
+    return indexed.filter(({exercise, terms}) => (!bodyPart || exercise.bodyPart === bodyPart) && (!equipment || exercise.equipment === equipment) &&
+      terms.some(name => name.includes(term))).map(({exercise}) => exercise);
+  };
+}
+const searchCatalog = createExerciseSearch(exerciseCatalog);
 export function searchExercises(query = '', bodyPart?: BodyPart, equipment?: Equipment): CatalogExercise[] {
-  const term = normalize(query);
-  return exerciseCatalog.filter(e => (!bodyPart || e.bodyPart === bodyPart) && (!equipment || e.equipment === equipment) &&
-    [e.name, ...e.aliases].some(name => normalize(name).includes(term)));
+  return searchCatalog(query, bodyPart, equipment);
 }
 export function findCatalogExercise(catalogId?: string): CatalogExercise | undefined {
   return exerciseCatalog.find(e => e.id === catalogId);

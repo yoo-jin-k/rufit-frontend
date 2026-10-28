@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BodyPart, Equipment } from '../../api/client';
@@ -31,7 +31,8 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
     setError(message);
     revealError();
   }
-  const results = searchExercises(query, bodyPart, equipment);
+  const results = useMemo(() => searchExercises(query, bodyPart, equipment), [bodyPart, equipment, query]);
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   function choose(exercise: Pick<CatalogExercise, 'name'> & { id?: string }) {
     try { onSelect(exercise); onClose(); } catch (e) { reportError(e instanceof Error ? e.message : '종목을 추가하지 못했습니다.'); }
   }
@@ -43,7 +44,8 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
         <View style={s.header}><View><Text style={s.eyebrow}>오늘의 움직임</Text><Text style={s.title}>종목 추가</Text></View>
           <Pressable style={s.close} accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose}><Text style={s.closeText}>×</Text></Pressable></View>
         {/* 낮은 창에서도 검색과 목록을 같은 영역에서 스크롤해 선택할 수 있어요. */}
-        <FlatList ref={listRef} data={results} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" style={s.scroll} contentContainerStyle={s.list}
+        <FlatList ref={listRef} data={results} extraData={selectedIds} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+          initialNumToRender={8} maxToRenderPerBatch={10} windowSize={7} removeClippedSubviews={Platform.OS === 'android'} style={s.scroll} contentContainerStyle={s.list}
           ListHeaderComponent={<View>
             <TextInput style={s.search} accessibilityLabel="종목 이름 검색" placeholder="종목 이름 검색 (예: 스쿼트)" value={query} onChangeText={setQuery} maxLength={80} autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.filterRow} keyboardShouldPersistTaps="handled">
@@ -60,7 +62,7 @@ export function ExercisePicker({ selectedIds, onClose, onSelect }: Props) {
             {!!error && <Text accessibilityRole="alert" style={s.error} onLayout={event => { errorOffset.current = event.nativeEvent.layout.y; revealError(); }}>{error}</Text>}
           </View>}
           renderItem={({ item }) => {
-            const selected = selectedIds.includes(item.id);
+            const selected = selectedIdSet.has(item.id);
             return <Pressable accessibilityRole="button" accessibilityLabel={`${item.name}, ${bodyParts[item.bodyPart]}, ${equipmentLabels[item.equipment]}${selected ? ', 추가됨' : ', 추가'}`} accessibilityState={{ disabled: selected }} disabled={selected} onPress={() => choose(item)} style={({ pressed }) => [s.exercise, { opacity: pressed ? 0.65 : 1 }]}>
               <Image source={exerciseImages[item.id]} style={s.picture} resizeMode="contain" accessibilityLabel={`${item.name} 동작 사진`} />
               <View style={s.exerciseInfo}><Text style={s.exerciseName}>{item.name}</Text><Text style={s.muted}>{bodyParts[item.bodyPart]} · {equipmentLabels[item.equipment]}</Text></View>

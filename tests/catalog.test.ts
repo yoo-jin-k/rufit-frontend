@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { exerciseCatalog, searchExercises } from '../src/features/exercises/catalog.ts';
+import { createExerciseSearch, exerciseCatalog, searchExercises, type CatalogExercise } from '../src/features/exercises/catalog.ts';
 import { addExercise, addSet, removeSet, startWorkout, updateSet } from '../src/features/workout/model.ts';
 import { decodeArchive, emptyArchive, remember } from '../src/features/workout/storage.ts';
 
@@ -16,6 +16,16 @@ test('한글·영문·별칭 검색과 부위/도구 필터가 동시에 적용�
   assert.equal(searchExercises('없는종목').length, 0);
   assert.equal(searchExercises('   ').length, exerciseCatalog.length);
   assert.ok(searchExercises('', 'SHOULDERS', 'DUMBBELL').every(e => e.equipment === 'DUMBBELL' && e.bodyPart === 'SHOULDERS'));
+});
+test('큰 오프라인 목록도 색인 뒤 원본 순서와 검색·필터 결과를 유지한다', () => {
+  const largeCatalog: CatalogExercise[] = Array.from({length: 1000}, (_, index) => ({
+    id: `test-exercise-${index}`, name: `테스트 운동 ${index}`, bodyPart: index % 2 ? 'BACK' : 'CHEST',
+    equipment: index % 3 ? 'DUMBBELL' : 'CABLE', recommendedRestSeconds: 90, aliases: [`alias ${index}`],
+  }));
+  const search = createExerciseSearch(largeCatalog);
+  assert.deepEqual(search('alias 777').map(item => item.id), ['test-exercise-777']);
+  assert.ok(search('테스트운동', 'CHEST', 'CABLE').every(item => item.bodyPart === 'CHEST' && item.equipment === 'CABLE'));
+  assert.deepEqual(search('').slice(0, 3).map(item => item.id), ['test-exercise-0', 'test-exercise-1', 'test-exercise-2']);
 });
 test('모든 목록 사진이 고정 출처와 일치하고 원본 바이트/종목 ID 중복이 없다', () => {
   const manifest = JSON.parse(readFileSync('assets/exercises/manifest.json', 'utf8'));
