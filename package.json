@@ -41,6 +41,7 @@
     "test:backend": "node --experimental-strip-types scripts/smoke-backend.mts",
     "auth:mock": "node --experimental-strip-types scripts/mock-auth-server.mts",
     "auth:integrate:backend": "node --experimental-strip-types scripts/integrate-backend-auth.mts",
+    "catalog:integrate:backend": "node --experimental-strip-types scripts/integrate-backend-catalog.mts",
     "styles": "node --experimental-strip-types scripts/build-styles.mts",
     "styles:check": "npm run styles -- --check",
     "prestart": "npm run styles",

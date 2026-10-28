@@ -29,4 +29,10 @@
 
 현재 앱 오프라인 목록은 110개다. 백엔드 DB 적용 완료를 뜻하지 않으며, 원격 전체 조회는 API 제한 `size=100`에 맞춰 페이지를 순회해야 한다.
 
+통합 브랜치에서는 새 fake OAuth 로그인으로 실제 프론트 인증 조정기와 API 클라이언트를 연결해 아래 명령으로 100+10 페이지, 원본 일치, 검색·복합필터, nullable 휴식과 신규 운동 기록 재조회를 확인한다. 브라우저 이동·PKCE 난수·SecureStore만 Node 시험 어댑터이며 토큰과 계정 ID는 출력하거나 저장하지 않는다.
+
+```bash
+RUFIT_AUTH_INTEGRATION_URL=http://127.0.0.1:8096 npm run catalog:integrate:backend
+```
+
 Android `removeClippedSubviews`는 긴 글자·낮은 창에서 셀이 누락될 가능성이 있고 실기기 증거가 없어 적용하지 않는다. PR #46은 PR #42를 기반으로 하며 인증 PR #44와 UI QA PR #45를 포함하지 않는다. 최종 통합 체크아웃에서는 세 변경 계열을 함께 반영해 회귀를 확인해야 한다.
