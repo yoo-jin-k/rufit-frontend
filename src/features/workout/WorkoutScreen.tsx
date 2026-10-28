@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { AppState, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
-import { exerciseImages } from '../exercises/images';
+import { ExerciseMedia } from '../exercises/ExerciseMedia';
 import { addExercise, addSet, removeSet, finishWorkout, startWorkout, updateSet, pauseWorkout, resumeWorkout, elapsedWorkoutMs, formatWorkoutTime, IncompleteSetsError, type Workout } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 import { RestSetting, formatRest } from './RestSetting';
@@ -66,7 +66,7 @@ export function WorkoutScreen() {
           const catalog = findCatalogExercise(e.catalogId);
           return <View style={s.card} key={e.id}>
             <View style={s.exerciseHeader}>
-              {catalog && <Image source={exerciseImages[catalog.id]} style={s.picture} resizeMode="contain" accessibilityLabel={`${e.name} 동작 사진`} />}
+              <ExerciseMedia exercise={catalog} />
               <View style={s.exerciseInfo}><Text style={s.heading}>{e.name}</Text><Text style={s.muted}>{catalog ? `${bodyParts[catalog.bodyPart]} · ${equipmentLabels[catalog.equipment]}` : '직접 추가한 종목'}</Text></View>
             </View>
             <RestSetting name={e.name} {...restFor(e)} finished={finished} onSave={seconds => saveRest(e, seconds)} />
@@ -108,6 +108,6 @@ const s = StyleSheet.create({
   heading: { ...typography.heading, color: colors.text }, muted: { ...typography.caption, color: colors.textSecondary },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }, progress: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   empty: { paddingVertical: 24, gap: 10 }, card: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg, gap: spacing.lg },
-  exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 4, marginBottom: 4 }, exerciseInfo: { flex: 1, gap: 4 }, picture: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.background },
+  exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 4, marginBottom: 4 }, exerciseInfo: { flex: 1, gap: 4 },
   hint: { fontSize: 12, lineHeight: 20, color: colors.muted, textAlign: 'center' }, error: { color: '#B42318', lineHeight: 24 },
 });

@@ -29,10 +29,11 @@ test('큰 오프라인 목록도 색인 뒤 원본 순서와 검색·필터 결�
 });
 test('모든 목록 사진이 고정 출처와 일치하고 원본 바이트/종목 ID 중복이 없다', () => {
   const manifest = JSON.parse(readFileSync('assets/exercises/manifest.json', 'utf8'));
-  assert.equal(manifest.exercises.length, exerciseCatalog.length);
+  assert.equal(manifest.exercises.length, 18);
   assert.equal(new Set(exerciseCatalog.map(e => e.id)).size, exerciseCatalog.length);
-  for (const e of exerciseCatalog) {
-    const source = manifest.exercises.find((m: {id: string}) => m.id === e.id);
+  for (const source of manifest.exercises) {
+    const e = exerciseCatalog.find(item => item.id === source.id);
+    assert.ok(e);
     assert.deepEqual({name: source.name, bodyPart: source.bodyPart, equipment: source.equipment}, {name: e.name, bodyPart: e.bodyPart, equipment: e.equipment});
     assert.ok(source.sourceUrl.includes(`/${manifest.commit}/`));
     const bytes = readFileSync(`assets/exercises/${source.file}`);

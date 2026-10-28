@@ -9,11 +9,14 @@
       },
       "geometry": {
         "x": 102,
-        "y": 140.25,
+        "y": 131.25,
         "width": 640,
-        "height": 103.75,
-        "scrollTop": 218
+        "height": 112.75,
+        "scrollTop": 320
       },
+      "media64": true,
+      "clear48": true,
+      "fallbackVisible": true,
       "initialLowHeightSelect": true,
       "resizeInputCursorFiltersPreserved": true,
       "wheelScroll": true,
@@ -33,11 +36,14 @@
       },
       "geometry": {
         "x": 102,
-        "y": 140.25,
+        "y": 131.25,
         "width": 640,
-        "height": 103.75,
-        "scrollTop": 218
+        "height": 112.75,
+        "scrollTop": 320
       },
+      "media64": true,
+      "clear48": true,
+      "fallbackVisible": true,
       "initialLowHeightSelect": true,
       "resizeInputCursorFiltersPreserved": true,
       "wheelScroll": true,
@@ -57,11 +63,14 @@
       },
       "geometry": {
         "x": 102,
-        "y": 140.25,
+        "y": 131.25,
         "width": 640,
-        "height": 103.75,
-        "scrollTop": 218
+        "height": 112.75,
+        "scrollTop": 320
       },
+      "media64": true,
+      "clear48": true,
+      "fallbackVisible": true,
       "initialLowHeightSelect": true,
       "resizeInputCursorFiltersPreserved": true,
       "wheelScroll": true,
