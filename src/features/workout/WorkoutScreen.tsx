@@ -1,3 +1,6 @@
+import {MonthlyCompletion} from '../calendar/MonthlyCompletion';
+import {monthlyProgress} from '../calendar/monthlyProgress';
+import {localDay} from '../calendar/model';
 import {ManualWorkoutScreen} from './ManualWorkoutScreen';
 import {WorkoutCalendar} from '../calendar/WorkoutCalendar';
 import {BodyWeightScreen} from '../bodyweight/BodyWeightScreen';
@@ -24,6 +27,7 @@ let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?: string; onOpenAuth?: () => void}) {
   const { workout, setWorkout, addManualWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, state, unsavedAfterFailure, retry, retryPending } = useWorkoutArchive();
+  const [completionMonth,setCompletionMonth]=useState<string|null>(null);
   const [manualDate,setManualDate]=useState<string|null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showStrength, setShowStrength] = useState(false);
@@ -43,6 +47,11 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
     const foreground = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
     return () => { clearInterval(tick); foreground.remove(); };
   }, []);
+  // 저장 성공 상태에서만 팝업을 표시하며 실패 시 기존 재시도 안내를 유지한다.
+  function completeWorkout(discardIncomplete=false) {
+    change(w=>finishWorkout(w,Date.now(),discardIncomplete));
+    setCompletionMonth(localDay(Date.now()).slice(0,7));
+  }
   function change(fn: (current: Workout) => Workout) {
     setWorkout(current => { if (!current) throw new Error('운동을 먼저 시작해 주세요.'); return fn(current); });
     setNow(Date.now());
@@ -92,9 +101,9 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
           <Text style={s.hint}>복제하면 같은 무게·횟수의 세트가 추가됩니다.</Text>
           <Button title="＋ 종목 추가" secondary onPress={() => setShowPicker(true)} />
           {confirmFinish ? <View style={s.card}><Text>미완료 세트를 제외하고 종료할까요?</Text>
-            <Button title="완료한 세트만 저장하고 종료" onPress={() => act(w => finishWorkout(w, Date.now(), true))} />
+            <Button title="완료한 세트만 저장하고 종료" onPress={() => {try {completeWorkout(true);}catch(e){setError(e instanceof Error?e.message:'다시 시도해 주세요.');}}} />
             <Button title="계속 운동하기" secondary onPress={() => setConfirmFinish(false)} /></View> :
-            <Button title="운동 종료" onPress={() => { try { change(w => finishWorkout(w, Date.now())); } catch (e) {
+            <Button title="운동 종료" onPress={() => { try { completeWorkout(); } catch (e) {
               if (e instanceof IncompleteSetsError) { setError(''); setConfirmFinish(true); } else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
             } }} />}
         </> : <Button title="새 운동 준비" onPress={() => setWorkout(null)} />}
@@ -108,6 +117,7 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
       </View>)}
       <Text style={s.muted}>기록은 이 기기에 보관됩니다. 다른 기기와 자동으로 동기화되지 않습니다.</Text>
     </ScrollView>
+    <MonthlyCompletion progress={completionMonth && finished && state==='saved'?monthlyProgress(history,completionMonth):null} onClose={()=>setCompletionMonth(null)}/>
     {manualDate && <ManualWorkoutScreen initialDate={manualDate} onClose={()=>setManualDate(null)} onSave={record=>{addManualWorkout(record);setManualDate(null);}}/>}
     <Modal visible={showWeight} animationType="slide" onRequestClose={() => setShowWeight(false)}>{showWeight && <BodyWeightScreen onClose={() => setShowWeight(false)} />}</Modal>
     <Modal visible={showStrength} animationType="slide" onRequestClose={() => setShowStrength(false)}>{showStrength && <StrengthScreen onClose={() => setShowStrength(false)} />}</Modal>
