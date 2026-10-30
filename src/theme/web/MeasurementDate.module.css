@@ -1,0 +1,17 @@
+/* 자동 생성: npm run styles. 직접 수정 금지. */
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid #78888F;
+  border-radius: 12px;
+  padding: 12px;
+  color: #18232B;
+  background: #FFFFFF;
+  font: inherit;
+}
+.input:focus-visible {
+  outline: 2px solid #246B53;
+  outline-offset: 2px;
+}
