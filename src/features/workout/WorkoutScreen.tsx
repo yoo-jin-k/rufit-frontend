@@ -1,3 +1,4 @@
+import {WorkoutCalendar} from '../calendar/WorkoutCalendar';
 import {BodyWeightScreen} from '../bodyweight/BodyWeightScreen';
 import {StrengthScreen} from '../strength/StrengthScreen';
 import { useEffect, useState } from 'react';
@@ -57,6 +58,7 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
       <View style={s.topline}><Text style={s.brand}>루핏</Text>{onOpenAuth
         ? <Pressable accessibilityRole="button" accessibilityLabel={`${authLabel} 화면 열기`} onPress={onOpenAuth} style={s.authEntry}><Text style={s.authEntryText}>{authLabel}</Text></Pressable>
         : <Text style={s.muted}>나의 운동 노트</Text>}</View>
+      <WorkoutCalendar history={history} ready={ready} now={now} />
       <Button title="삼대측정 ↗" secondary onPress={() => setShowStrength(true)} />
       <Button title="체중측정 ↗" secondary onPress={() => setShowWeight(true)} />
       <View style={s.intro}><Text style={s.title}>오늘의 운동</Text><Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text></View>

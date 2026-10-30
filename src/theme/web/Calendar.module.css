@@ -1,0 +1,137 @@
+/* 자동 생성: npm run styles. 직접 수정 금지. */
+.card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 12px;
+  gap: 12px;
+}
+
+.row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toggle {
+  min-height: 48px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  color: #18232B;
+  flex-shrink: 1;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 22px;
+  color: #52636B;
+}
+
+.action {
+  min-height: 48px;
+  min-width: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.actionText {
+  font-size: 14px;
+  line-height: 22px;
+  color: #246B53;
+  font-weight: 700;
+}
+
+.week {
+  flex-direction: row;
+}
+
+.weekday {
+  width: 14.2857142857%;
+  text-align: center;
+  color: #52636B;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.grid {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.cell {
+  box-sizing: border-box;
+  width: 14.2857142857%;
+  min-height: 48px;
+  padding: 6px 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  gap: 4px;
+}
+
+.marked {
+  background: #E7F0EB;
+}
+
+.selected {
+  border: 2px solid #246B53;
+}
+
+.day {
+  font-size: 16px;
+  line-height: 24px;
+  color: #18232B;
+}
+
+.today {
+  color: #246B53;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background: #246B53;
+}
+
+.dotEmpty {
+  background: transparent;
+}
+
+.detail {
+  border-top: 1px solid #E2E8E5;
+  padding-top: 12px;
+  gap: 8px;
+}
+
+.session {
+  background: #F5F6F8;
+  border-radius: 12px;
+  padding: 12px;
+  gap: 8px;
+}
+
+.body {
+  font-size: 16px;
+  line-height: 24px;
+  color: #18232B;
+}
+
+.toggle:focus-visible, .action:focus-visible, .cell:focus-visible {
+  outline: 2px solid #246B53;
+  outline-offset: -2px;
+}

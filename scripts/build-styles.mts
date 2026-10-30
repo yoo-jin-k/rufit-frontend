@@ -16,7 +16,7 @@ const generated = `// 자동 생성: src/theme/tokens.ts 수정 후 npm run styl
 const tokensUrl = new URL('tokens.generated.scss', root);
 const mixins = await readFile(new URL('_mixins.scss', root), 'utf8');
 const outputs: [URL, string][] = [[tokensUrl, generated]];
-for (const name of ['Button', 'ExercisePickerFocus', 'MeasurementDate']) {
+for (const name of ['Button', 'ExercisePickerFocus', 'MeasurementDate', 'Calendar']) {
   const source = await readFile(new URL(`${name}.module.scss`, root), 'utf8');
   // 메모리에서 토큰을 제공하여 --check도 파일 변경 없이 빌드 결과를 비교한다.
   const css = compileString(source, {importers: [{
