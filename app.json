@@ -4,7 +4,7 @@
     "slug": "rufit",
     "version": "0.1.0",
     "scheme": "rufit",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
@@ -26,7 +26,15 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "오운완 기록에 선택한 사진을 첨부합니다.",
+          "cameraPermission": "오운완 사진을 촬영합니다.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

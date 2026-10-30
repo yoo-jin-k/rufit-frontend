@@ -28,3 +28,14 @@ export function workoutsByDay(history: Workout[]) {
   for (const records of Object.values(grouped)) records.sort((a, b) => a.startedAt - b.startedAt);
   return grouped;
 }
+
+/** 월요일부터 시작하는 주간·월간 날짜를 생성합니다. 정오를 사용하여 일광절약시간 경계도 보존합니다. */
+export function calendarDays(selected: string, expanded: boolean): string[] {
+  const [year, month, day] = selected.split('-').map(Number);
+  const first = new Date(year, month - 1, expanded ? 1 : day, 12);
+  const offset = (first.getDay() + 6) % 7;
+  const count = expanded ? Math.ceil((offset + new Date(year, month, 0, 12).getDate()) / 7) * 7 : 7;
+  return Array.from({ length: count }, (_, i) =>
+    localDay(new Date(year, month - 1, (expanded ? 1 : day) - offset + i, 12).getTime()),
+  );
+}

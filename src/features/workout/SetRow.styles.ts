@@ -15,7 +15,7 @@ export const setRowStyles = StyleSheet.create({
   },
   inputsStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   field: { flex: 1, minWidth: size.setInputMin, gap: spacing.xs },
-  actions: { flexDirection: 'row', gap: spacing.xs, width: size.controlMin * 3 + spacing.xs * 2 },
+  actions: { flexDirection: 'row', gap: spacing.xs, width: size.controlMin + 36 },
   actionsStacked: { width: '100%', gap: spacing.sm },
   action: { flex: 1, minWidth: size.controlMin },
 });

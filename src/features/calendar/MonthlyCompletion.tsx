@@ -1,76 +1,102 @@
-/**
- * 운동 종료 후 저장이 완료되었을 때 월간 달성률을 표시합니다.
- * 저장 여부의 판단은 호출 화면에서 담당하며, 이 컴포넌트는 전달받은 집계값만 표시합니다.
- */
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+/** 운동 저장 성공 이후에만 표시합니다. 오운완 작성은 별도 흐름이며 건너뛰어도 운동을 삭제하지 않습니다. */
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenLayout, ui } from '../../components/ScreenLayout';
+import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
-import { colors, radius, spacing, typography } from '../../theme/tokens';
+import { colors } from '../../theme/tokens';
 import type { monthlyProgress } from './monthlyProgress';
+import { elapsedWorkoutMs, type Workout } from '../workout/model';
 export function MonthlyCompletion({
   progress,
+  workout,
   onClose,
+  onJournal,
 }: {
   progress: ReturnType<typeof monthlyProgress> | null;
+  workout?: Workout | null;
   onClose: () => void;
+  onJournal?: () => void;
 }) {
   if (!progress) return null;
+  const sets =
+    workout?.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0) ?? 0;
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <SafeAreaView style={s.overlay}>
-        <ScrollView contentContainerStyle={s.container}>
-          <View style={s.card}>
-            <Text style={s.title}>오늘 운동도 완료했어요!</Text>
-            <Text style={s.caption}>{Number(progress.month.slice(5))}월 운동 달성률</Text>
-            <Text style={s.percent}>{progress.percent}%</Text>
+    <Modal visible animationType="fade" onRequestClose={onClose}>
+      <SafeAreaView style={ui.page}>
+        <ScreenLayout
+          footer={
+            <>
+              {onJournal && <Button title="◎ 오운완 기록하기" onPress={onJournal} />}
+              <Button title="다음에 할게요" secondary onPress={onClose} />
+            </>
+          }
+        >
+          <View style={{ alignItems: 'center', gap: 20, paddingVertical: 36 }}>
+            <View style={s.check}>
+              <AppIcon name="check" color="white" size={28} />
+            </View>
+            <Text style={ui.title}>오늘도 해냈어요</Text>
+            <Text style={ui.muted}>운동 기록이 이 기기에 저장되었습니다.</Text>
+          </View>
+          <View
+            style={[
+              ui.row,
+              {
+                justifyContent: 'space-around',
+                paddingVertical: 20,
+                borderTopWidth: 1,
+                borderBottomWidth: 1,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {[
+              {
+                label: '운동 시간',
+                value: `${workout ? Math.floor(elapsedWorkoutMs(workout, workout.finishedAt ?? workout.startedAt) / 60000) : 0}분`,
+              },
+              { label: '완료 세트', value: `${sets}세트` },
+              { label: '종목', value: `${workout?.exercises.length ?? 0}개` },
+            ].map((v) => (
+              <View key={v.label} style={{ gap: 8 }}>
+                <Text style={ui.muted}>{v.label}</Text>
+                <Text style={ui.title}>{v.value}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={ui.card}>
+            <Text style={ui.muted}>{Number(progress.month.slice(5))}월 달성률</Text>
+            <View style={ui.between}>
+              <Text style={ui.title}>{progress.percent}%</Text>
+              <Text style={ui.muted}>
+                {progress.totalDays}일 중 {progress.workoutDays}일 운동
+              </Text>
+            </View>
             <View
               accessibilityRole="progressbar"
               accessibilityLabel="이번 달 운동 달성률"
-              accessibilityValue={{
-                min: 0,
-                max: 100,
-                now: progress.percent,
-                text: `${progress.totalDays}일 중 ${progress.workoutDays}일 운동, ${progress.percent}%`,
-              }}
+              accessibilityValue={{ min: 0, max: 100, now: progress.percent }}
               style={s.track}
             >
               <View style={[s.fill, { width: `${progress.percent}%` }]} />
             </View>
-            <Text style={s.heading}>
-              {progress.totalDays}일 중 {progress.workoutDays}일 운동
-            </Text>
-            <Text style={s.caption}>
-              이번 달 전체 날짜를 100%로 계산해요.{'\n'}같은 날 여러 번 운동해도 하루로 기록됩니다.
-            </Text>
-            <Text style={s.caption}>기록이 기기에 저장되었습니다.</Text>
-            <Button title="확인" onPress={onClose} />
+            <Text style={ui.muted}>같은 날 여러 번 운동해도 하루로 계산해요.</Text>
           </View>
-        </ScrollView>
+        </ScreenLayout>
       </SafeAreaView>
     </Modal>
   );
 }
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(24,35,43,0.45)' },
-  container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
-  card: {
-    width: '100%',
-    maxWidth: 440,
-    padding: spacing.xxl,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    gap: spacing.lg,
+  check: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: { ...typography.title, color: colors.text, textAlign: 'center' },
-  heading: { ...typography.heading, color: colors.text, textAlign: 'center' },
-  caption: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
-  percent: {
-    fontSize: 48,
-    lineHeight: 60,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  track: { height: 12, borderRadius: 6, backgroundColor: colors.primarySoft, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 6, backgroundColor: colors.primary },
+  track: { height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: 6, backgroundColor: colors.text },
 });

@@ -12,23 +12,39 @@ export function StrengthChart({
 }) {
   const [series, setSeries] = useState<Lift | 'total'>('total');
   return (
-    <View style={s.card}>
-      <Text style={s.heading}>삼대측정 그래프</Text>
-      <Text style={s.muted}>합계 또는 종목을 선택해 중량 변화를 선으로 확인해요.</Text>
-      <View style={s.legend}>
+    <View style={{ gap: 20 }}>
+      <View
+        style={{ flexDirection: 'row', backgroundColor: '#F5F5F7', borderRadius: 10, padding: 3 }}
+      >
         {(['total', ...lifts] as const).map((key) => (
           <Pressable
             key={key}
             accessibilityRole="button"
             accessibilityState={{ selected: series === key }}
             onPress={() => setSeries(key)}
-            style={[s.chip, series === key && s.chipSelected]}
+            style={{
+              flex: 1,
+              minHeight: 44,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: 8,
+              backgroundColor: series === key ? 'white' : 'transparent',
+            }}
           >
-            <Text style={s.muted}>{key === 'total' ? '삼대 합계' : labels[key]}</Text>
+            <Text style={s.muted}>
+              {key === 'total'
+                ? '합계'
+                : key === 'bench'
+                  ? '벤치'
+                  : key === 'squat'
+                    ? '스쿼트'
+                    : '데드'}
+            </Text>
           </Pressable>
         ))}
       </View>
       <TrendChart
+        compact
         name={series === 'total' ? '삼대 합계' : labels[series]}
         color={series === 'total' ? undefined : liftColors[series]}
         points={records.map((record) => ({

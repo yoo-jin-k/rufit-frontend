@@ -7,7 +7,13 @@ import {
 import { appendManualWorkout } from './manualWorkout.ts';
 import { remember } from './storage.ts';
 import type { Exercise, Workout } from './model.ts';
-import { completeWithRest, exerciseRest, setPersonalRest, adjustLocalRest } from './localRest.ts';
+import {
+  setDefaultRest,
+  completeWithRest,
+  exerciseRest,
+  setPersonalRest,
+  adjustLocalRest,
+} from './localRest.ts';
 
 // 훅 생명주기와 저장 상태를 연결합니다. 재렌더/창 크기 변경으로 상태 객체를 다시 만들지 않습니다.
 export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.now) {
@@ -36,6 +42,9 @@ export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.n
       controller.change((current) =>
         completeWithRest(current, exerciseId, setId, completed, now()),
       ),
+    defaultRest: archive.personalRest['defaults:rest'],
+    saveDefaultRest: (seconds: number | null) =>
+      controller.change((current) => setDefaultRest(current, seconds)),
     saveRest: (exercise: Exercise, seconds: number | null) =>
       controller.change((current) => setPersonalRest(current, exercise, seconds)),
     adjustRest: (seconds: number) =>

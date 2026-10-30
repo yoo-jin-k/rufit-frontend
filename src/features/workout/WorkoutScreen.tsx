@@ -1,3 +1,13 @@
+import { BottomNavigation, type MainTab } from '../../components/BottomNavigation';
+import { ui } from '../../components/ScreenLayout';
+import { AppIcon } from '../../components/AppIcon';
+import { AnalysisScreen } from '../analysis/AnalysisScreen';
+import { ProfileScreen } from '../profile/ProfileScreen';
+import { SettingsScreen } from '../settings/SettingsScreen';
+import { JournalComposer } from '../profile/JournalComposer';
+import { useProfile } from '../profile/useProfile';
+import { upsertJournal } from '../profile/journalModel';
+import { WorkoutHistory, workoutDate } from './WorkoutHistory';
 /**
  * 운동 화면의 진입점으로 캘린더, 실시간 기록, 수동 기록, 측정 화면을 연결합니다.
  * 실시간 운동은 기존 저장 훅을 통해 변경하며, 다른 화면을 열어도 타이머와 진행 상태를 유지합니다.
@@ -27,14 +37,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '../../components/Button';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { ExercisePicker } from '../exercises/ExercisePicker';
-import {
-  bodyParts,
-  equipmentLabels,
-  findCatalogExercise,
-  type CatalogExercise,
-} from '../exercises/catalog';
-import { ExerciseMedia } from '../exercises/ExerciseMedia';
-import { stackedExerciseItem } from '../exercises/exercisePickerView';
+import { findCatalogExercise, type CatalogExercise } from '../exercises/catalog';
 import {
   addExercise,
   addSet,
@@ -75,6 +78,8 @@ export function WorkoutScreen({
     restFor,
     completeSet,
     saveRest,
+    defaultRest,
+    saveDefaultRest,
     adjustRest,
     skipRest,
     ready,
@@ -83,12 +88,15 @@ export function WorkoutScreen({
     retry,
     retryPending,
   } = useWorkoutArchive();
+  const [tab, setTab] = useState<MainTab>('workout');
+  const profile = useProfile();
+  const [journalWorkout, setJournalWorkout] = useState<Workout | null>(null);
   const [completionMonth, setCompletionMonth] = useState<string | null>(null);
   const [manualDate, setManualDate] = useState<string | null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now);
@@ -139,227 +147,304 @@ export function WorkoutScreen({
   return (
     <SafeAreaView style={s.page}>
       <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            timerStyles.content,
-            { paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding },
-          ]}
-        >
-          <View style={s.topline}>
-            <Text style={s.brand}>루핏</Text>
-            {onOpenAuth ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${authLabel} 화면 열기`}
-                onPress={onOpenAuth}
-                style={s.authEntry}
-              >
-                <Text style={s.authEntryText}>{authLabel}</Text>
-              </Pressable>
-            ) : (
-              <Text style={s.muted}>나의 운동 노트</Text>
-            )}
-          </View>
-          <WorkoutCalendar history={history} ready={ready} now={now} onAdd={setManualDate} />
-          <Button title="삼대측정 ↗" secondary onPress={() => setShowStrength(true)} />
-          <Button title="체중측정 ↗" secondary onPress={() => setShowWeight(true)} />
-          <View style={s.intro}>
-            <Text style={s.title}>오늘의 운동</Text>
-            <Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text>
-          </View>
-          <LocalSaveStatus
-            state={state}
-            ready={ready}
-            unsavedAfterFailure={unsavedAfterFailure}
-            retryPending={retryPending}
-            onRetry={retry}
-          />
-          {!ready ? null : !workout ? (
-            <View style={s.card}>
-              <Text style={s.heading}>내 페이스로 시작해요</Text>
-              <Text style={s.muted}>종목을 고르고 오늘의 무게와 횟수를 기록해요.</Text>
-              <Button
-                title="자유 운동 시작"
-                onPress={() => setWorkout(startWorkout(nextId(), Date.now()))}
-              />
-            </View>
-          ) : (
-            <>
-              <View style={s.summary}>
-                <Text style={s.heading}>{finished ? '오늘도 해냈어요!' : '운동 기록 중'}</Text>
-                <Text style={s.progress}>
-                  {completed} / {total}세트 완료
-                </Text>
-              </View>
-              <WorkoutTimerCard
-                phase={
-                  finished ? 'finished' : workout.pausedAt !== undefined ? 'paused' : 'running'
-                }
-                elapsedLabel={formatWorkoutTime(elapsedWorkoutMs(workout, now))}
-                onPause={() => act((w) => pauseWorkout(w, Date.now()))}
-                onResume={() => act((w) => resumeWorkout(w, Date.now()))}
-              />
-              {rest && restView && (
-                <RestTimerCard
-                  phase={restView.phase}
-                  remainingLabel={formatRest(restView.seconds)}
-                  exerciseName={workout.exercises.find((e) => e.id === rest.exerciseId)?.name ?? ''}
-                  canSubtract={restView.canSubtract}
-                  canAdd={restView.canAdd}
-                  stackActions={viewport.stackRestActions}
-                  onAdjust={(seconds) => {
-                    adjustRest(seconds);
-                    setNow(Date.now());
-                  }}
-                  onSkip={skipRest}
-                />
+        {tab === 'workout' ? (
+          <>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[
+                timerStyles.content,
+                { paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding },
+              ]}
+            >
+              {(!workout || finished) && (
+                <>
+                  <View style={{ gap: 6 }}>
+                    <Text style={s.muted}>
+                      {new Date(now).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'long',
+                      })}
+                    </Text>
+                    <Text style={s.title}>오늘</Text>
+                  </View>
+                  <WorkoutCalendar
+                    history={history}
+                    ready={ready}
+                    now={now}
+                    onAdd={setManualDate}
+                  />
+                  <Text style={s.heading}>오늘의 운동</Text>
+                </>
               )}
-              {!workout.exercises.length && (
-                <View style={s.empty}>
-                  <Text style={s.heading}>어떤 운동부터 할까요?</Text>
-                  <Text style={s.muted}>사진과 운동 부위를 보고 종목을 선택해요.</Text>
-                </View>
-              )}
-              {workout.exercises.map((e) => {
-                const catalog = findCatalogExercise(e.catalogId);
-                return (
-                  <View style={s.card} key={e.id}>
-                    <WorkoutExerciseHeader
-                      name={e.name}
-                      catalog={catalog}
-                      fontScale={window.fontScale}
+              <LocalSaveStatus
+                state={state}
+                ready={ready}
+                unsavedAfterFailure={unsavedAfterFailure}
+                retryPending={retryPending}
+                onRetry={retry}
+              />
+              {!ready ? null : !workout || finished ? (
+                <>
+                  <View
+                    style={[
+                      ui.card,
+                      {
+                        borderWidth: 1,
+                        borderStyle: 'dashed',
+                        borderColor: colors.border,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                  >
+                    <View style={ui.row}>
+                      <AppIcon name="workout" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.heading}>
+                          {history.some((record) => workoutDate(record) === localDay(now))
+                            ? '오늘 운동을 완료했어요'
+                            : '오늘의 운동을 시작해 보세요'}
+                        </Text>
+                        <Text style={s.muted}>운동을 시작하고 첫 세트를 기록해 보세요.</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={ui.between}>
+                    <Text style={s.heading}>최근 운동</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setTab('profile')}
+                      style={{ padding: 12 }}
+                    >
+                      <Text style={s.muted}>전체 보기</Text>
+                    </Pressable>
+                  </View>
+                  <WorkoutHistory
+                    records={[...history]
+                      .sort(
+                        (a, b) =>
+                          workoutDate(b).localeCompare(workoutDate(a)) || b.startedAt - a.startedAt,
+                      )
+                      .slice(0, 3)}
+                  />
+                </>
+              ) : (
+                <>
+                  <View style={s.summary}>
+                    <Text style={s.heading}>{finished ? '오늘도 해냈어요!' : '운동 기록 중'}</Text>
+                    <Text style={s.progress}>
+                      {completed} / {total}세트 완료
+                    </Text>
+                  </View>
+                  <WorkoutTimerCard
+                    phase={
+                      finished ? 'finished' : workout.pausedAt !== undefined ? 'paused' : 'running'
+                    }
+                    elapsedLabel={formatWorkoutTime(elapsedWorkoutMs(workout, now))}
+                    onPause={() => act((w) => pauseWorkout(w, Date.now()))}
+                    onResume={() => act((w) => resumeWorkout(w, Date.now()))}
+                  />
+                  {rest && restView && (
+                    <RestTimerCard
+                      phase={restView.phase}
+                      remainingLabel={formatRest(restView.seconds)}
+                      exerciseName={
+                        workout.exercises.find((e) => e.id === rest.exerciseId)?.name ?? ''
+                      }
+                      canSubtract={restView.canSubtract}
+                      canAdd={restView.canAdd}
+                      stackActions={viewport.stackRestActions}
+                      onAdjust={(seconds) => {
+                        adjustRest(seconds);
+                        setNow(Date.now());
+                      }}
+                      onSkip={skipRest}
                     />
-                    <RestSetting
-                      name={e.name}
-                      {...restFor(e)}
-                      finished={finished}
-                      onSave={(seconds) => saveRest(e, seconds)}
-                    />
-                    {e.sets.map((set, i) => (
-                      <SetRow
-                        key={set.id}
-                        set={set}
-                        index={i}
-                        exerciseName={e.name}
-                        fontScale={window.fontScale}
-                        finished={finished}
-                        onChange={(patch) => act((w) => updateSet(w, e.id, set.id, patch))}
-                        onComplete={() => {
-                          try {
-                            completeSet(e.id, set.id, !set.completed);
-                            setNow(Date.now());
-                            setError('');
-                            setConfirmFinish(false);
-                          } catch (error) {
-                            setError(
-                              error instanceof Error ? error.message : '세트를 확인해 주세요.',
-                            );
-                          }
-                        }}
-                        onDelete={() => act((w) => removeSet(w, e.id, set.id))}
-                        onDuplicate={() => act((w) => addSet(w, e.id, nextId(), set.id))}
-                      />
-                    ))}
-                    {!e.sets.length && (
-                      <>
-                        <Text style={s.muted}>세트가 없어요. 새 세트를 추가해 주세요.</Text>
-                        {!finished && (
+                  )}
+                  {!workout.exercises.length && (
+                    <View style={s.empty}>
+                      <Text style={s.heading}>어떤 운동부터 할까요?</Text>
+                      <Text style={s.muted}>사진과 운동 부위를 보고 종목을 선택해요.</Text>
+                    </View>
+                  )}
+                  {workout.exercises.map((e) => {
+                    const catalog = findCatalogExercise(e.catalogId);
+                    return (
+                      <View style={s.card} key={e.id}>
+                        <WorkoutExerciseHeader
+                          name={e.name}
+                          catalog={catalog}
+                          fontScale={window.fontScale}
+                        />
+                        <RestSetting
+                          name={e.name}
+                          {...restFor(e)}
+                          finished={finished}
+                          onSave={(seconds) => saveRest(e, seconds)}
+                        />
+                        {e.sets.map((set, i) => (
+                          <SetRow
+                            key={set.id}
+                            set={set}
+                            index={i}
+                            exerciseName={e.name}
+                            fontScale={window.fontScale}
+                            finished={finished}
+                            onChange={(patch) => act((w) => updateSet(w, e.id, set.id, patch))}
+                            onComplete={() => {
+                              try {
+                                completeSet(e.id, set.id, !set.completed);
+                                setNow(Date.now());
+                                setError('');
+                                setConfirmFinish(false);
+                              } catch (error) {
+                                setError(
+                                  error instanceof Error ? error.message : '세트를 확인해 주세요.',
+                                );
+                              }
+                            }}
+                            onDelete={() => act((w) => removeSet(w, e.id, set.id))}
+                            onDuplicate={() => act((w) => addSet(w, e.id, nextId(), set.id))}
+                          />
+                        ))}
+                        {!!e.sets.length && !finished && (
                           <Button
-                            title={`${e.name} 세트 추가`}
+                            title="＋ 세트 추가"
                             secondary
+                            accessibilityLabel={`${e.name} 세트 추가`}
                             onPress={() => act((w) => addSet(w, e.id, nextId()))}
                           />
                         )}
-                      </>
-                    )}
-                  </View>
-                );
-              })}
-              {!finished ? (
-                <>
-                  <Text style={s.hint}>복제하면 같은 무게·횟수의 세트가 추가됩니다.</Text>
-                  <Button title="＋ 종목 추가" secondary onPress={() => setShowPicker(true)} />
-                  {confirmFinish ? (
-                    <View style={s.card}>
-                      <Text>미완료 세트를 제외하고 종료할까요?</Text>
-                      <Button
-                        title="완료한 세트만 저장하고 종료"
-                        onPress={() => {
-                          try {
-                            completeWorkout(true);
-                          } catch (e) {
-                            setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
-                          }
-                        }}
-                      />
-                      <Button
-                        title="계속 운동하기"
-                        secondary
-                        onPress={() => setConfirmFinish(false)}
-                      />
-                    </View>
+                        {!e.sets.length && (
+                          <>
+                            <Text style={s.muted}>세트가 없어요. 새 세트를 추가해 주세요.</Text>
+                            {!finished && (
+                              <Button
+                                title={`${e.name} 세트 추가`}
+                                secondary
+                                onPress={() => act((w) => addSet(w, e.id, nextId()))}
+                              />
+                            )}
+                          </>
+                        )}
+                      </View>
+                    );
+                  })}
+                  {!finished ? (
+                    <>
+                      <Button title="＋ 종목 추가" secondary onPress={() => setShowPicker(true)} />
+                      {confirmFinish && (
+                        <View style={s.card}>
+                          <Text style={s.heading}>미완료 세트를 제외하고 종료할까요?</Text>
+                          <Button
+                            title="완료한 세트만 저장하고 종료"
+                            onPress={() => {
+                              try {
+                                completeWorkout(true);
+                              } catch (e) {
+                                setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
+                              }
+                            }}
+                          />
+                          <Button
+                            title="계속 운동하기"
+                            secondary
+                            onPress={() => setConfirmFinish(false)}
+                          />
+                        </View>
+                      )}
+                    </>
                   ) : (
-                    <Button
-                      title="운동 종료"
-                      onPress={() => {
-                        try {
-                          completeWorkout();
-                        } catch (e) {
-                          if (e instanceof IncompleteSetsError) {
-                            setError('');
-                            setConfirmFinish(true);
-                          } else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
-                        }
-                      }}
-                    />
+                    <Button title="새 운동 준비" onPress={() => setWorkout(null)} />
                   )}
                 </>
-              ) : (
-                <Button title="새 운동 준비" onPress={() => setWorkout(null)} />
               )}
-            </>
-          )}
-          {!!error && (
-            <Text accessibilityRole="alert" style={s.error}>
-              {error}
-            </Text>
-          )}
-          {history.length > 0 && (
-            <Button
-              title={`이전 기록 ${history.length}개 ${showHistory ? '접기' : '보기'}`}
-              secondary
-              onPress={() => setShowHistory(!showHistory)}
+              {!!error && (
+                <Text accessibilityRole="alert" style={s.error}>
+                  {error}
+                </Text>
+              )}
+            </ScrollView>
+            <View style={ui.dock}>
+              <Button
+                title={!workout || finished ? '운동 시작하기' : '운동 종료'}
+                disabled={!ready}
+                onPress={() => {
+                  if (!workout || finished) {
+                    setWorkout(startWorkout(nextId(), Date.now()));
+                    setShowPicker(true);
+                    return;
+                  }
+                  try {
+                    completeWorkout();
+                  } catch (e) {
+                    if (e instanceof IncompleteSetsError) {
+                      setError('');
+                      setConfirmFinish(true);
+                    } else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
+                  }
+                }}
+              />
+            </View>
+          </>
+        ) : tab === 'analysis' ? (
+          <AnalysisScreen
+            key={`${showStrength}-${showWeight}`}
+            now={now}
+            history={history}
+            onStrength={() => setShowStrength(true)}
+            onWeight={() => setShowWeight(true)}
+          />
+        ) : tab === 'profile' ? (
+          <ProfileScreen
+            now={now}
+            history={history}
+            profile={profile}
+            onJournal={setJournalWorkout}
+          />
+        ) : (
+          <SettingsScreen
+            defaultRest={defaultRest}
+            onRest={saveDefaultRest}
+            nickname={profile.value.nickname}
+            history={history}
+            onProfile={() => setTab('profile')}
+            authLabel={authLabel}
+            onAuth={onOpenAuth}
+          />
+        )}
+        {tab !== 'workout' && state !== 'saved' && (
+          <View style={ui.dock}>
+            <LocalSaveStatus
+              state={state}
+              ready={ready}
+              unsavedAfterFailure={unsavedAfterFailure}
+              retryPending={retryPending}
+              onRetry={retry}
             />
-          )}
-          {showHistory &&
-            [...history].reverse().map((w) => (
-              <View key={w.id} style={s.card}>
-                <Text style={s.heading}>
-                  {w.recordDate ?? new Date(w.startedAt).toLocaleDateString()} 운동
-                </Text>
-                <Text style={s.muted}>
-                  {w.entryMode === 'manual'
-                    ? '나중에 입력한 기록 · 운동시간 미측정'
-                    : `운동시간 ${formatWorkoutTime(elapsedWorkoutMs(w, now))}`}
-                </Text>
-                {w.exercises.map((e) => (
-                  <Text key={e.id}>
-                    {e.name}: {e.sets.map((set) => `${set.weight}kg × ${set.reps}회`).join(', ')}
-                  </Text>
-                ))}
-              </View>
-            ))}
-          <Text style={s.muted}>
-            기록은 이 기기에 보관됩니다. 다른 기기와 자동으로 동기화되지 않습니다.
-          </Text>
-        </ScrollView>
+          </View>
+        )}
+        <BottomNavigation value={tab} onChange={setTab} />
+        {journalWorkout && (
+          <JournalComposer
+            workout={journalWorkout}
+            initial={profile.value.journals.find((j) => j.workoutId === journalWorkout.id)}
+            onClose={() => setJournalWorkout(null)}
+            onSave={(j) => profile.save(upsertJournal(profile.value, j))}
+          />
+        )}
         <MonthlyCompletion
           progress={
             completionMonth && finished && state === 'saved'
               ? monthlyProgress(history, completionMonth)
               : null
           }
+          workout={workout}
+          onJournal={() => {
+            setCompletionMonth(null);
+            if (workout) setJournalWorkout(workout);
+          }}
           onClose={() => setCompletionMonth(null)}
         />
         {manualDate && (
@@ -377,14 +462,30 @@ export function WorkoutScreen({
           animationType="slide"
           onRequestClose={() => setShowWeight(false)}
         >
-          {showWeight && <BodyWeightScreen onClose={() => setShowWeight(false)} />}
+          {showWeight && (
+            <BodyWeightScreen
+              onClose={() => setShowWeight(false)}
+              onNavigate={(next) => {
+                setShowWeight(false);
+                setTab(next);
+              }}
+            />
+          )}
         </Modal>
         <Modal
           visible={showStrength}
           animationType="slide"
           onRequestClose={() => setShowStrength(false)}
         >
-          {showStrength && <StrengthScreen onClose={() => setShowStrength(false)} />}
+          {showStrength && (
+            <StrengthScreen
+              onClose={() => setShowStrength(false)}
+              onNavigate={(next) => {
+                setShowStrength(false);
+                setTab(next);
+              }}
+            />
+          )}
         </Modal>
         <ExercisePicker
           visible={showPicker}
@@ -401,33 +502,18 @@ export function WorkoutScreen({
 
 function WorkoutExerciseHeader({
   name,
-  catalog,
-  fontScale,
 }: {
   name: string;
   catalog?: CatalogExercise;
   fontScale: number;
 }) {
-  const [availableWidth, setAvailableWidth] = useState(0);
-  const stacked = stackedExerciseItem(availableWidth, fontScale);
   return (
-    <View
-      testID="workout-exercise-header"
-      onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)}
-      style={[s.exerciseHeader, stacked && s.exerciseHeaderStacked]}
-    >
-      <ExerciseMedia exercise={catalog} />
-      <View style={s.exerciseInfo}>
-        <Text style={s.heading}>{name}</Text>
-        <Text style={s.muted}>
-          {catalog
-            ? `${bodyParts[catalog.bodyPart]} · ${equipmentLabels[catalog.equipment]}`
-            : '직접 추가한 종목'}
-        </Text>
-      </View>
+    <View style={s.exerciseHeader}>
+      <Text style={s.heading}>{name}</Text>
     </View>
   );
 }
+
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   topline: {
@@ -459,6 +545,8 @@ const s = StyleSheet.create({
   progress: { color: colors.primary, fontSize: 13, fontWeight: '600' },
   empty: { paddingVertical: 24, gap: 10 },
   card: {
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     padding: spacing.lg,

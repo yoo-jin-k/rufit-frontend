@@ -1,0 +1,64 @@
+/** 앱 전체의 선형 아이콘을 한곳에서 관리합니다. 크기와 색상만 전달하여 일관성을 유지합니다. */
+import Svg, { Path, Circle } from 'react-native-svg';
+export type IconName =
+  | 'workout'
+  | 'analysis'
+  | 'profile'
+  | 'settings'
+  | 'camera'
+  | 'image'
+  | 'plus'
+  | 'back'
+  | 'chevron'
+  | 'check'
+  | 'friends'
+  | 'calendar';
+export function AppIcon({
+  name,
+  size = 22,
+  color = '#777780',
+}: {
+  name: IconName;
+  size?: number;
+  color?: string;
+}) {
+  const paths: Partial<Record<IconName, string>> = {
+    workout: 'M7 12h10 M3 9v6 M6 7v10 M18 7v10 M21 9v6',
+    analysis: 'M5 20V11 M12 20V4 M19 20V8',
+    profile: 'M4 21c0-5 3-8 8-8s8 3 8 8',
+    settings: 'M10 2h4l1 3 3 1 3 0 1 4-2 2 1 3-3 3-3-1-2 2-4-1-1-3-3-1-1-4 2-2-1-3 3-3 3 1z',
+    camera: 'M3 7h4l2-3h6l2 3h4v13H3z',
+    image: 'M3 3h18v18H3z M3 17l6-6 4 4 3-3 5 5',
+    plus: 'M12 5v14 M5 12h14',
+    back: 'M15 5l-7 7 7 7',
+    chevron: 'M9 5l7 7-7 7',
+    check: 'M5 12l5 5L20 7',
+    friends: 'M2 21v-2c0-4 3-6 6-6s6 2 6 6v2 M16 13c4 0 6 2 6 6v2',
+    calendar: 'M4 5h16v16H4z M4 10h16 M8 2v6 M16 2v6',
+  };
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      accessible={false}
+    >
+      <Path d={paths[name]} />
+      {name === 'profile' && <Circle cx={12} cy={6} r={4} />}
+      {name === 'friends' && (
+        <>
+          <Circle cx={8} cy={6} r={4} />
+          <Path d="M16 2a4 4 0 010 8" />
+        </>
+      )}
+      {name === 'camera' && <Circle cx={12} cy={13} r={4} />}
+      {name === 'settings' && <Circle cx={12} cy={12} r={3} />}
+      {name === 'image' && <Circle cx={16} cy={7} r={1} />}
+    </Svg>
+  );
+}

@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
-// JSX 컴포넌트를 실제 RNW 렌더러에 연결합니다. 동작은 모킹하지 않고 플랫폼 import만 웹으로 선택합니다.
+// JSX 동작은 실제 RNW로 실행합니다. 기기 전용 안전영역과 SVG 도형만 DOM 표현으로 연결합니다.
 export function nativeWebLoader() {
   const require = createRequire(`${process.cwd()}/package.json`);
   const cache = new Map<string, Record<string, unknown>>();
@@ -19,9 +19,13 @@ export function nativeWebLoader() {
       (name: string) =>
         name === 'react-native'
           ? require('react-native-web')
-          : name.startsWith('.')
-            ? load(resolve(dirname(path), name))
-            : require(name),
+          : name === 'react-native-safe-area-context'
+            ? { SafeAreaView: require('react-native-web').View }
+            : name === 'react-native-svg'
+              ? { __esModule: true, default: 'svg', Path: 'path', Circle: 'circle', Rect: 'rect' }
+              : name.startsWith('.')
+                ? load(resolve(dirname(path), name))
+                : require(name),
       exports,
     );
     return exports;

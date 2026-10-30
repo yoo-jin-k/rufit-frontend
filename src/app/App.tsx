@@ -1,3 +1,5 @@
+import { AppSurface } from '../components/AppSurface';
+import { WelcomeScreen } from '../features/auth/WelcomeScreen';
 /**
  * 앱의 공통 화면과 인증 상태를 연결하는 최상위 구성 요소입니다.
  * 인증 기능의 활성 여부는 실행 환경 설정을 따르며 게스트 운동 화면도 제공합니다.
@@ -16,6 +18,7 @@ const subscribeWithoutAuth = () => () => {};
 
 export default function App() {
   const [showAuth, setShowAuth] = useState(false);
+  const [entered, setEntered] = useState(false);
   const baseUrl = process.env.EXPO_PUBLIC_RUFIT_API_URL;
   const demo = __DEV__ && process.env.EXPO_PUBLIC_RUFIT_AUTH_DEMO === 'true';
   const coordinator = useMemo(
@@ -37,15 +40,21 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <WorkoutScreen authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
-      <AuthModal
-        visible={showAuth}
-        onClose={() => setShowAuth(false)}
-        coordinator={coordinator}
-        status={status}
-        enabled={enabled}
-        demo={demo}
-      />
+      <AppSurface>
+        {entered || authLabel === '계정' ? (
+          <WorkoutScreen authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
+        ) : (
+          <WelcomeScreen onLogin={() => setShowAuth(true)} onGuest={() => setEntered(true)} />
+        )}
+        <AuthModal
+          visible={showAuth}
+          onClose={() => setShowAuth(false)}
+          coordinator={coordinator}
+          status={status}
+          enabled={enabled}
+          demo={demo}
+        />
+      </AppSurface>
     </SafeAreaProvider>
   );
 }

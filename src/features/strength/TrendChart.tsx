@@ -9,12 +9,14 @@ import { lineGeometry, type ChartPoint } from './lineChartModel';
 import { s } from './styles';
 // 삼대·체중 화면이 공유하는 선 그래프. 고정 높이와 실제 측정 날짜 간격을 사용합니다.
 export function TrendChart({
+  compact = false,
   points,
   color = colors.primary,
   name,
   onSelect,
   zeroBaseline = true,
 }: {
+  compact?: boolean;
   points: ChartPoint[];
   color?: string;
   zeroBaseline?: boolean;
@@ -32,10 +34,12 @@ export function TrendChart({
         <Text style={s.muted}>첫 기록을 저장하면 변화 그래프가 나타나요.</Text>
       ) : (
         <>
-          <Text style={s.heading}>
-            {selectedPoint?.date} · {selectedPoint?.value} kg
-          </Text>
-          <Text style={s.muted}>{name} · 가로축 날짜 / 세로축 kg</Text>
+          {!compact && (
+            <Text style={s.heading}>
+              {selectedPoint?.date} · {selectedPoint?.value} kg
+            </Text>
+          )}
+          {!compact && <Text style={s.muted}>{name} · 가로축 날짜 / 세로축 kg</Text>}
           <ScrollView horizontal>
             <View style={{ width: width + 40, height: 230, paddingTop: 20 }}>
               {[0, 0.5, 1].map((ratio) => (
@@ -113,22 +117,24 @@ export function TrendChart({
           {points.length === 1 && (
             <Text style={s.muted}>기록이 두 개 이상이면 점 사이를 선으로 연결해요.</Text>
           )}
-          <View style={s.legend}>
-            {points.map((point) => (
-              <Pressable
-                key={point.date}
-                accessibilityRole="button"
-                accessibilityLabel={`${point.date} ${name} ${point.value}kg 선택`}
-                onPress={() => setSelected(point.date)}
-                style={[s.chip, selectedPoint?.date === point.date && s.chipSelected]}
-              >
-                <Text style={s.small}>
-                  {point.date.slice(5)} · {point.value}kg
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {selectedPoint && (
+          {!compact && (
+            <View style={s.legend}>
+              {points.map((point) => (
+                <Pressable
+                  key={point.date}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${point.date} ${name} ${point.value}kg 선택`}
+                  onPress={() => setSelected(point.date)}
+                  style={[s.chip, selectedPoint?.date === point.date && s.chipSelected]}
+                >
+                  <Text style={s.small}>
+                    {point.date.slice(5)} · {point.value}kg
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          {(!compact || selected) && selectedPoint && (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${selectedPoint.date} 기록 수정하기`}

@@ -1,21 +1,21 @@
 // 단일 스타일 원본. DS-01 v1 값이며 웹 Sass 생성물은 직접 수정하지 않습니다.
 export const colors = {
-  background: '#F5F6F8',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  text: '#18232B',
-  muted: '#697880',
-  primary: '#246B53',
-  border: '#E2E8E5',
-  primarySoft: '#E7F0EB',
+  text: '#111113',
+  muted: '#777780',
+  primary: '#111113',
+  border: '#E7E7EC',
+  primarySoft: '#F5F5F7',
   onPrimary: '#FFFFFF',
-  primaryPressed: '#1B513F',
-  textSecondary: '#52636B',
+  primaryPressed: '#303034',
+  textSecondary: '#71717C',
   danger: '#B42318',
   dangerSurface: '#FEF3F2',
-  inputBorder: '#78888F',
-  focus: '#246B53',
-  disabledText: '#697880',
-  disabledSurface: '#E9EDEF',
+  inputBorder: '#DCDCE2',
+  focus: '#111113',
+  disabledText: '#777780',
+  disabledSurface: '#F0F0F3',
 };
 export const spacing = {
   none: 0,
@@ -28,7 +28,7 @@ export const spacing = {
   bottom: 32,
   touch: 48,
 };
-export const radius = { button: 14, input: 12, status: 16, card: 20 };
+export const radius = { button: 12, input: 12, status: 16, card: 18 };
 export const typography = {
   title: { fontSize: 24, lineHeight: 32, fontWeight: '700' },
   timer: { fontSize: 32, lineHeight: 40, fontWeight: '700' },

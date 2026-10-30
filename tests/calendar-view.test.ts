@@ -40,15 +40,22 @@ test('날짜 선택 시 실제 운동을 표시하고 접기/펼치기 후 선�
         createElement(Calendar, { history, ready: true, now: new Date(2026, 9, 30, 12).getTime() }),
       ),
     );
-    await click('2026-10-01, 완료한 운동 1회');
-    assert.match(dom.window.document.body.textContent!, /80kg × 5회/);
-    await click('운동 캘린더 접기');
-    assert.doesNotMatch(dom.window.document.body.textContent!, /80kg × 5회/);
     await click('운동 캘린더 펼치기');
-    assert.match(dom.window.document.body.textContent!, /80kg × 5회/);
+    await click('2026-10-01, 완료한 운동 1회');
+    assert.match(dom.window.document.body.textContent!, /스쿼트/);
+    await click('운동 캘린더 접기');
+    assert.match(dom.window.document.body.textContent!, /스쿼트/);
+    assert.equal(
+      dom.window.document
+        .querySelector('[aria-label="운동 캘린더 펼치기"]')
+        ?.getAttribute('aria-expanded'),
+      'false',
+    );
+    await click('운동 캘린더 펼치기');
+    assert.match(dom.window.document.body.textContent!, /스쿼트/);
     await click('이전 달');
-    assert.match(dom.window.document.body.textContent!, /2026년 09월/);
-    assert.doesNotMatch(dom.window.document.body.textContent!, /80kg × 5회/);
+    assert.match(dom.window.document.body.textContent!, /2026년 9월/);
+    assert.doesNotMatch(dom.window.document.body.textContent!, /스쿼트/);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

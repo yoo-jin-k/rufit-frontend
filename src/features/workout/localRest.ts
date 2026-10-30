@@ -13,8 +13,15 @@ export function exerciseRest(archive: WorkoutArchive, exercise: Exercise) {
   const personal = Object.hasOwn(archive.personalRest, key) ? archive.personalRest[key] : undefined;
   const recommended = findCatalogExercise(exercise.catalogId)?.recommendedRestSeconds ?? undefined;
   return {
-    seconds: personal ?? recommended ?? 90,
-    source: personal !== undefined ? '개인 설정' : recommended !== undefined ? '권장' : '기본',
+    seconds: personal ?? archive.personalRest['defaults:rest'] ?? recommended ?? 90,
+    source:
+      personal !== undefined
+        ? '개인 설정'
+        : archive.personalRest['defaults:rest'] !== undefined
+          ? '공통 설정'
+          : recommended !== undefined
+            ? '권장'
+            : '기본',
     recommended,
   };
 }
@@ -72,4 +79,14 @@ export function adjustLocalRest(
       endsAt: now + Math.min(3600000, Math.max(0, remaining + seconds * 1000)),
     },
   };
+}
+
+/** 공통 휴식값을 저장합니다. 종목별 개인 설정과 이미 진행 중인 휴식은 변경하지 않습니다. */
+export function setDefaultRest(archive: WorkoutArchive, seconds: number | null): WorkoutArchive {
+  if (seconds !== null && (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 3600))
+    throw new Error('휴식시간은 0~3600초로 입력해 주세요.');
+  const personalRest = { ...archive.personalRest };
+  if (seconds === null) delete personalRest['defaults:rest'];
+  else personalRest['defaults:rest'] = seconds;
+  return { ...archive, personalRest };
 }

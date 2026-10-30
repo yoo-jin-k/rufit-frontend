@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 // 공통 토큰과 종목 색상을 한곳에서 관리합니다. 웹 날짜 입력은 별도 Sass 컴포넌트 사용.
-export const liftColors = { bench: colors.primary, squat: '#5278BC', deadlift: '#B86B28' };
+export const liftColors = { bench: colors.primary, squat: '#55555F', deadlift: '#8A8A94' };
 export const s = StyleSheet.create({
   chip: {
     minHeight: 48,

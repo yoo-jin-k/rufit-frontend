@@ -12,7 +12,6 @@ export function RestSetting({
   name,
   seconds,
   source,
-  recommended,
   finished,
   onSave,
 }: {
@@ -88,7 +87,7 @@ export function RestSetting({
         </Text>
       )}
       <Text style={s.description}>0은 끄기 · 최대3600초</Text>
-      <Text style={s.description}>다음 세트부터 적용해요. 현재 휴식은 그대로 유지됩니다.</Text>
+      <Text style={s.description}>다음 세트부터 적용됩니다. 현재 휴식은 그대로 유지됩니다.</Text>
       <Button
         title="휴식시간 저장"
         onPress={() => {
@@ -100,11 +99,7 @@ export function RestSetting({
         }}
       />
       <Button
-        title={
-          recommended !== undefined
-            ? `권장 휴식시간 사용 (${recommended === 0 ? '끄기' : formatRest(recommended)})`
-            : '기본 휴식시간 사용 (1:30)'
-        }
+        title="종목별 개인 설정 해제 (공통 또는 권장 설정 사용)"
         secondary
         onPress={() => save(null)}
       />

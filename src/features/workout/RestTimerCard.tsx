@@ -1,9 +1,6 @@
-import { Text, View } from 'react-native';
-import { Button } from '../../components/Button';
-import { timerStyles as s } from './TimerCard.styles';
+/** 휴식은 운동 타이머와 별개입니다. 좁은 화면과 큰 글자에서는 조절 버튼만 다음 줄로 배치합니다. */
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { wrappableTime } from './timerView';
-
-// 남은 시간만 표시하며 틱에서는 저장하지 않습니다. 큰 글자에서 버튼을 같은 노드의 세로 배치로 변경합니다.
 export function RestTimerCard({
   phase,
   remainingLabel,
@@ -20,44 +17,63 @@ export function RestTimerCard({
   canSubtract: boolean;
   canAdd: boolean;
   stackActions: boolean;
-  onAdjust(seconds: -10 | 10): void;
-  onSkip(): void;
+  onAdjust: (n: -10 | 10) => void;
+  onSkip: () => void;
 }) {
   return (
-    <View style={s.card}>
-      <Text style={s.phase} accessibilityLiveRegion="polite">
-        {phase === 'expired' ? '휴식 끝' : '세트 휴식'}
-      </Text>
-      <Text style={s.time} accessibilityLabel={`남은 휴식 ${remainingLabel}`}>
-        {wrappableTime(remainingLabel)}
-      </Text>
-      <Text style={s.heading}>{exerciseName}</Text>
-      <Text style={s.description}>
-        {phase === 'expired' ? '준비되면 다음 세트를 시작하세요.' : '운동시간과 별도로 흐릅니다.'}
-      </Text>
-      <View style={[s.adjustments, stackActions && s.stacked]}>
-        <View style={[s.action, stackActions && s.stackedAction]}>
-          <Button
-            title="−10초"
-            accessibilityLabel="휴식 −10초"
-            secondary
-            disabled={!canSubtract}
-            onPress={() => onAdjust(-10)}
-          />
-        </View>
-        <View style={[s.action, stackActions && s.stackedAction]}>
-          <Button
-            title="+10초"
-            accessibilityLabel="휴식 +10초"
-            secondary
-            disabled={!canAdd}
-            onPress={() => onAdjust(10)}
-          />
-        </View>
+    <View style={[s.card, stackActions && { flexDirection: 'column', alignItems: 'stretch' }]}>
+      <View style={{ flex: 1, minWidth: 80 }}>
+        <Text style={s.caption}>{phase === 'expired' ? '휴식 끝' : '휴식'}</Text>
+        <Text accessibilityLabel={`${exerciseName} 남은 휴식 ${remainingLabel}`} style={s.time}>
+          {wrappableTime(remainingLabel)}
+        </Text>
       </View>
-      {!canAdd && <Text style={s.description}>휴식은 최대 60분까지 조절할 수 있어요.</Text>}
-      <Button title="휴식 닫기" secondary onPress={onSkip} />
-      <Text style={s.description}>닫으면 이번 휴식을 종료해요.</Text>
+      <View style={s.actions}>
+        {[
+          { label: '−10초', disabled: !canSubtract, run: () => onAdjust(-10) },
+          { label: '+10초', disabled: !canAdd, run: () => onAdjust(10) },
+          { label: '건너뛰기', disabled: false, run: onSkip },
+        ].map((a, i) => (
+          <Pressable
+            key={a.label}
+            accessibilityRole="button"
+            accessibilityLabel={i === 2 ? '휴식 닫기' : `휴식 ${a.label}`}
+            accessibilityState={{ disabled: a.disabled }}
+            disabled={a.disabled}
+            onPress={a.run}
+            style={[
+              s.button,
+              i === 2 && { backgroundColor: 'white' },
+              a.disabled && { opacity: 0.4 },
+            ]}
+          >
+            <Text style={[s.label, i === 2 && { color: '#111113' }]}>{a.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
+const s = StyleSheet.create({
+  card: {
+    backgroundColor: '#111113',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  caption: { fontSize: 12, color: '#BBBBBF' },
+  time: { fontSize: 28, fontWeight: '700', color: 'white', fontVariant: ['tabular-nums'] },
+  actions: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  button: {
+    minHeight: 44,
+    minWidth: 44,
+    padding: 10,
+    backgroundColor: '#303034',
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  label: { fontSize: 12, fontWeight: '600', color: 'white' },
+});

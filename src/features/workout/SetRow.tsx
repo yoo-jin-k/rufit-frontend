@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
 import type { WorkoutSet } from './model';
 import { setFieldErrors, stackedSetRow } from './setRowView';
@@ -29,6 +29,7 @@ export function SetRow({
   onDuplicate(): void;
 }) {
   const [width, setWidth] = useState(0);
+  const [options, setOptions] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
   const weightRef = useRef<TextInput>(null),
@@ -117,28 +118,36 @@ export function SetRow({
               onPress={complete}
             />
           </View>
-          <View style={s.action}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${prefix} 추가 옵션`}
+            onPress={() => setOptions(!options)}
+            style={{ width: 32, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text>⋮</Text>
+          </Pressable>
+        </View>
+      </View>
+      {options && !finished && (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flex: 1 }}>
             <Button
-              compact
               title="삭제"
-              accessibilityLabel={`${prefix} 삭제`}
               secondary
-              disabled={finished}
+              accessibilityLabel={`${prefix} 삭제`}
               onPress={onDelete}
             />
           </View>
-          <View style={s.action}>
+          <View style={{ flex: 1 }}>
             <Button
-              compact
               title="복제"
-              accessibilityLabel={`${prefix} 복제`}
               secondary
-              disabled={finished}
+              accessibilityLabel={`${prefix} 복제`}
               onPress={onDuplicate}
             />
           </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
