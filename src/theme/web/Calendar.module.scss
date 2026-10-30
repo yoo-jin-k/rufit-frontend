@@ -1,23 +1,122 @@
 @use 'tokens.generated' as t;
-// 캘린더의 웹 스타일은 이 파일에서 함께 수정한다. 공통 색상·간격은 tokens.ts 사용.
-.card { background: t.$colors-surface; border-radius: t.$radius-card; padding: t.$spacing-md; gap: t.$spacing-md; }
-.row { flex-direction: row; align-items: center; justify-content: space-between; gap: t.$spacing-sm; flex-wrap: wrap; }
-.toggle { min-height: 48px; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
-.heading { font-size: 18px; line-height: 26px; font-weight: 700; color: t.$colors-text; flex-shrink: 1; }
-.muted { font-size: 14px; line-height: 22px; color: t.$colors-textSecondary; }
-.action { min-height: 48px; min-width: 48px; align-items: center; justify-content: center; padding: 8px; border-radius: t.$radius-input; }
-.actionText { font-size: 14px; line-height: 22px; color: t.$colors-primary; font-weight: 700; }
-.week { flex-direction: row; }
-.weekday { width: calc(100% / 7); text-align: center; color: t.$colors-textSecondary; font-size: 12px; padding: 8px 0; }
-.grid { flex-direction: row; flex-wrap: wrap; }
-.cell { box-sizing: border-box; width: calc(100% / 7); min-height: 48px; padding: 6px 0; align-items: center; justify-content: center; border-radius: t.$radius-input; border: 1px solid transparent; gap: 4px; }
-.marked { background: t.$colors-primarySoft; }
-.selected { border: 2px solid t.$colors-primary; }
-.day { font-size: 16px; line-height: 24px; color: t.$colors-text; }
-.today { color: t.$colors-primary; font-weight: 700; text-decoration: underline; }
-.dot { width: 5px; height: 5px; border-radius: 3px; background: t.$colors-primary; }
-.dotEmpty { background: transparent; }
-.detail { border-top: 1px solid t.$colors-border; padding-top: 12px; gap: 8px; }
-.session { background: t.$colors-background; border-radius: t.$radius-input; padding: 12px; gap: 8px; }
-.body { font-size: 16px; line-height: 24px; color: t.$colors-text; }
-.toggle, .action, .cell { &:focus-visible { outline: 2px solid t.$colors-focus; outline-offset: -2px; } }
+// 캘린더의 웹 스타일은 이 파일에서 함께 수정합니다. 공통 색상·간격은 tokens.ts 사용.
+.card {
+  background: t.$colors-surface;
+  border-radius: t.$radius-card;
+  padding: t.$spacing-md;
+  gap: t.$spacing-md;
+}
+.row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.$spacing-sm;
+  flex-wrap: wrap;
+}
+.toggle {
+  min-height: 48px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.heading {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  color: t.$colors-text;
+  flex-shrink: 1;
+}
+.muted {
+  font-size: 14px;
+  line-height: 22px;
+  color: t.$colors-textSecondary;
+}
+.action {
+  min-height: 48px;
+  min-width: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: t.$radius-input;
+}
+.actionText {
+  font-size: 14px;
+  line-height: 22px;
+  color: t.$colors-primary;
+  font-weight: 700;
+}
+.week {
+  flex-direction: row;
+}
+.weekday {
+  width: calc(100% / 7);
+  text-align: center;
+  color: t.$colors-textSecondary;
+  font-size: 12px;
+  padding: 8px 0;
+}
+.grid {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.cell {
+  box-sizing: border-box;
+  width: calc(100% / 7);
+  min-height: 48px;
+  padding: 6px 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: t.$radius-input;
+  border: 1px solid transparent;
+  gap: 4px;
+}
+.marked {
+  background: t.$colors-primarySoft;
+}
+.selected {
+  border: 2px solid t.$colors-primary;
+}
+.day {
+  font-size: 16px;
+  line-height: 24px;
+  color: t.$colors-text;
+}
+.today {
+  color: t.$colors-primary;
+  font-weight: 700;
+  text-decoration: underline;
+}
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background: t.$colors-primary;
+}
+.dotEmpty {
+  background: transparent;
+}
+.detail {
+  border-top: 1px solid t.$colors-border;
+  padding-top: 12px;
+  gap: 8px;
+}
+.session {
+  background: t.$colors-background;
+  border-radius: t.$radius-input;
+  padding: 12px;
+  gap: 8px;
+}
+.body {
+  font-size: 16px;
+  line-height: 24px;
+  color: t.$colors-text;
+}
+.toggle,
+.action,
+.cell {
+  &:focus-visible {
+    outline: 2px solid t.$colors-focus;
+    outline-offset: -2px;
+  }
+}

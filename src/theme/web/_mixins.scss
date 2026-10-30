@@ -1,5 +1,5 @@
 @use 'tokens.generated' as t;
-// DS-01 공통 버튼의 글자 규격. 숫자를 중복 선언하지 않고 생성한 토큰을 사용한다.
+// DS-01 공통 버튼의 글자 규격. 숫자를 중복 선언하지 않고 생성한 토큰을 사용합니다.
 @mixin button-label {
   font-size: t.$typography-button-fontSize;
   line-height: t.$typography-button-lineHeight;

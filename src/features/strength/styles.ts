@@ -1,24 +1,60 @@
-import {StyleSheet} from 'react-native';
-import {colors, radius, spacing, typography} from '../../theme/tokens';
-// 공통 토큰과 종목 색상을 한곳에서 관리한다. 웹 날짜 입력은 별도 Sass 컴포넌트 사용.
-export const liftColors = {bench: colors.primary, squat: '#5278BC', deadlift: '#B86B28'};
+import { StyleSheet } from 'react-native';
+import { colors, radius, spacing, typography } from '../../theme/tokens';
+// 공통 토큰과 종목 색상을 한곳에서 관리합니다. 웹 날짜 입력은 별도 Sass 컴포넌트 사용.
+export const liftColors = { bench: colors.primary, squat: '#5278BC', deadlift: '#B86B28' };
 export const s = StyleSheet.create({
-  chip: {minHeight:48, paddingHorizontal:12, paddingVertical:8, justifyContent:'center', borderRadius:12, borderWidth:1, borderColor:colors.border},
-  chipSelected: {backgroundColor:colors.primarySoft, borderColor:colors.primary},
-  page: {flex: 1, backgroundColor: colors.background},
-  content: {width: '100%', maxWidth: 720, alignSelf: 'center', padding: spacing.lg, gap: spacing.lg, paddingBottom: 48},
-  row: {flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between'},
-  title: {...typography.title, color: colors.text}, heading: {...typography.heading, color: colors.text},
-  muted: {...typography.caption, color: colors.textSecondary},
-  card: {backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.lg, gap: spacing.md},
-  field: {flexGrow: 1, flexBasis: 150, gap: 8},
-  input: {...typography.body, color: colors.text, borderWidth: 1, borderColor: colors.inputBorder, borderRadius: radius.input, minHeight: 48, paddingHorizontal: 12},
-  error: {color: colors.danger, lineHeight: 24}, success: {color: colors.primary, lineHeight: 24},
-  total: {...typography.timer, color: colors.primary},
-  legend: {flexDirection: 'row', flexWrap: 'wrap', gap: 12},
-  dot: {width: 10, height: 10, borderRadius: 3},
-  bar: {width: 66, alignItems: 'center', gap: 8, paddingVertical: 8},
-  plot: {height: 180, width: 36, justifyContent: 'flex-end'},
-  chartRow: {flexDirection: 'row', gap: 12, alignItems: 'flex-end'},
-  small: {fontSize: 12, color: colors.textSecondary, textAlign: 'center'},
+  chip: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipSelected: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    gap: spacing.lg,
+    paddingBottom: 48,
+  },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: { ...typography.title, color: colors.text },
+  heading: { ...typography.heading, color: colors.text },
+  muted: { ...typography.caption, color: colors.textSecondary },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  field: { flexGrow: 1, flexBasis: 150, gap: 8 },
+  input: {
+    ...typography.body,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: radius.input,
+    minHeight: 48,
+    paddingHorizontal: 12,
+  },
+  error: { color: colors.danger, lineHeight: 24 },
+  success: { color: colors.primary, lineHeight: 24 },
+  total: { ...typography.timer, color: colors.primary },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  dot: { width: 10, height: 10, borderRadius: 3 },
+  bar: { width: 66, alignItems: 'center', gap: 8, paddingVertical: 8 },
+  plot: { height: 180, width: 36, justifyContent: 'flex-end' },
+  chartRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-end' },
+  small: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
 });

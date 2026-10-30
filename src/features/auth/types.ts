@@ -8,7 +8,7 @@ export type LoginAttempt = {
 };
 
 export type SessionTokens = {
-  account: {id: string; isNewAccount: boolean; profileStatus: 'MISSING' | 'PRESENT'};
+  account: { id: string; isNewAccount: boolean; profileStatus: 'MISSING' | 'PRESENT' };
   sessionId: string;
   tokenType: 'Bearer';
   accessToken: string;
@@ -23,12 +23,27 @@ export type StoredSession = Omit<SessionTokens, 'accessToken' | 'tokenType'> & {
   provider: SocialProvider;
 };
 
-export type AuthErrorReason = 'login-failed' | 'rejected-callback' | 'secure-store' | 'reauth-required' | 'logout-local';
+export type AuthErrorReason =
+  | 'login-failed'
+  | 'rejected-callback'
+  | 'secure-store'
+  | 'reauth-required'
+  | 'logout-local';
 
 export type AuthStatus =
-  | {kind: 'signed-out'; notice?: string}
-  | {kind: 'signing-in'; provider: SocialProvider; stage: 'opening' | 'browser-pending' | 'verifying'}
-  | {kind: 'signed-in'; accountId: string; provider: SocialProvider}
-  | {kind: 'refreshing'; accountId: string; provider: SocialProvider}
-  | {kind: 'signing-out'; accountId: string}
-  | {kind: 'error'; message: string; reason: AuthErrorReason; action: 'retry-login' | 'retry-logout'; provider?: SocialProvider};
+  | { kind: 'signed-out'; notice?: string }
+  | {
+      kind: 'signing-in';
+      provider: SocialProvider;
+      stage: 'opening' | 'browser-pending' | 'verifying';
+    }
+  | { kind: 'signed-in'; accountId: string; provider: SocialProvider }
+  | { kind: 'refreshing'; accountId: string; provider: SocialProvider }
+  | { kind: 'signing-out'; accountId: string }
+  | {
+      kind: 'error';
+      message: string;
+      reason: AuthErrorReason;
+      action: 'retry-login' | 'retry-logout';
+      provider?: SocialProvider;
+    };

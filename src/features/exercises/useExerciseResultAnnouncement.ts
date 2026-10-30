@@ -1,6 +1,10 @@
-import {useEffect, useRef, useState} from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-export function useExerciseResultAnnouncement(resultSignature: string, resultCount: number, announce: (message: string) => void) {
+export function useExerciseResultAnnouncement(
+  resultSignature: string,
+  resultCount: number,
+  announce: (message: string) => void,
+) {
   const announcedResults = useRef<string | null>(null);
   const [message, setMessage] = useState('');
 

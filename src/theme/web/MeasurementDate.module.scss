@@ -10,5 +10,8 @@
   color: t.$colors-text;
   background: t.$colors-surface;
   font: inherit;
-  &:focus-visible { outline: 2px solid t.$colors-focus; outline-offset: 2px; }
+  &:focus-visible {
+    outline: 2px solid t.$colors-focus;
+    outline-offset: 2px;
+  }
 }
