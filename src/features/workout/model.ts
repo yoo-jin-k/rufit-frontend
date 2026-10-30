@@ -1,6 +1,6 @@
 export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean };
 export type Exercise = { id: string; name: string; catalogId?: string; sets: WorkoutSet[] };
-export type Workout = { id: string; startedAt: number; finishedAt?: number; pausedAt?: number; pausedDurationMs?: number; exercises: Exercise[] };
+export type Workout = { recordDate?: string; entryMode?: 'manual'; id: string; startedAt: number; finishedAt?: number; pausedAt?: number; pausedDurationMs?: number; exercises: Exercise[] };
 // 새 운동을 시작한다. 화면 크기 변경이나 재실행에서는 저장된 운동을 복구해야 한다.
 export function startWorkout(id: string, now: number): Workout {
   return { id, startedAt: now, exercises: [] };

@@ -1,5 +1,6 @@
 import {useEffect, useState, useSyncExternalStore} from 'react';
 import {createArchiveState, describeArchiveState, type ArchivePersistence} from './archiveState.ts';
+import {appendManualWorkout} from './manualWorkout.ts';
 import {remember} from './storage.ts';
 import type {Exercise, Workout} from './model.ts';
 import {completeWithRest, exerciseRest, setPersonalRest, adjustLocalRest} from './localRest.ts';
@@ -17,6 +18,7 @@ export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.n
     workout: archive.current, history: archive.history, rest: archive.rest,
     restFor: (exercise: Exercise) => exerciseRest(archive, exercise),
     setWorkout,
+    addManualWorkout: (workout: Workout) => controller.change(current => appendManualWorkout(current, workout)),
     completeSet: (exerciseId: string, setId: string, completed: boolean) => controller.change(current => completeWithRest(current, exerciseId, setId, completed, now())),
     saveRest: (exercise: Exercise, seconds: number | null) => controller.change(current => setPersonalRest(current, exercise, seconds)),
     adjustRest: (seconds: number) => controller.change(current => adjustLocalRest(current, seconds, now())),

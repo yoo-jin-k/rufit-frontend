@@ -18,7 +18,7 @@ export function workoutsByDay(history: Workout[]) {
   const grouped: Record<string, Workout[]> = {};
   for (const workout of history) {
     if (workout.finishedAt === undefined) continue;
-    const day=localDay(workout.startedAt);
+    const day=workout.recordDate ?? localDay(workout.startedAt);
     (grouped[day] ??= []).push(workout);
   }
   for (const records of Object.values(grouped)) records.sort((a,b)=>a.startedAt-b.startedAt);

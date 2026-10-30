@@ -1,3 +1,4 @@
+import {validDate} from '../strength/model.ts';
 import type { Workout } from './model.ts';
 export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number };
 export type WorkoutArchive = { schemaVersion: 3; current: Workout | null; history: Workout[]; rest: LocalRest | null; personalRest: Record<string, number> };
@@ -10,6 +11,8 @@ const finite = (value: unknown): value is number => typeof value === 'number' &&
 export function isWorkout(value: unknown): value is Workout {
   if (!object(value) || typeof value.id !== 'string' || !finite(value.startedAt) ||
     (value.finishedAt !== undefined && (!finite(value.finishedAt) || value.finishedAt < value.startedAt)) || !Array.isArray(value.exercises)) return false;
+  if (value.recordDate !== undefined && (typeof value.recordDate !== 'string' || !validDate(value.recordDate))) return false;
+  if (value.entryMode !== undefined && (value.entryMode !== 'manual' || typeof value.recordDate !== 'string')) return false;
   if (value.pausedAt !== undefined && (!finite(value.pausedAt) || value.pausedAt < value.startedAt || value.finishedAt !== undefined)) return false;
   if (value.pausedDurationMs !== undefined && (!finite(value.pausedDurationMs) || !Number.isSafeInteger(value.pausedDurationMs) || value.pausedDurationMs < 0)) return false;
   const until = value.finishedAt ?? value.pausedAt;

@@ -1,3 +1,4 @@
+import {ManualWorkoutScreen} from './ManualWorkoutScreen';
 import {WorkoutCalendar} from '../calendar/WorkoutCalendar';
 import {BodyWeightScreen} from '../bodyweight/BodyWeightScreen';
 import {StrengthScreen} from '../strength/StrengthScreen';
@@ -22,7 +23,8 @@ import {LocalSaveStatus} from './LocalSaveStatus';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?: string; onOpenAuth?: () => void}) {
-  const { workout, setWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, state, unsavedAfterFailure, retry, retryPending } = useWorkoutArchive();
+  const { workout, setWorkout, addManualWorkout, history, rest, restFor, completeSet, saveRest, adjustRest, skipRest, ready, state, unsavedAfterFailure, retry, retryPending } = useWorkoutArchive();
+  const [manualDate,setManualDate]=useState<string|null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
@@ -58,7 +60,7 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
       <View style={s.topline}><Text style={s.brand}>루핏</Text>{onOpenAuth
         ? <Pressable accessibilityRole="button" accessibilityLabel={`${authLabel} 화면 열기`} onPress={onOpenAuth} style={s.authEntry}><Text style={s.authEntryText}>{authLabel}</Text></Pressable>
         : <Text style={s.muted}>나의 운동 노트</Text>}</View>
-      <WorkoutCalendar history={history} ready={ready} now={now} />
+      <WorkoutCalendar history={history} ready={ready} now={now} onAdd={setManualDate} />
       <Button title="삼대측정 ↗" secondary onPress={() => setShowStrength(true)} />
       <Button title="체중측정 ↗" secondary onPress={() => setShowWeight(true)} />
       <View style={s.intro}><Text style={s.title}>오늘의 운동</Text><Text style={s.muted}>작은 기록이 쌓여, 나의 변화가 됩니다.</Text></View>
@@ -100,12 +102,13 @@ export function WorkoutScreen({authLabel = '로그인', onOpenAuth}: {authLabel?
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {history.length > 0 && <Button title={`이전 기록 ${history.length}개 ${showHistory ? '접기' : '보기'}`} secondary onPress={() => setShowHistory(!showHistory)} />}
       {showHistory && [...history].reverse().map(w => <View key={w.id} style={s.card}>
-        <Text style={s.heading}>{new Date(w.startedAt).toLocaleDateString()} 운동</Text>
-        <Text style={s.muted}>운동시간 {formatWorkoutTime(elapsedWorkoutMs(w, now))}</Text>
+        <Text style={s.heading}>{w.recordDate ?? new Date(w.startedAt).toLocaleDateString()} 운동</Text>
+        <Text style={s.muted}>{w.entryMode==='manual'?'나중에 입력한 기록 · 운동시간 미측정':`운동시간 ${formatWorkoutTime(elapsedWorkoutMs(w, now))}`}</Text>
         {w.exercises.map(e => <Text key={e.id}>{e.name}: {e.sets.map(set => `${set.weight}kg × ${set.reps}회`).join(', ')}</Text>)}
       </View>)}
       <Text style={s.muted}>기록은 이 기기에 보관됩니다. 다른 기기와 자동으로 동기화되지 않습니다.</Text>
     </ScrollView>
+    {manualDate && <ManualWorkoutScreen initialDate={manualDate} onClose={()=>setManualDate(null)} onSave={record=>{addManualWorkout(record);setManualDate(null);}}/>}
     <Modal visible={showWeight} animationType="slide" onRequestClose={() => setShowWeight(false)}>{showWeight && <BodyWeightScreen onClose={() => setShowWeight(false)} />}</Modal>
     <Modal visible={showStrength} animationType="slide" onRequestClose={() => setShowStrength(false)}>{showStrength && <StrengthScreen onClose={() => setShowStrength(false)} />}</Modal>
     <ExercisePicker visible={showPicker} selectedIds={workout?.exercises.flatMap(e => e.catalogId ? [e.catalogId] : []) ?? []} onClose={() => setShowPicker(false)} onSelect={exercise => change(w => addExercise(w, nextId(), exercise.name, exercise.id))} />
