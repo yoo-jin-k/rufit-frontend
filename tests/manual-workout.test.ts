@@ -23,3 +23,14 @@ test('미래·잘못된 날짜·빈 세트는 저장하지 않는다',()=>{
   assert.throws(()=>completeManualWorkout(startWorkout('empty',100),'2026-01-05'));
   assert.throws(()=>completeManualWorkout(addExercise(startWorkout('empty',100),'s','스쿼트'),'2026-01-05'));
 });
+
+test('예시 횟수는 값으로 취급하지 않고 누락된 종목과 세트 번호를 알려준다',()=>{
+  const twoSets={...draft,exercises:[{...draft.exercises[0],name:'벤치프레스',sets:[
+    {id:'one',weight:'10',reps:'',completed:false},{id:'two',weight:'5',reps:'',completed:false}]}]};
+  assert.throws(()=>completeManualWorkout(twoSets,'2026-01-05'),/벤치프레스 1세트: 횟수를 입력/);
+  const firstFilled=updateSet(twoSets,'s','one',{reps:'10'});
+  assert.throws(()=>completeManualWorkout(firstFilled,'2026-01-05'),/벤치프레스 2세트: 횟수를 입력/);
+  const allFilled=updateSet(firstFilled,'s','two',{reps:'5'});
+  const saved=completeManualWorkout(allFilled,'2026-01-05');
+  assert.deepEqual(saved.exercises[0].sets.map(s=>[s.weight,s.reps]),[['10','10'],['5','5']]);
+});

@@ -6,7 +6,7 @@ import {ExercisePicker} from '../exercises/ExercisePicker';
 import {MeasurementDate} from '../strength/MeasurementDate';
 import {s} from '../strength/styles';
 import {addExercise,addSet,removeSet,startWorkout,updateSet,type Workout} from './model';
-import {completeManualWorkout} from './manualWorkout';
+import {completeManualWorkout,manualFieldErrors} from './manualWorkout';
 let sequence=0;
 const id=()=>`manual-${Date.now()}-${++sequence}`;
 export function ManualWorkoutScreen({initialDate,onClose,onSave}: {initialDate:string;onClose:()=>void;onSave:(workout:Workout)=>void}) {
@@ -22,10 +22,11 @@ export function ManualWorkoutScreen({initialDate,onClose,onSave}: {initialDate:s
       <View style={s.card}><Text style={s.heading}>운동한 날짜</Text><MeasurementDate value={date} onChange={setDate}/></View>
       {draft.exercises.map(exercise=><View key={exercise.id} style={s.card}>
         <Text style={s.heading}>{exercise.name}</Text>
+        <Text style={s.muted}>무게와 횟수를 모두 입력해 주세요. 연한 예시는 저장되지 않습니다.</Text>
         {exercise.sets.map((set,index)=><View key={set.id} style={{gap:8}}>
           <Text style={s.muted}>{index+1}세트</Text><View style={s.row}>
-            <View style={s.field}><Text style={s.muted}>무게 (kg)</Text><TextInput style={s.input} accessibilityLabel={`${exercise.name} ${index+1}세트 무게`} keyboardType="decimal-pad" placeholder="0" value={set.weight} onChangeText={weight=>change(w=>updateSet(w,exercise.id,set.id,{weight}))}/></View>
-            <View style={s.field}><Text style={s.muted}>횟수</Text><TextInput style={s.input} accessibilityLabel={`${exercise.name} ${index+1}세트 횟수`} keyboardType="number-pad" placeholder="10" value={set.reps} onChangeText={reps=>change(w=>updateSet(w,exercise.id,set.id,{reps}))}/></View>
+            <View style={s.field}><Text style={s.muted}>무게 (kg)</Text><TextInput style={s.input} aria-invalid={!!error && !!manualFieldErrors(set).weight} accessibilityLabel={`${exercise.name} ${index+1}세트 무게`} keyboardType="decimal-pad" placeholder="예: 0" value={set.weight} onChangeText={weight=>change(w=>updateSet(w,exercise.id,set.id,{weight}))}/>{!!error && !!manualFieldErrors(set).weight && <Text style={s.error}>{manualFieldErrors(set).weight}</Text>}</View>
+            <View style={s.field}><Text style={s.muted}>횟수</Text><TextInput style={s.input} aria-invalid={!!error && !!manualFieldErrors(set).reps} accessibilityLabel={`${exercise.name} ${index+1}세트 횟수`} keyboardType="number-pad" placeholder="예: 10" value={set.reps} onChangeText={reps=>change(w=>updateSet(w,exercise.id,set.id,{reps}))}/>{!!error && !!manualFieldErrors(set).reps && <Text style={s.error}>{manualFieldErrors(set).reps}</Text>}</View>
           </View><Button title={`${index+1}세트 삭제`} secondary onPress={()=>change(w=>removeSet(w,exercise.id,set.id))}/>
         </View>)}
         <Button title={`${exercise.name} 세트 추가`} secondary onPress={()=>change(w=>addSet(w,exercise.id,id()))}/>
