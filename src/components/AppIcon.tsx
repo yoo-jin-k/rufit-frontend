@@ -13,7 +13,8 @@ export type IconName =
   | 'check'
   | 'friends'
   | 'calendar'
-  | 'bell';
+  | 'bell'
+  | 'more';
 export function AppIcon({
   name,
   size = 22,
@@ -50,7 +51,15 @@ export function AppIcon({
       strokeLinejoin="round"
       accessible={false}
     >
-      <Path d={paths[name]} />
+      {name === 'more' ? (
+        <>
+          <Circle cx={12} cy={5} r={1} />
+          <Circle cx={12} cy={12} r={1} />
+          <Circle cx={12} cy={19} r={1} />
+        </>
+      ) : (
+        <Path d={paths[name]} />
+      )}
       {name === 'profile' && <Circle cx={12} cy={6} r={4} />}
       {name === 'friends' && (
         <>

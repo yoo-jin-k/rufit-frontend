@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
+import { FriendActions } from './FriendActions';
 import { Button } from './Button';
 import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
@@ -27,9 +28,8 @@ export function NotificationButton() {
           <View style={s.content}>
             <View style={s.header}>
               <Text style={s.title}>알림</Text>
-              <Button title="닫기" compact secondary onPress={() => setOpen(false)} />
             </View>
-            <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
               {!!error && (
                 <Text accessibilityRole="alert" style={s.error}>
                   {error}
@@ -41,7 +41,10 @@ export function NotificationButton() {
                 const name = testUsers.find((u) => u.id === r.from)?.nickname ?? '테스트 사용자';
                 return (
                   <View key={r.from} style={s.card}>
-                    <Text style={s.body}>{name}님이 친구 신청을 보냈습니다.</Text>
+                    <View style={s.cardHeader}>
+                      <Text style={[s.body, { flex: 1 }]}>{name}님이 친구 신청을 보냈습니다.</Text>
+                      <FriendActions actor={testSelf} other={r.from} name={name} />
+                    </View>
                     <Text style={s.muted}>로컬 테스트 알림</Text>
                     <View style={s.actions}>
                       <View style={{ flex: 1 }}>
@@ -66,6 +69,9 @@ export function NotificationButton() {
                 );
               })}
             </ScrollView>
+            <View style={s.footer}>
+              <Button title="닫기" secondary onPress={() => setOpen(false)} />
+            </View>
           </View>
         </SafeAreaView>
       </Modal>
@@ -88,7 +94,9 @@ const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   content: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: 20, gap: 24 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: colors.text, fontSize: 24, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 24, lineHeight: 34, fontWeight: '700', flexShrink: 0 },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  footer: { paddingTop: 8 },
   body: { color: colors.text, fontSize: 16, lineHeight: 24 },
   muted: { color: colors.muted, fontSize: 13, lineHeight: 21 },
   error: { color: colors.danger },

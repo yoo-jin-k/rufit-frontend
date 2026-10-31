@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useTestFriends } from './useTestFriends';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FriendActions } from '../../components/FriendActions';
 import { Button } from '../../components/Button';
 import { colors } from '../../theme/tokens';
 import { AppIcon } from '../../components/AppIcon';
@@ -11,10 +12,15 @@ export function TestFriendsPanel() {
   const [actor, setActor] = useState(testSelf);
   const [query, setQuery] = useState('');
   const [toolsOpen, setToolsOpen] = useState(false);
-  const { records, ready, busy, error, act: change } = useTestFriends();
+  const { records, blocks, ready, busy, error, act: change } = useTestFriends();
   const users = [{ id: testSelf, nickname: '나 (테스트)' }, ...testUsers];
   const act = (other: string, action: TestAction) => change(actor, other, action);
-  const matches = users.filter((u) => u.id !== actor && u.nickname.includes(query.trim()));
+  const matches = users.filter(
+    (u) =>
+      u.id !== actor &&
+      u.nickname.includes(query.trim()) &&
+      !blocks.some((b) => b.from === u.id && b.to === actor),
+  );
   return (
     <View style={{ gap: 12 }}>
       <TextInput
@@ -36,6 +42,7 @@ export function TestFriendsPanel() {
             (r) => (r.from === actor && r.to === u.id) || (r.to === actor && r.from === u.id),
           );
           const incoming = relation?.status === 'pending' && relation.to === actor;
+          const blocked = blocks.some((b) => b.from === actor && b.to === u.id);
           return (
             <View key={u.id} style={s.row}>
               <View style={s.avatar}>
@@ -44,19 +51,19 @@ export function TestFriendsPanel() {
               <View style={s.identity}>
                 <Text style={ui.body}>{u.nickname}</Text>
                 <Text style={ui.muted}>
-                  {relation?.status === 'accepted'
-                    ? '친구'
-                    : incoming
-                      ? '받은 신청'
-                      : relation
-                        ? '신청 보냄'
-                        : '테스트 유저'}
+                  {blocked
+                    ? '차단됨'
+                    : relation?.status === 'accepted'
+                      ? '친구'
+                      : incoming
+                        ? '받은 신청'
+                        : relation
+                          ? '신청 보냄'
+                          : '테스트 유저'}
                 </Text>
               </View>
               <View style={s.actions}>
-                {relation?.status === 'accepted' ? (
-                  <AppIcon name="check" />
-                ) : incoming ? (
+                {blocked || relation?.status === 'accepted' ? null : incoming ? (
                   <>
                     <Button
                       title="수락"
@@ -85,6 +92,12 @@ export function TestFriendsPanel() {
                   />
                 )}
               </View>
+              <FriendActions
+                actor={actor}
+                other={u.id}
+                name={u.nickname}
+                friend={relation?.status === 'accepted'}
+              />
             </View>
           );
         })}
@@ -128,7 +141,7 @@ const s = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
