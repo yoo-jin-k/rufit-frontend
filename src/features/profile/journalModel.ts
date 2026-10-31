@@ -3,6 +3,7 @@ export type Journal = {
   workoutId: string;
   memo: string;
   photo?: string;
+  testPhotoTile?: number;
   visibility: 'private' | 'friends';
   createdAt: number;
 };
@@ -28,6 +29,11 @@ export function decodeProfile(raw: string | null): ProfileData {
         j.memo.length > 200 ||
         !['private', 'friends'].includes(j.visibility) ||
         !Number.isFinite(j.createdAt) ||
+        (j.testPhotoTile !== undefined &&
+          (!j.workoutId.startsWith('sample-own-') ||
+            !Number.isInteger(j.testPhotoTile) ||
+            j.testPhotoTile < 5 ||
+            j.testPhotoTile > 8)) ||
         (j.photo !== undefined &&
           (typeof j.photo !== 'string' || !j.photo.startsWith('data:image/'))),
     )
@@ -42,5 +48,30 @@ export function upsertJournal(profile: ProfileData, entry: Journal): ProfileData
   return {
     ...profile,
     journals: [...profile.journals.filter((j) => j.workoutId !== entry.workoutId), entry],
+  };
+}
+
+/** 사용자가 요청한 내 샘플 게시물만 추가합니다. 같은 샘플을 다시 추가하지 않고 기존 오운완을 보존합니다. */
+export function addOwnSamplePosts(profile: ProfileData): ProfileData {
+  const captions = [
+    '[샘플] 상체 운동 완료 · 벤치프레스 60kg × 10회 × 3세트',
+    '[샘플] 하체 운동 완료 · 스쿼트 50kg × 12회 × 3세트',
+    '[샘플] 가볍게 걷고 스트레칭까지 완료',
+  ];
+  const samples: Journal[] = captions.map((memo, index) => ({
+    workoutId: `sample-own-${index + 1}`,
+    memo,
+    testPhotoTile: 5 + index,
+    visibility: 'private',
+    createdAt: new Date(2026, 9, 31 - index, 18).getTime(),
+  }));
+  return {
+    ...profile,
+    journals: [
+      ...profile.journals,
+      ...samples.filter(
+        (sample) => !profile.journals.some((j) => j.workoutId === sample.workoutId),
+      ),
+    ],
   };
 }

@@ -1,3 +1,8 @@
+import { TestPhoto } from '../../components/TestPhoto';
+import { LikedPostScreen } from './LikedPostScreen';
+import { addOwnSamplePosts } from './journalModel';
+import { useTestFriends } from './useTestFriends';
+import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
@@ -24,12 +29,17 @@ export function ProfileScreen({
   profile: ReturnType<typeof useProfile>;
   onJournal: (workout: Workout) => void;
 }) {
+  const social = useTestFriends();
+  const friendCount = countTestFriends(social.records, testSelf);
   const [tab, setTab] = useState('오운완'),
     [editing, setEditing] = useState(false),
     [name, setName] = useState(profile.value.nickname),
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
-  const entries = profile.value.journals.filter((j) => history.some((w) => w.id === j.workoutId));
+  const [post, setPost] = useState<string | null>(null);
+  const entries = profile.value.journals.filter(
+    (j) => history.some((w) => w.id === j.workoutId) || j.workoutId.startsWith('sample-own-'),
+  );
   if (friends) return <FriendsScreen onClose={() => setFriends(false)} />;
   if (editing)
     return (
@@ -95,7 +105,7 @@ export function ProfileScreen({
         {[
           { label: '운동한 날', value: Object.keys(workoutsByDay(history)).length },
           { label: '오운완', value: entries.length },
-          { label: '친구', value: '—' },
+          { label: '친구', value: friendCount },
         ].map((item) => (
           <Pressable
             key={item.label}
@@ -160,22 +170,25 @@ export function ProfileScreen({
         <WorkoutCalendar monthly history={history} ready now={now} />
       ) : tab === '전체 기록' ? (
         <WorkoutHistory records={[...history].reverse()} journals={entries} onJournal={onJournal} />
-      ) : entries.some((j) => j.photo) ? (
+      ) : entries.some((j) => j.photo || j.testPhotoTile !== undefined) ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -20 }}>
           {[...entries]
-            .reverse()
-            .filter((j) => j.photo)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .filter((j) => j.photo || j.testPhotoTile !== undefined)
             .map((j) => (
               <View key={j.workoutId} style={{ width: '33.333333%', padding: 1 }}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="오운완 사진과 메모 보기"
                   onPress={() => {
-                    const w = history.find((w) => w.id === j.workoutId);
-                    if (w) onJournal(w);
+                    setPost(`own:${j.workoutId}`);
                   }}
                 >
-                  <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                  {j.testPhotoTile !== undefined ? (
+                    <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
+                  ) : (
+                    <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                  )}
                 </Pressable>
                 <LikeButton post={`own:${j.workoutId}`} />
               </View>
@@ -194,6 +207,20 @@ export function ProfileScreen({
           </Text>
         </View>
       )}
+      {__DEV__ &&
+        profile.value.journals.filter((j) => j.workoutId.startsWith('sample-own-')).length < 3 && (
+          <Button
+            title="내 샘플 게시물 3개 추가"
+            secondary
+            disabled={!profile.ready || profile.busy}
+            onPress={() =>
+              void profile
+                .save(addOwnSamplePosts(profile.value))
+                .catch(() => setError('샘플 게시물을 저장하지 못했습니다.'))
+            }
+          />
+        )}
+      {post && <LikedPostScreen post={post} onClose={() => setPost(null)} />}
     </ScreenLayout>
   );
 }

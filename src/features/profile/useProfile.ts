@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decodeProfile, emptyProfile, profileKey, type ProfileData } from './journalModel';
-export function useProfile() {
+export function useProfile(refreshKey = false) {
   const [value, setValue] = useState(emptyProfile),
     [ready, setReady] = useState(false),
     [error, setError] = useState(''),
@@ -24,7 +24,7 @@ export function useProfile() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshKey]);
   async function save(next: ProfileData) {
     if (!ready || lock.current) throw new Error('저장 준비가 끝난 후 다시 시도해 주세요.');
     lock.current = true;

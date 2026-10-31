@@ -56,3 +56,12 @@ export function changeTestRelation(
     ? records.map((r) => (r === relation ? { ...r, status: 'accepted' } : r))
     : records.filter((r) => r !== relation);
 }
+
+/** 대기 신청은 제외하고 수락된 관계만 집계합니다. 양쪽 사용자 위치와 무관하게 같은 친구 한 명으로 계산합니다. */
+export function countTestFriends(records: TestRelation[], actor: string): number {
+  return new Set(
+    records
+      .filter((r) => r.status === 'accepted' && (r.from === actor || r.to === actor))
+      .map((r) => (r.from === actor ? r.to : r.from)),
+  ).size;
+}
