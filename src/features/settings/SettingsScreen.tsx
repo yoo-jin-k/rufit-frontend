@@ -1,3 +1,4 @@
+import { NotificationButton } from '../../components/NotificationButton';
 /** 설정 항목은 실제 지원 범위를 명시합니다. 미연결 기능을 켜짐이나 로그인 완료로 표시하지 않습니다. */
 import { useState } from 'react';
 import { Platform, Pressable, Share, Text, TextInput, View } from 'react-native';
@@ -50,7 +51,11 @@ export function SettingsScreen({
       title: '운동',
       rows: [
         ['휴식 시간', defaultRest === undefined ? '종목 권장값' : `${defaultRest}초`, 'rest'],
-        ['알림', '준비 중', '알림은 아직 연결되지 않았습니다.'],
+        [
+          '푸시 알림',
+          '준비 중',
+          '앱 밖에서 받는 푸시 알림은 아직 연결되지 않았습니다. 앱 안의 친구 신청은 상단 알림에서 확인할 수 있습니다.',
+        ],
       ],
     },
     { title: '데이터', rows: [['기록 내보내기', '', 'export']] },
@@ -73,7 +78,10 @@ export function SettingsScreen({
   ];
   return (
     <ScreenLayout>
-      <Text style={ui.title}>설정</Text>
+      <View style={ui.between}>
+        <Text style={ui.title}>설정</Text>
+        <NotificationButton />
+      </View>
       <Pressable accessibilityRole="button" onPress={onProfile} style={[ui.card, ui.row]}>
         <AppIcon name="profile" />
         <View style={{ flex: 1 }}>

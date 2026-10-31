@@ -1,4 +1,5 @@
 /** 화면 폭과 키보드 대응을 공유합니다. 고정 영역은 스크롤 밖에 두어 내용과 겹치지 않습니다. */
+import { NotificationButton } from './NotificationButton';
 import type { ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
@@ -82,7 +83,7 @@ export function ScreenLayout({
               </Pressable>
             )}
             <Text style={ui.heading}>{title}</Text>
-            <View style={{ width: 40 }} />
+            <NotificationButton />
           </View>
         )}
         {children}

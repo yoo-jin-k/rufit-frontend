@@ -1,3 +1,4 @@
+import { NotificationButton } from '../../components/NotificationButton';
 import { BottomNavigation, type MainTab } from '../../components/BottomNavigation';
 import { ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
@@ -156,6 +157,12 @@ export function WorkoutScreen({
                 { paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding },
               ]}
             >
+              {!!workout && !finished && (
+                <View style={ui.between}>
+                  <Text style={s.heading}>운동</Text>
+                  <NotificationButton />
+                </View>
+              )}
               {(!workout || finished) && (
                 <>
                   <View style={{ gap: 6 }}>
@@ -167,7 +174,10 @@ export function WorkoutScreen({
                         weekday: 'long',
                       })}
                     </Text>
-                    <Text style={s.title}>오늘</Text>
+                    <View style={ui.between}>
+                      <Text style={s.title}>오늘</Text>
+                      <NotificationButton />
+                    </View>
                   </View>
                   <WorkoutCalendar
                     history={history}

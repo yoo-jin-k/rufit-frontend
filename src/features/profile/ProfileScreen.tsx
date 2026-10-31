@@ -1,3 +1,4 @@
+import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
 import { useState } from 'react';
 import { Image, Pressable, Text, TextInput, View } from 'react-native';
@@ -61,18 +62,21 @@ export function ProfileScreen({
     <ScreenLayout>
       <View style={ui.between}>
         <Text style={ui.heading}>{profile.value.nickname}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="오운완 기록 추가"
-          onPress={() => {
-            const w = history.at(-1);
-            if (w) onJournal(w);
-            else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
-          }}
-          style={{ padding: 10 }}
-        >
-          <AppIcon name="plus" />
-        </Pressable>
+        <View style={ui.row}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="오운완 기록 추가"
+            onPress={() => {
+              const w = history.at(-1);
+              if (w) onJournal(w);
+              else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
+            }}
+            style={{ padding: 10 }}
+          >
+            <AppIcon name="plus" />
+          </Pressable>
+          <NotificationButton />
+        </View>
       </View>
       <View style={ui.row}>
         <View

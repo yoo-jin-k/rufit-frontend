@@ -1,3 +1,4 @@
+import { NotificationButton } from '../../components/NotificationButton';
 import { MiniTrend } from '../../components/MiniTrend';
 /** 측정 데이터는 진입 시 기기 저장소에서 조회합니다. 저장되지 않은 샘플 수치를 표시하지 않습니다. */
 import { useEffect, useState } from 'react';
@@ -49,7 +50,10 @@ export function AnalysisScreen({
   return (
     <ScreenLayout>
       <View style={{ gap: 8 }}>
-        <Text style={ui.title}>분석</Text>
+        <View style={ui.between}>
+          <Text style={ui.title}>분석</Text>
+          <NotificationButton />
+        </View>
         <Text style={ui.muted}>기록으로 보는 나의 변화</Text>
       </View>
       <View style={[ui.card, ui.row]}>

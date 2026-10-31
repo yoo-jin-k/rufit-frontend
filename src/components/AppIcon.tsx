@@ -12,7 +12,8 @@ export type IconName =
   | 'chevron'
   | 'check'
   | 'friends'
-  | 'calendar';
+  | 'calendar'
+  | 'bell';
 export function AppIcon({
   name,
   size = 22,
@@ -34,6 +35,7 @@ export function AppIcon({
     chevron: 'M9 5l7 7-7 7',
     check: 'M5 12l5 5L20 7',
     friends: 'M2 21v-2c0-4 3-6 6-6s6 2 6 6v2 M16 13c4 0 6 2 6 6v2',
+    bell: 'M6 10a6 6 0 0112 0v5l2 3H4l2-3z M10 21h4',
     calendar: 'M4 5h16v16H4z M4 10h16 M8 2v6 M16 2v6',
   };
   return (

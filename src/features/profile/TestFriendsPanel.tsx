@@ -1,63 +1,19 @@
 /** 명시적인 로컬 테스트 화면입니다. 사용자 전환은 로그인 전환이 아니며 네트워크 요청을 보내지 않습니다. */
-import { useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
+import { useTestFriends } from './useTestFriends';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { colors } from '../../theme/tokens';
 import { AppIcon } from '../../components/AppIcon';
 import { ui } from '../../components/ScreenLayout';
-import {
-  changeTestRelation,
-  decodeTestRelations,
-  friendTestKey,
-  testSelf,
-  testUsers,
-  type TestAction,
-  type TestRelation,
-} from './friendTestModel';
+import { testSelf, testUsers, type TestAction } from './friendTestModel';
 export function TestFriendsPanel() {
   const [actor, setActor] = useState(testSelf);
   const [query, setQuery] = useState('');
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [records, setRecords] = useState<TestRelation[]>([]);
-  const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const lock = useRef(false);
+  const { records, ready, busy, error, act: change } = useTestFriends();
   const users = [{ id: testSelf, nickname: '나 (테스트)' }, ...testUsers];
-  useEffect(() => {
-    let active = true;
-    AsyncStorage.getItem(friendTestKey)
-      .then(decodeTestRelations)
-      .then((data) => {
-        if (active) {
-          setRecords(data);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (active) setError('테스트 기록을 불러오지 못했습니다. 기존 자료는 유지됩니다.');
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-  async function act(other: string, action: TestAction) {
-    if (!ready || lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      const next = changeTestRelation(records, actor, other, action);
-      await AsyncStorage.setItem(friendTestKey, JSON.stringify(next));
-      setRecords(next);
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '테스트 기록 저장에 실패했습니다.');
-    } finally {
-      lock.current = false;
-      setBusy(false);
-    }
-  }
+  const act = (other: string, action: TestAction) => change(actor, other, action);
   const matches = users.filter((u) => u.id !== actor && u.nickname.includes(query.trim()));
   return (
     <View style={{ gap: 12 }}>
