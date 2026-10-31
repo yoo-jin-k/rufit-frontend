@@ -12,6 +12,7 @@ import { countTestFriends } from '../src/features/profile/friendTestModel.ts';
 
 import {
   addOwnSamplePosts,
+  updateProfileDetails,
   emptyProfile,
   decodeProfile,
 } from '../src/features/profile/journalModel.ts';
@@ -85,4 +86,17 @@ test('내 샘플 게시물은 기존 기록을 보존하고 반복 추가해도 
   assert.deepEqual(seeded.journals[0], original.journals[0]);
   assert.deepEqual(addOwnSamplePosts(seeded), seeded);
   assert.deepEqual(decodeProfile(JSON.stringify(seeded)), seeded);
+});
+
+ test('프로필 소개와 지점은 기존 기록을 보존하고 선택 항목 삭제 및 재로딩을 지원합니다', () => {
+  const original = addOwnSamplePosts(emptyProfile());
+  const edited = updateProfileDetails(original, ' 운동하는 나 ', ' 꾸준히 운동합니다 ', ' 루핏짐 강남점 ');
+  assert.equal(edited.bio, '꾸준히 운동합니다');
+  assert.equal(edited.gym, '루핏짐 강남점');
+  assert.deepEqual(edited.journals, original.journals);
+  assert.deepEqual(decodeProfile(JSON.stringify(edited)), edited);
+  assert.equal(decodeProfile(JSON.stringify(original)).nickname, original.nickname);
+  assert.equal(updateProfileDetails(edited, edited.nickname, '', '').gym, '');
+  assert.throws(() => updateProfileDetails(original, '나', '가'.repeat(81), ''));
+  assert.throws(() => decodeProfile(JSON.stringify({ ...original, gym: 123 })));
 });

@@ -7,7 +7,7 @@ export type Journal = {
   visibility: 'private' | 'friends';
   createdAt: number;
 };
-export type ProfileData = { version: 1; nickname: string; journals: Journal[] };
+export type ProfileData = { version: 1; nickname: string; bio?: string; gym?: string; journals: Journal[] };
 export const profileKey = 'rufit.profile.v1';
 export const emptyProfile = (): ProfileData => ({
   version: 1,
@@ -20,6 +20,8 @@ export function decodeProfile(raw: string | null): ProfileData {
   if (
     value?.version !== 1 ||
     typeof value.nickname !== 'string' ||
+    (value.bio !== undefined && (typeof value.bio !== 'string' || value.bio.length > 80)) ||
+    (value.gym !== undefined && (typeof value.gym !== 'string' || value.gym.length > 60)) ||
     !Array.isArray(value.journals) ||
     value.journals.some(
       (j: Journal) =>
@@ -74,4 +76,14 @@ export function addOwnSamplePosts(profile: ProfileData): ProfileData {
       ),
     ],
   };
+}
+
+/** 소개와 지점은 선택 입력입니다. 비워서 저장하면 지우며 기존 사진·운동 기록은 유지합니다. */
+export function updateProfileDetails(profile: ProfileData, nickname: string, bio: string, gym: string): ProfileData {
+  const clean = (text: string) => text.replace(/[\r\n]+/g, ' ').trim();
+  const details = { nickname: clean(nickname), bio: clean(bio), gym: clean(gym) };
+  if (!details.nickname) throw new Error('닉네임을 입력해 주세요.');
+  if (details.nickname.length > 24 || details.bio.length > 80 || details.gym.length > 60)
+    throw new Error('닉네임은 24자, 한 줄 소개는 80자, 헬스장 지점은 60자까지 입력해 주세요.');
+  return { ...profile, ...details };
 }

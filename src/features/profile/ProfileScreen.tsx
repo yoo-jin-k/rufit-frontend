@@ -1,6 +1,6 @@
 import { TestPhoto } from '../../components/TestPhoto';
 import { LikedPostScreen } from './LikedPostScreen';
-import { addOwnSamplePosts } from './journalModel';
+import { addOwnSamplePosts, updateProfileDetails } from './journalModel';
 import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
@@ -34,6 +34,8 @@ export function ProfileScreen({
   const [tab, setTab] = useState('오운완'),
     [editing, setEditing] = useState(false),
     [name, setName] = useState(profile.value.nickname),
+    [bio, setBio] = useState(profile.value.bio ?? ''),
+    [gym, setGym] = useState(profile.value.gym ?? ''),
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
   const [post, setPost] = useState<string | null>(null);
@@ -52,19 +54,37 @@ export function ProfileScreen({
           maxLength={24}
           style={ui.input}
         />
+        <Text style={ui.muted}>한 줄 소개 (선택 · 80자 이내)</Text>
+        <TextInput
+          accessibilityLabel="한 줄 소개"
+          placeholder="예: 어제보다 한 걸음 더"
+          value={bio}
+          onChangeText={setBio}
+          maxLength={80}
+          style={ui.input}
+        />
+        <Text style={ui.muted}>헬스장 · 지점 (선택 · 60자 이내)</Text>
+        <TextInput
+          accessibilityLabel="헬스장 지점"
+          placeholder="예: 루핏짐 강남점"
+          value={gym}
+          onChangeText={setGym}
+          maxLength={60}
+          style={ui.input}
+        />
+        <Text style={ui.muted}>소개와 헬스장은 프로필 사진 아래에 표시됩니다.</Text>
         {!!error && <Text style={ui.error}>{error}</Text>}
         <Button
           title="저장"
           loading={profile.busy}
-          onPress={() => {
-            if (!name.trim()) {
-              setError('닉네임을 입력해 주세요.');
-              return;
+          onPress={async () => {
+            try {
+              const next = updateProfileDetails(profile.value, name, bio, gym);
+              await profile.save(next);
+              setEditing(false);
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.');
             }
-            void profile
-              .save({ ...profile.value, nickname: name.trim() })
-              .then(() => setEditing(false))
-              .catch(() => setError('저장하지 못했습니다. 다시 시도해 주세요.'));
           }}
         />
       </ScreenLayout>
@@ -129,12 +149,22 @@ export function ProfileScreen({
           </Pressable>
         ))}
       </View>
+      {/* 입력한 항목만 표시하며 긴 소개와 지점명은 화면 너비에 맞춰 줄바꿈합니다. */}
+      {!!(profile.value.bio || profile.value.gym) && (
+        <View style={{ gap: 4 }}>
+          {!!profile.value.bio && <Text style={ui.body}>{profile.value.bio}</Text>}
+          {!!profile.value.gym && <Text style={ui.muted}>헬스장 · {profile.value.gym}</Text>}
+        </View>
+      )}
       <Button
         title="프로필 편집"
         secondary
         disabled={!profile.ready}
         onPress={() => {
           setName(profile.value.nickname);
+          setBio(profile.value.bio ?? '');
+          setGym(profile.value.gym ?? '');
+          setError('');
           setEditing(true);
         }}
       />
