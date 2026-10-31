@@ -1,3 +1,4 @@
+import { LikeButton } from '../../components/LikeButton';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
 import { useState } from 'react';
@@ -165,18 +166,19 @@ export function ProfileScreen({
             .reverse()
             .filter((j) => j.photo)
             .map((j) => (
-              <Pressable
-                key={j.workoutId}
-                accessibilityRole="button"
-                accessibilityLabel="오운완 사진과 메모 보기"
-                onPress={() => {
-                  const w = history.find((w) => w.id === j.workoutId);
-                  if (w) onJournal(w);
-                }}
-                style={{ width: '33.333333%', padding: 1 }}
-              >
-                <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
-              </Pressable>
+              <View key={j.workoutId} style={{ width: '33.333333%', padding: 1 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="오운완 사진과 메모 보기"
+                  onPress={() => {
+                    const w = history.find((w) => w.id === j.workoutId);
+                    if (w) onJournal(w);
+                  }}
+                >
+                  <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                </Pressable>
+                <LikeButton post={`own:${j.workoutId}`} />
+              </View>
             ))}
         </View>
       ) : (

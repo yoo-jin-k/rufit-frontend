@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
+import { SocialButton } from './SocialButton';
 import { Button } from './Button';
 import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
@@ -31,16 +32,13 @@ export function FriendActions({
     <>
       <View style={s.actions}>
         {friend && (
-          <View style={{ width: 76 }}>
-            <Button
-              title="친구 해제"
-              compact
-              secondary
-              disabled={!ready || busy}
-              accessibilityLabel={`${name} 친구 해제`}
-              onPress={() => setStage('unfriend')}
-            />
-          </View>
+          <SocialButton
+            title="친구 해제"
+            secondary
+            disabled={!ready || busy}
+            label={`${name} 친구 해제`}
+            onPress={() => setStage('unfriend')}
+          />
         )}
         <Pressable
           accessibilityRole="button"
@@ -52,7 +50,7 @@ export function FriendActions({
           }}
           style={s.more}
         >
-          <AppIcon name="more" color={colors.text} />
+          <AppIcon name="more" size={16} color={colors.text} />
         </Pressable>
       </View>
       <Modal
@@ -161,7 +159,7 @@ export function FriendActions({
 }
 const s = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 },
-  more: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
+  more: { width: 28, height: 44, alignItems: 'center', justifyContent: 'center' },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: {
     width: '100%',

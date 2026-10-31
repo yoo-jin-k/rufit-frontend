@@ -14,17 +14,21 @@ export type IconName =
   | 'friends'
   | 'calendar'
   | 'bell'
-  | 'more';
+  | 'more'
+  | 'heart';
 export function AppIcon({
   name,
   size = 22,
   color = '#777780',
+  filled = false,
 }: {
   name: IconName;
   size?: number;
   color?: string;
+  filled?: boolean;
 }) {
   const paths: Partial<Record<IconName, string>> = {
+    heart: 'M12 21L3 12C-2 5 7-1 12 6C17-1 26 5 21 12Z',
     workout: 'M7 12h10 M3 9v6 M6 7v10 M18 7v10 M21 9v6',
     analysis: 'M5 20V11 M12 20V4 M19 20V8',
     profile: 'M4 21c0-5 3-8 8-8s8 3 8 8',
@@ -44,7 +48,7 @@ export function AppIcon({
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? color : 'none'}
       stroke={color}
       strokeWidth={1.7}
       strokeLinecap="round"

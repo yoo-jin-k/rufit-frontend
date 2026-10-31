@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
-import { FriendActions } from './FriendActions';
+import { FriendRow } from './FriendRow';
 import { Button } from './Button';
 import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
-import { testSelf, testUsers } from '../features/profile/friendTestModel';
+import { testSelf } from '../features/profile/friendTestModel';
 export function NotificationButton() {
   const [open, setOpen] = useState(false);
-  const { records, ready, busy, error, act } = useTestFriends();
+  const { records, ready, error } = useTestFriends();
   const requests = records.filter((r) => r.to === testSelf && r.status === 'pending');
   return (
     <>
@@ -37,37 +37,9 @@ export function NotificationButton() {
               )}
               {!ready && !error && <Text style={s.muted}>알림을 불러오는 중입니다.</Text>}
               {ready && !requests.length && <Text style={s.muted}>새로운 알림이 없습니다.</Text>}
-              {requests.map((r) => {
-                const name = testUsers.find((u) => u.id === r.from)?.nickname ?? '테스트 사용자';
-                return (
-                  <View key={r.from} style={s.card}>
-                    <View style={s.cardHeader}>
-                      <Text style={[s.body, { flex: 1 }]}>{name}님이 친구 신청을 보냈습니다.</Text>
-                      <FriendActions actor={testSelf} other={r.from} name={name} />
-                    </View>
-                    <Text style={s.muted}>로컬 테스트 알림</Text>
-                    <View style={s.actions}>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          title="수락"
-                          accessibilityLabel={`${name} 알림에서 신청 수락`}
-                          disabled={busy}
-                          onPress={() => void act(testSelf, r.from, 'accept')}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          title="거절"
-                          accessibilityLabel={`${name} 알림에서 신청 거절`}
-                          secondary
-                          disabled={busy}
-                          onPress={() => void act(testSelf, r.from, 'reject')}
-                        />
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
+              {requests.map((r) => (
+                <FriendRow key={r.from} actor={testSelf} other={r.from} notification />
+              ))}
             </ScrollView>
             <View style={s.footer}>
               <Button title="닫기" secondary onPress={() => setOpen(false)} />

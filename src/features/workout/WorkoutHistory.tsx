@@ -1,3 +1,4 @@
+import { LikeButton } from '../../components/LikeButton';
 import type { Journal } from '../profile/journalModel';
 import { Button } from '../../components/Button';
 /** 홈·프로필·달력이 같은 기록 요약과 상세 화면을 사용합니다. 샘플 기록을 실제 데이터로 섞지 않습니다. */
@@ -70,6 +71,7 @@ export function WorkoutHistory({
               {journals.find((j) => j.workoutId === detail.id) && (
                 <View style={ui.card}>
                   <Text style={ui.heading}>오운완 메모</Text>
+                  <LikeButton post={`own:${detail.id}`} />
                   <Text style={ui.body}>
                     {journals.find((j) => j.workoutId === detail.id)?.memo ||
                       '메모 없이 남긴 기록입니다.'}
