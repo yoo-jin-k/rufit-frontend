@@ -23,8 +23,8 @@ export function elapsedWorkoutMs(workout: Workout, now: number): number {
   return Math.max(
     0,
     (workout.finishedAt ?? workout.pausedAt ?? now) -
-      workout.startedAt -
-      (workout.pausedDurationMs ?? 0),
+    workout.startedAt -
+    (workout.pausedDurationMs ?? 0),
   );
 }
 // 운동시간을 시:분:초로 표시합니다.
@@ -110,9 +110,9 @@ export function addSet(
       e !== exercise
         ? e
         : {
-            ...e,
-            sets: [...e.sets.slice(0, index + 1), set, ...e.sets.slice(index + 1)],
-          },
+          ...e,
+          sets: [...e.sets.slice(0, index + 1), set, ...e.sets.slice(index + 1)],
+        },
     ),
   };
 }
@@ -183,4 +183,17 @@ export function finishWorkout(workout: Workout, now: number, discardIncomplete =
       .map((e) => ({ ...e, sets: e.sets.filter((s) => s.completed) }))
       .filter((e) => e.sets.length > 0),
   };
+}
+
+/** 번호만 다시 매기며 세트 ID·입력값·완료 여부를 유지합니다. 휴식 대상도 기존 ID를 따릅니다. */
+export function moveSet(workout: Workout, exerciseId: string, setId: string, targetIndex: number): Workout {
+  editable(workout);
+  const exercise = workout.exercises.find((item) => item.id === exerciseId);
+  const sourceIndex = exercise?.sets.findIndex((set) => set.id === setId) ?? -1;
+  if (!exercise || sourceIndex < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= exercise.sets.length)
+    throw new Error('이동할 세트 위치를 확인해 주세요.');
+  const sets = [...exercise.sets];
+  const [moving] = sets.splice(sourceIndex, 1);
+  sets.splice(targetIndex, 0, moving);
+  return { ...workout, exercises: workout.exercises.map((item) => item.id === exerciseId ? { ...item, sets } : item) };
 }

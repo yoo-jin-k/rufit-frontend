@@ -1,3 +1,8 @@
+import { PreviousSets } from './PreviousSets';
+import { importPreviousSets } from './previousSetModel';
+import { SetControls } from './SetControls';
+import { SortableSets } from './SortableSets';
+import { SetRow } from './SetRow';
 import { ScreenLayout } from '../../components/ScreenLayout';
 /**
  * 지난 운동의 종목과 세트를 입력하는 임시 작성 화면입니다.
@@ -5,25 +10,29 @@ import { ScreenLayout } from '../../components/ScreenLayout';
  * 현재 진행 중인 운동과 휴식 타이머는 변경하지 않습니다.
  */
 import { useState } from 'react';
-import { Modal, Text, TextInput, View } from 'react-native';
+import { Modal, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { MeasurementDate } from '../strength/MeasurementDate';
 import { s } from '../strength/styles';
-import { addExercise, addSet, removeSet, startWorkout, updateSet, type Workout } from './model';
-import { completeManualWorkout, manualFieldErrors } from './manualWorkout';
+import { addExercise, addSet, removeSet, moveSet, startWorkout, updateSet, type Workout } from './model';
+import { completeManualWorkout } from './manualWorkout';
 let sequence = 0;
 const id = () => `manual-${Date.now()}-${++sequence}`;
 export function ManualWorkoutScreen({
   initialDate,
+  history,
   onClose,
   onSave,
 }: {
   initialDate: string;
+  history: Workout[];
   onClose: () => void;
   onSave: (workout: Workout) => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
   const [date, setDate] = useState(initialDate);
   const [draft, setDraft] = useState(() => startWorkout(id(), Date.now()));
   const [picker, setPicker] = useState(false);
@@ -74,57 +83,21 @@ export function ManualWorkoutScreen({
               <Text style={s.muted}>
                 무게와 횟수를 모두 입력해 주세요. 연한 예시는 저장되지 않습니다.
               </Text>
-              {exercise.sets.map((set, index) => (
-                <View key={set.id} style={{ gap: 8 }}>
-                  <Text style={s.muted}>{index + 1}세트</Text>
-                  <View style={s.row}>
-                    <View style={s.field}>
-                      <Text style={s.muted}>무게 (kg)</Text>
-                      <TextInput
-                        style={s.input}
-                        aria-invalid={!!error && !!manualFieldErrors(set).weight}
-                        accessibilityLabel={`${exercise.name} ${index + 1}세트 무게`}
-                        keyboardType="decimal-pad"
-                        placeholder="예: 0"
-                        value={set.weight}
-                        onChangeText={(weight) =>
-                          change((w) => updateSet(w, exercise.id, set.id, { weight }))
-                        }
-                      />
-                      {!!error && !!manualFieldErrors(set).weight && (
-                        <Text style={s.error}>{manualFieldErrors(set).weight}</Text>
-                      )}
-                    </View>
-                    <View style={s.field}>
-                      <Text style={s.muted}>횟수</Text>
-                      <TextInput
-                        style={s.input}
-                        aria-invalid={!!error && !!manualFieldErrors(set).reps}
-                        accessibilityLabel={`${exercise.name} ${index + 1}세트 횟수`}
-                        keyboardType="number-pad"
-                        placeholder="예: 10"
-                        value={set.reps}
-                        onChangeText={(reps) =>
-                          change((w) => updateSet(w, exercise.id, set.id, { reps }))
-                        }
-                      />
-                      {!!error && !!manualFieldErrors(set).reps && (
-                        <Text style={s.error}>{manualFieldErrors(set).reps}</Text>
-                      )}
-                    </View>
-                  </View>
-                  <Button
-                    title={`${index + 1}세트 삭제`}
-                    secondary
-                    onPress={() => change((w) => removeSet(w, exercise.id, set.id))}
-                  />
-                </View>
-              ))}
-              <Button
-                title={`${exercise.name} 세트 추가`}
-                secondary
-                onPress={() => change((w) => addSet(w, exercise.id, id()))}
-              />
+              <SetControls
+                allCompleted={exercise.sets.length > 0 && exercise.sets.every((set) => set.completed)}
+                onCompleteAll={() => change((w) => exercise.sets.reduce((current, set) => updateSet(current, exercise.id, set.id, { completed: !exercise.sets.every((entry) => entry.completed) }), w))}
+                onLoad={() => setLoadExerciseId(exercise.id)} name={exercise.name} count={exercise.sets.length} disabled={false}
+                onAdd={() => change((w) => addSet(w, exercise.id, id(), exercise.sets.at(-1)?.id))}
+                onRemove={() => { const last = exercise.sets.at(-1); if (last) change((w) => removeSet(w, exercise.id, last.id)); }} />
+              <SortableSets sets={exercise.sets} name={exercise.name} disabled={false}
+                onMove={(setId, target) => change((w) => moveSet(w, exercise.id, setId, target))}>
+                {(set, index, handle) => <SetRow key={set.id} set={set} index={index}
+                  dragHandle={handle} exerciseName={exercise.name} fontScale={fontScale} finished={false}
+                  onChange={(patch) => change((w) => updateSet(w, exercise.id, set.id, patch))}
+                  onComplete={() => change((w) => updateSet(w, exercise.id, set.id, { completed: !set.completed }))}
+                  onDelete={() => change((w) => removeSet(w, exercise.id, set.id))}
+                  onDuplicate={() => change((w) => addSet(w, exercise.id, id(), set.id))} />}
+              </SortableSets>
               <Button
                 title={`${exercise.name} 종목 삭제`}
                 secondary
@@ -160,6 +133,13 @@ export function ManualWorkoutScreen({
             />
           )}
         </ScreenLayout>
+        {draft.exercises.find((exercise) => exercise.id === loadExerciseId) && (
+          <PreviousSets history={history} target={draft.exercises.find((exercise) => exercise.id === loadExerciseId)!}
+            onClose={() => setLoadExerciseId(null)} onLoad={(source, replace) => {
+              change((current) => importPreviousSets(current, loadExerciseId!, source, id, replace));
+              setLoadExerciseId(null);
+            }} />
+        )}
         <ExercisePicker
           visible={picker}
           selectedIds={draft.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : []))}

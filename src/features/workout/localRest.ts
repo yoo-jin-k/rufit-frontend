@@ -90,3 +90,10 @@ export function setDefaultRest(archive: WorkoutArchive, seconds: number | null):
   else personalRest['defaults:rest'] = seconds;
   return { ...archive, personalRest };
 }
+
+/** 한 종목의 전체 체크를 한 번의 저장으로 처리합니다. 검증 실패 시 일부 세트만 완료되지 않습니다. */
+export function completeAllWithRest(archive: WorkoutArchive, exerciseId: string, completed: boolean, now: number): WorkoutArchive {
+  const exercise = archive.current?.exercises.find((item) => item.id === exerciseId);
+  if (!exercise?.sets.length) throw new Error('완료할 세트가 없습니다.');
+  return exercise.sets.reduce((current, set) => completeWithRest(current, exerciseId, set.id, completed, now), archive);
+}

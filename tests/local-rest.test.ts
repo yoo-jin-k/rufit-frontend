@@ -18,6 +18,7 @@ import {
 } from '../src/features/workout/storage.ts';
 import {
   completeWithRest,
+  completeAllWithRest,
   setPersonalRest,
   exerciseRest,
   adjustLocalRest,
@@ -167,4 +168,18 @@ test('휴식 없는 상태와 닫힌 휴식은 조절만으로 새로 생기지 
   const completed = completeWithRest(a, 'e', 'e-1', true, 1000);
   const closed = remember(completed, finishWorkout(completed.current!, 2000));
   assert.equal(adjustLocalRest(closed, 10, 3000).rest, null);
+});
+
+test('전체 체크는 모든 세트와 연동되고 잘못된 입력이 있으면 부분 완료하지 않습니다', () => {
+  const original = archive();
+  const valid = remember(original, addSet(original.current!, 'e', 'second', 'e-1'));
+  const done = completeAllWithRest(valid, 'e', true, 1000);
+  assert.equal(done.current!.exercises[0].sets.every((set) => set.completed), true);
+  assert.equal(done.rest?.setId, 'second');
+  const undone = completeAllWithRest(done, 'e', false, 2000);
+  assert.equal(undone.current!.exercises[0].sets.some((set) => set.completed), false);
+  assert.equal(undone.rest, null);
+  const invalid = remember(original, addSet(original.current!, 'e', 'blank'));
+  assert.throws(() => completeAllWithRest(invalid, 'e', true, 1000));
+  assert.equal(invalid.current!.exercises[0].sets.some((set) => set.completed), false);
 });

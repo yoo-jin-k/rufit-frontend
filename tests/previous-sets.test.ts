@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { previousExercises, importPreviousSets } from '../src/features/workout/previousSetModel.ts';
+import { startWorkout, addExercise, updateSet } from '../src/features/workout/model.ts';
+test('이전 종목 세트는 새 ID와 미완료 상태로 추가·교체하고 원본은 보존합니다', () => {
+  const draft = addExercise(startWorkout('w', 100), 'current', '스쿼트', 'squat');
+  const source = updateSet(addExercise(startWorkout('old', 1), 'e', '스쿼트', 'squat'), 'e', 'e-1', { weight: '60', reps: '8', completed: true });
+  const history = [{ ...source, finishedAt: 99, recordDate: '2026-10-31' }];
+  assert.equal(previousExercises(history, draft.exercises[0]).length, 1);
+  assert.equal(previousExercises([source], draft.exercises[0]).length, 0);
+  assert.equal(previousExercises(history, { ...draft.exercises[0], catalogId: 'other' }).length, 0);
+  const appended = importPreviousSets(draft, 'current', source.exercises[0], () => 'new', false);
+  assert.equal(appended.exercises[0].sets.length, 2);
+  assert.deepEqual(appended.exercises[0].sets[1], { id: 'new', weight: '60', reps: '8', completed: false });
+  const replaced = importPreviousSets(draft, 'current', source.exercises[0], () => 'new', true);
+  assert.equal(replaced.exercises[0].sets.length, 1);
+  assert.equal(source.exercises[0].sets[0].completed, true);
+  assert.equal(draft.exercises[0].sets[0].weight, '');
+  assert.throws(() => importPreviousSets(draft, 'current', source.exercises[0], () => 'current-1', false));
+});

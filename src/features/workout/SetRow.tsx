@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import { colors } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import type { WorkoutSet } from './model';
 import { setFieldErrors, stackedSetRow } from './setRowView';
@@ -17,7 +18,9 @@ export function SetRow({
   onComplete,
   onDelete,
   onDuplicate,
+  dragHandle,
 }: {
+  dragHandle?: ReactNode;
   set: WorkoutSet;
   index: number;
   exerciseName: string;
@@ -34,7 +37,7 @@ export function SetRow({
   const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
   const weightRef = useRef<TextInput>(null),
     repsRef = useRef<TextInput>(null);
-  const stacked = stackedSetRow(width, fontScale);
+  const stacked = dragHandle ? width < 250 || fontScale >= 2 : stackedSetRow(width, fontScale);
   const errors = attempted ? setFieldErrors(set) : { weight: '', reps: '' };
   const prefix = `${exerciseName} ${index + 1}세트`;
   function complete() {
@@ -51,21 +54,23 @@ export function SetRow({
   }
   return (
     <View style={s.row} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      <Text style={s.label}>{index + 1}세트 · 무게 kg / 횟수</Text>
+      {!dragHandle && <Text style={s.label}>{index + 1}세트 · 무게 kg / 횟수</Text>}
       <View style={[s.controls, stacked && s.stacked]}>
+        {dragHandle}
         <View style={[s.inputs, stacked && s.inputsStacked]}>
           <View style={s.field}>
             <TextInput
               ref={weightRef}
               style={[
                 fieldStyles.input,
+                !!dragHandle && { borderWidth: 0, fontSize: 20, padding: 4 },
                 focused === 'weight' && fieldStyles.focus,
                 !!errors.weight && fieldStyles.invalid,
               ]}
               accessibilityLabel={`${prefix} 무게`}
               accessibilityHint="킬로그램 단위"
               aria-invalid={!!errors.weight}
-              placeholder="0"
+              placeholder="kg"
               keyboardType="decimal-pad"
               value={set.weight}
               editable={!finished}
@@ -85,13 +90,14 @@ export function SetRow({
               ref={repsRef}
               style={[
                 fieldStyles.input,
+                !!dragHandle && { borderWidth: 0, fontSize: 20, padding: 4 },
                 focused === 'reps' && fieldStyles.focus,
                 !!errors.reps && fieldStyles.invalid,
               ]}
               accessibilityLabel={`${prefix} 횟수`}
               accessibilityHint="회 단위"
               aria-invalid={!!errors.reps}
-              placeholder="0"
+              placeholder="회"
               keyboardType="number-pad"
               value={set.reps}
               editable={!finished}
@@ -107,25 +113,30 @@ export function SetRow({
             )}
           </View>
         </View>
-        <View style={[s.actions, stacked && s.actionsStacked]}>
+        <View style={[s.actions, !!dragHandle && { width: 48 }, stacked && s.actionsStacked]}>
           <View style={s.action}>
-            <Button
+            {dragHandle ? <Pressable accessibilityRole="button"
+              accessibilityLabel={`${prefix} ${set.completed ? '완료 취소' : '완료'}`}
+              disabled={finished} onPress={complete}
+              style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: set.completed ? colors.primary : colors.border }}>
+              <Text style={{ fontSize: 24, fontWeight: '700', color: colors.onPrimary }}>✓</Text>
+            </Pressable> : <Button
               compact
-              title={set.completed ? '✓' : '완료'}
+              title={set.completed || dragHandle ? '✓' : '완료'}
               accessibilityLabel={`${prefix} ${set.completed ? '완료 취소' : '완료'}`}
               secondary={!set.completed}
               disabled={finished}
               onPress={complete}
-            />
+            />}
           </View>
-          <Pressable
+          {!dragHandle && <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${prefix} 추가 옵션`}
             onPress={() => setOptions(!options)}
             style={{ width: 32, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text>⋮</Text>
-          </Pressable>
+          </Pressable>}
         </View>
       </View>
       {options && !finished && (

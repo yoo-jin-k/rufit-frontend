@@ -1,3 +1,7 @@
+import { PreviousSets } from './PreviousSets';
+import { importPreviousSets } from './previousSetModel';
+import { SetControls } from './SetControls';
+import { SortableSets } from './SortableSets';
 import { NotificationButton } from '../../components/NotificationButton';
 import { BottomNavigation, type MainTab } from '../../components/BottomNavigation';
 import { ui } from '../../components/ScreenLayout';
@@ -43,6 +47,7 @@ import {
   addExercise,
   addSet,
   removeSet,
+  moveSet,
   finishWorkout,
   startWorkout,
   updateSet,
@@ -78,6 +83,7 @@ export function WorkoutScreen({
     rest,
     restFor,
     completeSet,
+    completeAllSets,
     saveRest,
     defaultRest,
     saveDefaultRest,
@@ -98,6 +104,7 @@ export function WorkoutScreen({
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
 
+  const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now);
@@ -293,51 +300,52 @@ export function WorkoutScreen({
                           finished={finished}
                           onSave={(seconds) => saveRest(e, seconds)}
                         />
-                        {e.sets.map((set, i) => (
-                          <SetRow
-                            key={set.id}
-                            set={set}
-                            index={i}
-                            exerciseName={e.name}
-                            fontScale={window.fontScale}
-                            finished={finished}
-                            onChange={(patch) => act((w) => updateSet(w, e.id, set.id, patch))}
-                            onComplete={() => {
-                              try {
-                                completeSet(e.id, set.id, !set.completed);
-                                setNow(Date.now());
-                                setError('');
-                                setConfirmFinish(false);
-                              } catch (error) {
-                                setError(
-                                  error instanceof Error ? error.message : '세트를 확인해 주세요.',
-                                );
-                              }
-                            }}
-                            onDelete={() => act((w) => removeSet(w, e.id, set.id))}
-                            onDuplicate={() => act((w) => addSet(w, e.id, nextId(), set.id))}
-                          />
-                        ))}
-                        {!!e.sets.length && !finished && (
-                          <Button
-                            title="＋ 세트 추가"
-                            secondary
-                            accessibilityLabel={`${e.name} 세트 추가`}
-                            onPress={() => act((w) => addSet(w, e.id, nextId()))}
-                          />
-                        )}
-                        {!e.sets.length && (
-                          <>
-                            <Text style={s.muted}>세트가 없어요. 새 세트를 추가해 주세요.</Text>
-                            {!finished && (
-                              <Button
-                                title={`${e.name} 세트 추가`}
-                                secondary
-                                onPress={() => act((w) => addSet(w, e.id, nextId()))}
-                              />
-                            )}
-                          </>
-                        )}
+                        <SetControls
+                          allCompleted={e.sets.length > 0 && e.sets.every((set) => set.completed)}
+                          onCompleteAll={() => {
+                            try {
+                              completeAllSets(e.id, !e.sets.every((set) => set.completed));
+                              setNow(Date.now()); setError('');
+                            } catch (error) {
+                              setError(error instanceof Error ? error.message : '세트를 확인해 주세요.');
+                            }
+                          }}
+                          onLoad={() => setLoadExerciseId(e.id)} name={e.name} count={e.sets.length} disabled={finished}
+                          onAdd={() => act((w) => addSet(w, e.id, nextId(), e.sets.at(-1)?.id))}
+                          onRemove={() => { const last = e.sets.at(-1); if (last) act((w) => removeSet(w, e.id, last.id)); }} />
+                        <View style={{ flexDirection: 'row', paddingLeft: 56, paddingRight: 48 }}>
+                          <Text style={[s.muted, { flex: 1, textAlign: 'center' }]}>무게 kg</Text>
+                          <Text style={[s.muted, { flex: 1, textAlign: 'center' }]}>횟수</Text>
+                        </View>
+                        <SortableSets sets={e.sets} name={e.name} disabled={finished} onMove={(setId, target) => act((w) => moveSet(w, e.id, setId, target))}>
+                          {(set, i, handle) => (
+                            <SetRow
+                              key={set.id}
+                              dragHandle={handle}
+                              set={set}
+                              index={i}
+                              exerciseName={e.name}
+                              fontScale={window.fontScale}
+                              finished={finished}
+                              onChange={(patch) => act((w) => updateSet(w, e.id, set.id, patch))}
+                              onComplete={() => {
+                                try {
+                                  completeSet(e.id, set.id, !set.completed);
+                                  setNow(Date.now());
+                                  setError('');
+                                  setConfirmFinish(false);
+                                } catch (error) {
+                                  setError(
+                                    error instanceof Error ? error.message : '세트를 확인해 주세요.',
+                                  );
+                                }
+                              }}
+                              onDelete={() => act((w) => removeSet(w, e.id, set.id))}
+                              onDuplicate={() => act((w) => addSet(w, e.id, nextId(), set.id))}
+                            />
+                          )}
+                        </SortableSets>
+                        {!e.sets.length && <Text style={s.muted}>＋ 버튼으로 세트를 추가해 주세요.</Text>}
                       </View>
                     );
                   })}
@@ -460,6 +468,7 @@ export function WorkoutScreen({
         {manualDate && (
           <ManualWorkoutScreen
             initialDate={manualDate}
+            history={history}
             onClose={() => setManualDate(null)}
             onSave={(record) => {
               addManualWorkout(record);
@@ -497,6 +506,13 @@ export function WorkoutScreen({
             />
           )}
         </Modal>
+        {workout?.exercises.find((exercise) => exercise.id === loadExerciseId) && (
+          <PreviousSets history={history} target={workout.exercises.find((exercise) => exercise.id === loadExerciseId)!}
+            onClose={() => setLoadExerciseId(null)} onLoad={(source, replace) => {
+              act((current) => importPreviousSets(current, loadExerciseId!, source, nextId, replace));
+              setLoadExerciseId(null);
+            }} />
+        )}
         <ExercisePicker
           visible={showPicker}
           selectedIds={workout?.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : [])) ?? []}

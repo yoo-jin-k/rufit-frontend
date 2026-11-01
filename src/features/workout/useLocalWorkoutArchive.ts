@@ -10,6 +10,7 @@ import type { Exercise, Workout } from './model.ts';
 import {
   setDefaultRest,
   completeWithRest,
+  completeAllWithRest,
   exerciseRest,
   setPersonalRest,
   adjustLocalRest,
@@ -42,6 +43,8 @@ export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.n
       controller.change((current) =>
         completeWithRest(current, exerciseId, setId, completed, now()),
       ),
+    completeAllSets: (exerciseId: string, completed: boolean) =>
+      controller.change((current) => completeAllWithRest(current, exerciseId, completed, now())),
     defaultRest: archive.personalRest['defaults:rest'],
     saveDefaultRest: (seconds: number | null) =>
       controller.change((current) => setDefaultRest(current, seconds)),
