@@ -1,6 +1,6 @@
 import { TestPhoto } from '../../components/TestPhoto';
 import { LikedPostScreen } from './LikedPostScreen';
-import { addOwnSamplePosts, updateProfileDetails } from './journalModel';
+import { addOwnSamplePosts, updateProfileDetails, journalPhotos } from './journalModel';
 import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
@@ -214,14 +214,17 @@ export function ProfileScreen({
                 >
                   {j.testPhotoTile !== undefined ? (
                     <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
-                  ) : j.photo ? (
-                    <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                  ) : journalPhotos(j).length ? (
+                    <Image source={{ uri: journalPhotos(j)[0] }} style={{ width: '100%', aspectRatio: 1 }} />
                   ) : (
                     <View style={{ aspectRatio: 1, padding: 10, gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }}>
                       <AppIcon name="image" size={24} />
                       <Text numberOfLines={3} style={[ui.muted, { textAlign: 'center' }]}>{j.memo || '사진 없는 오운완'}</Text>
                     </View>
                   )}
+                  {journalPhotos(j).length > 1 && <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: colors.text, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
+                    <Text style={{ color: colors.onPrimary, fontSize: 12 }}>{journalPhotos(j).length}장</Text>
+                  </View>}
                 </Pressable>
                 <LikeButton post={`own:${j.workoutId}`} />
               </View>

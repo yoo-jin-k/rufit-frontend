@@ -3,6 +3,7 @@ export type Journal = {
   workoutId: string;
   memo: string;
   photo?: string;
+  photos?: string[];
   testPhotoTile?: number;
   visibility: 'private' | 'friends';
   createdAt: number;
@@ -36,6 +37,7 @@ export function decodeProfile(raw: string | null): ProfileData {
             !Number.isInteger(j.testPhotoTile) ||
             j.testPhotoTile < 5 ||
             j.testPhotoTile > 8)) ||
+        (j.photos !== undefined && (!Array.isArray(j.photos) || j.photos.length > 5 || j.photos.some((photo: unknown) => typeof photo !== 'string' || !photo.startsWith('data:image/')))) ||
         (j.photo !== undefined &&
           (typeof j.photo !== 'string' || !j.photo.startsWith('data:image/'))),
     )
@@ -45,11 +47,16 @@ export function decodeProfile(raw: string | null): ProfileData {
 }
 export function upsertJournal(profile: ProfileData, entry: Journal): ProfileData {
   if (entry.memo.length > 200) throw new Error('메모는 200자까지 입력해 주세요.');
-  if (entry.photo && entry.photo.length > 2_800_000)
+  const photos = journalPhotos(entry);
+  if (photos.length > 5) throw new Error('사진은 한 게시물에 5장까지 첨부할 수 있습니다.');
+  if (photos.some((photo) => photo.length > 2_800_000))
     throw new Error('사진이 큽니다. 2MB 이하 사진을 선택해 주세요.');
+  const normalized = { ...entry, photos };
+  if (photos.length) normalized.photo = photos[0];
+  else delete normalized.photo;
   return {
     ...profile,
-    journals: [...profile.journals.filter((j) => j.workoutId !== entry.workoutId), entry],
+    journals: [...profile.journals.filter((j) => j.workoutId !== entry.workoutId), normalized],
   };
 }
 
@@ -86,4 +93,9 @@ export function updateProfileDetails(profile: ProfileData, nickname: string, bio
   if (details.nickname.length > 24 || details.bio.length > 80 || details.gym.length > 60)
     throw new Error('닉네임은 24자, 한 줄 소개는 80자, 헬스장 지점은 60자까지 입력해 주세요.');
   return { ...profile, ...details };
+}
+
+/** 기존 한 장 형식도 읽습니다. 빈 배열은 사진을 모두 삭제한 상태로 우선 처리합니다. */
+export function journalPhotos(entry?: Pick<Journal, 'photo' | 'photos'>): string[] {
+  return entry?.photos ?? (entry?.photo ? [entry.photo] : []);
 }

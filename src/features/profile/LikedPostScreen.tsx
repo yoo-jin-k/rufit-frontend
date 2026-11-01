@@ -1,5 +1,7 @@
+import { JournalGallery } from './JournalGallery';
+import { journalPhotos } from './journalModel';
 /** 좋아요 알림의 게시물 ID로 원본 오운완을 찾습니다. 없어진 게시물은 별도 안내하며 샘플로 대체하지 않습니다. */
-import { Image, Modal, ScrollView, Text, View } from 'react-native';
+import { Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile } from './useProfile';
 import { LikeButton } from '../../components/LikeButton';
@@ -44,8 +46,8 @@ export function LikedPostScreen({ post, onClose, onEdit }: { post: string; onClo
                   <TestPhoto tile={5} label="내 가상 오운완 테스트 사진" />
                 ) : entry?.testPhotoTile !== undefined ? (
                   <TestPhoto tile={entry.testPhotoTile} label="내 가상 오운완 샘플 사진" />
-                ) : entry?.photo ? (
-                  <Image source={{ uri: entry.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                ) : journalPhotos(entry).length ? (
+                  <JournalGallery photos={journalPhotos(entry)} />
                 ) : (
                   <Text>사진 없이 남긴 오운완입니다.</Text>
                 )}

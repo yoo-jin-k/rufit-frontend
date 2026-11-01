@@ -9,7 +9,7 @@ import { AppIcon } from '../../components/AppIcon';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
 import { prepareJournalPhoto } from './prepareJournalPhoto';
-import type { Journal } from './journalModel';
+import { journalPhotos, type Journal } from './journalModel';
 export function JournalComposer({
   workout,
   initial,
@@ -22,13 +22,13 @@ export function JournalComposer({
   onClose: () => void;
 }) {
   const [memo, setMemo] = useState(initial?.memo ?? ''),
-    [photo, setPhoto] = useState(initial?.photo),
+    [photos, setPhotos] = useState(() => journalPhotos(initial)),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [picking, setPicking] = useState(false),
     [photoError, setPhotoError] = useState(false);
   async function pick(camera: boolean) {
-    if (picking || busy) return;
+    if (picking || busy || photos.length >= 5) return;
     setPicking(true);
     try {
       if (camera && Platform.OS !== 'web') {
@@ -42,17 +42,24 @@ export function JournalComposer({
         mediaTypes: ['images'],
         base64: true,
         quality: 0.5,
-        allowsEditing: true,
+        allowsEditing: camera,
+        allowsMultipleSelection: !camera,
+        selectionLimit: 5 - photos.length,
         aspect: [1, 1],
       };
       const result = camera
         ? await ImagePicker.launchCameraAsync(options)
         : await ImagePicker.launchImageLibraryAsync(options);
       if (!result.canceled) {
-        const asset = result.assets[0];
-        if (!asset.base64) throw new Error('사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.');
-        const preparedPhoto = await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg');
-        setPhoto(preparedPhoto);
+        if (result.assets.length > 5 - photos.length)
+          throw new Error(`あと${5 - photos.length}枚まで追加できます。写真を選び直して下さい。`);
+        // 変換がすべて成功してから追加し、途中失敗時も既存写真を維持します。
+        const added: string[] = [];
+        for (const asset of result.assets) {
+          if (!asset.base64) throw new Error('写真を読み取れませんでした。別の写真を選んでください。');
+          added.push(await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg'));
+        }
+        setPhotos((current) => [...current, ...added]);
         setPhotoError(false);
         setError('');
       }
@@ -70,7 +77,8 @@ export function JournalComposer({
       await onSave({
         workoutId: workout.id,
         memo,
-        photo,
+        photos,
+        photo: photos[0],
         visibility: 'private',
         createdAt: initial?.createdAt ?? Date.now(),
       });
@@ -119,7 +127,7 @@ export function JournalComposer({
               {error}
             </Text>
           )}
-          {photoError && <Button title="사진 첨부 없이 계속 작성" secondary onPress={() => { setPhotoError(false); setError(''); }} />}
+          {photoError && <Button title="이번 사진 추가를 취소하고 계속 작성" secondary onPress={() => { setPhotoError(false); setError(''); }} />}
           <View style={ui.card}>
             <Text style={ui.heading}>{workoutDate(workout)} 운동 저장 완료</Text>
             <Text style={ui.muted}>{workoutSummary(workout)}</Text>
@@ -140,25 +148,32 @@ export function JournalComposer({
           />
           <View style={ui.between}>
             <Text style={ui.heading}>사진</Text>
-            <Text style={ui.muted}>{picking ? '사진을 처리하고 있습니다' : photo ? '첨부됨 · 저장 버튼을 눌러 주세요' : '사진 미첨부 · 선택 사항'}</Text>
+            <Text style={ui.muted}>{picking ? '사진을 처리하고 있습니다' : photos.length ? `${photos.length}/5장 · 저장 버튼을 눌러 주세요` : '사진 미첨부 · 선택 사항'}</Text>
           </View>
           <View style={[ui.card, { alignItems: 'center', gap: 16 }]}>
-            {photo ? (
-              <Image
-                source={{ uri: photo }}
-                style={{ width: '100%', height: 220, borderRadius: 12 }}
-                resizeMode="contain"
-              />
-            ) : (
-              <View style={{ height: 130, justifyContent: 'center' }}>
-                <AppIcon name="image" size={32} />
+            {photos.length ? (
+              <View style={{ width: '100%', gap: 16 }}>
+                {photos.map((photo, index) => <View key={index} style={{ gap: 8 }}>
+                  <Text style={ui.muted}>{index + 1}번 사진 {index === 0 ? '· 대표 사진' : ''}</Text>
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: 180, borderRadius: 12 }} resizeMode="contain" />
+                  <View style={ui.row}>
+                    <View style={{ flex: 1 }}><Button title="대표로 설정" secondary disabled={busy || picking || index === 0}
+                      accessibilityLabel={`${index + 1}번 사진 대표로 설정`}
+                      onPress={() => setPhotos((current) => [current[index], ...current.filter((_, i) => i !== index)])} /></View>
+                    <View style={{ flex: 1 }}><Button title="삭제" secondary disabled={busy || picking || photos.length >= 5}
+                      accessibilityLabel={`${index + 1}번 사진 삭제`}
+                      onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))} /></View>
+                  </View>
+                </View>)}
               </View>
+            ) : (
+              <View style={{ height: 100, justifyContent: 'center' }}><AppIcon name="image" size={32} /></View>
             )}
             <View style={[ui.row, { flexWrap: 'wrap', width: '100%' }]}>
               <View style={{ flex: 1, minWidth: 120 }}>
                 <Button
-                  title="촬영하기"
-                  disabled={busy || picking}
+                  title={photos.length ? "사진 더 촬영" : "촬영하기"}
+                  disabled={busy || picking || photos.length >= 5}
                   onPress={() => void pick(true)}
                 />
               </View>
@@ -166,19 +181,12 @@ export function JournalComposer({
                 <Button
                   title="앨범에서 선택"
                   secondary
-                  disabled={busy || picking}
+                  disabled={busy || picking || photos.length >= 5}
                   onPress={() => void pick(false)}
                 />
               </View>
             </View>
-            {photo && (
-              <Button
-                title="사진 제거"
-                secondary
-                disabled={busy}
-                onPress={() => setPhoto(undefined)}
-              />
-            )}
+            <Text style={ui.muted}>최대 5장 · 첫 사진이 프로필 대표 사진으로 표시됩니다.</Text>
           </View>
           <View style={ui.between}>
             <Text style={ui.body}>공개 범위</Text>
