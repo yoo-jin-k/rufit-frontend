@@ -351,7 +351,6 @@ export function WorkoutScreen({
                   })}
                   {!finished ? (
                     <>
-                      <Button title="＋ 종목 추가" secondary onPress={() => setShowPicker(true)} />
                       {confirmFinish && (
                         <View style={s.card}>
                           <Text style={s.heading}>미완료 세트를 제외하고 종료할까요?</Text>
@@ -385,6 +384,10 @@ export function WorkoutScreen({
               )}
             </ScrollView>
             <View style={ui.dock}>
+              {/* 운동 중에는 종목 추가와 종료를 함께 고정하여 긴 목록에서도 바로 접근할 수 있습니다. */}
+              {workout && !finished && (
+                <Button title="＋ 종목 추가" secondary disabled={!ready} onPress={() => setShowPicker(true)} />
+              )}
               <Button
                 title={!workout || finished ? '운동 시작하기' : '운동 종료'}
                 disabled={!ready}
