@@ -7,8 +7,10 @@ import { exerciseImages } from './images';
 export function ExerciseMedia({
   exercise,
   onMissingChange,
+  expanded = false,
 }: {
   exercise?: Pick<CatalogExercise, 'id' | 'bodyPart' | 'equipment'>;
+  expanded?: boolean;
   onMissingChange?(missing: boolean): void;
 }) {
   const source = exercise ? exerciseImages[exercise.id] : undefined;
@@ -18,7 +20,7 @@ export function ExerciseMedia({
     return (
       <Image
         source={source}
-        style={s.picture}
+        style={[s.picture, expanded && { width: '100%', height: 260 }]}
         resizeMode="contain"
         accessible={false}
         onError={() => {
@@ -28,7 +30,7 @@ export function ExerciseMedia({
       />
     );
   return (
-    <View style={s.fallback} accessible={false}>
+    <View style={[s.fallback, expanded && { width: '100%', minHeight: 180 }]} accessible={false}>
       <Text style={s.fallbackStrong}>
         {exercise ? equipmentLabels[exercise.equipment] : '운동'}
       </Text>

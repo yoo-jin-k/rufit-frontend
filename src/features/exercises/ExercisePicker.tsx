@@ -23,9 +23,10 @@ import type { BodyPart, Equipment } from '../../api/client';
 import { Button } from '../../components/Button';
 import { colors, radius, size, spacing, typography } from '../../theme/tokens';
 import { bodyParts, equipmentLabels, searchExercises, type CatalogExercise } from './catalog';
+import { ExerciseDetail } from './ExerciseDetail';
 import { ExerciseMedia } from './ExerciseMedia';
 import { exercisePickerFocusStyles } from './ExercisePickerFocus.styles';
-import { exerciseRowAccessibility, stackedExerciseItem } from './exercisePickerView';
+import { stackedExerciseItem } from './exercisePickerView';
 import { hasExerciseImage } from './images';
 import { useExerciseResultAnnouncement } from './useExerciseResultAnnouncement';
 
@@ -33,7 +34,7 @@ type Props = {
   visible: boolean;
   selectedIds: string[];
   onClose(): void;
-  onSelect(exercise: Pick<CatalogExercise, 'name'> & { id?: string }): void;
+  onSelect(exercises: (Pick<CatalogExercise, 'name'> & { id?: string })[]): void;
 };
 const announceResult = (message: string) => {
   if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
@@ -55,6 +56,8 @@ function ExerciseResultAnnouncement({ signature, count }: { signature: string; c
 export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Props) {
   const insets = useSafeAreaInsets();
   const viewport = useWindowDimensions();
+  const [pending, setPending] = useState<(Pick<CatalogExercise, 'name'> & { id?: string })[]>([]);
+  const [detail, setDetail] = useState<CatalogExercise | null>(null);
   const [query, setQuery] = useState('');
   const [bodyPart, setBodyPart] = useState<BodyPart>();
   const [equipment, setEquipment] = useState<Equipment>();
@@ -127,6 +130,8 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
     setCustom(false);
     setCustomName('');
     setError(null);
+    setPending([]);
+    setDetail(null);
     onClose();
   }
   function stopSearchFocusRecovery() {
@@ -158,15 +163,24 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
       searchWasActive.current = false;
     }, 300);
   }
+  // 목록에서는 임시 선택만 변경합니다. 확인할 때 한 번에 전달하여 과거 날짜 기록도 누락 없이 추가합니다.
   function choose(exercise: Pick<CatalogExercise, 'name'> & { id?: string }) {
-    if (choosing.current) return;
+    stopSearchFocusRecovery();
+    if (exercise.id && selectedIdSet.has(exercise.id)) return;
+    const key = (item: typeof exercise) => item.id ?? item.name.trim();
+    setPending((items) => items.some((item) => key(item) === key(exercise))
+      ? items.filter((item) => key(item) !== key(exercise))
+      : [...items, { ...exercise, name: exercise.name.trim() }]);
+  }
+  function confirmSelection() {
+    if (choosing.current || !pending.length) return;
     choosing.current = true;
     try {
-      onSelect(exercise);
+      onSelect(pending);
       close();
     } catch {
       choosing.current = false;
-      reportError('종목을 추가하지 못했어요', '다시 선택해 주세요.');
+      reportError('종목을 추가하지 못했어요', '선택은 유지했습니다. 다시 시도해 주세요.');
     }
   }
 
@@ -203,11 +217,14 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
               <Text style={s.closeText}>×</Text>
             </Pressable>
           </View>
+          {detail ? (
+            <ExerciseDetail exercise={detail} onClose={() => setDetail(null)} />
+          ) : <>
           {/* 저높이 창에서도 검색부터 직접 입력까지 하나의 세로 목록으로 탐색합니다. */}
           <FlatList
             ref={listRef}
             data={results}
-            extraData={selectedIds.join('|')}
+            extraData={{ selectedIds, pending }}
             keyExtractor={(item) => item.id}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
@@ -345,7 +362,9 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
             renderItem={({ item }) => (
               <ExerciseListItem
                 item={item}
-                selected={selectedIdSet.has(item.id)}
+                selected={pending.some((entry) => entry.id === item.id)}
+                alreadyAdded={selectedIdSet.has(item.id)}
+                onDetail={(exercise) => { stopSearchFocusRecovery(); setDetail(exercise); }}
                 onChoose={choose}
               />
             )}
@@ -373,9 +392,9 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
                       onFocus={stopSearchFocusRecovery}
                     />
                     <Button
-                      title="이 이름으로 추가"
+                      title="이 이름으로 선택"
                       disabled={!customName.trim()}
-                      onPress={() => choose({ name: customName })}
+                      onPress={() => { choose({ name: customName }); setCustom(false); setCustomName(''); }}
                     />
                     <Button title="직접 입력 취소" secondary onPress={() => setCustom(false)} />
                   </View>
@@ -404,6 +423,11 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
               </View>
             }
           />
+          <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.sm, gap: spacing.sm }}>
+            <Text style={s.muted}>종목을 눌러 선택 · 이미지를 눌러 상세 보기</Text>
+            <Button title={`선택한 운동 ${pending.length}개 추가`} disabled={!pending.length} onPress={confirmSelection} />
+          </View>
+          </>}
           {/* 항상 mount되는 Picker와 분리해 닫을 때 예약을 취소하고 재개방 때 알림 서명을 초기화합니다. */}
           {visible && (
             <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />
@@ -417,45 +441,50 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
 function ExerciseListItem({
   item,
   selected,
+  alreadyAdded,
+  onDetail,
   onChoose,
 }: {
   item: CatalogExercise;
   selected: boolean;
+  alreadyAdded: boolean;
+  onDetail(exercise: CatalogExercise): void;
   onChoose(exercise: CatalogExercise): void;
 }) {
   const window = useWindowDimensions();
   const stacked = stackedExerciseItem(window.width - 40, window.fontScale);
   const [mediaMissing, setMediaMissing] = useState(() => !hasExerciseImage(item.id));
   const updateMissing = useCallback((missing: boolean) => setMediaMissing(missing), []);
-  const label = exerciseRowAccessibility(item, selected, mediaMissing);
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: selected }}
-      disabled={selected}
-      onPress={() => onChoose(item)}
-      style={({ pressed }) => [
-        s.exercise,
-        stacked && s.exerciseStacked,
-        pressed && !selected && s.exercisePressed,
-      ]}
-    >
-      <ExerciseMedia exercise={item} onMissingChange={updateMissing} />
-      <View style={s.exerciseBody}>
+    <View style={[s.exercise, stacked && s.exerciseStacked, selected && s.exercisePressed]}>
+      {/* 상세 보기와 선택을 형제 버튼으로 분리하여 이미지 터치가 선택으로 전파되지 않도록 합니다. */}
+      <Pressable accessibilityRole="button" accessibilityLabel={`${item.name} 이미지와 상세 설명`} onPress={() => onDetail(item)}>
+        <ExerciseMedia exercise={item} onMissingChange={updateMissing} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityLabel={`${item.name}${alreadyAdded ? ', 추가됨' : ', 운동 선택'}`}
+        accessibilityState={{ checked: selected || alreadyAdded, disabled: alreadyAdded }}
+        aria-checked={selected || alreadyAdded}
+        disabled={alreadyAdded}
+        onPress={() => onChoose(item)}
+        style={s.exerciseBody}
+      >
+
         <View style={s.exerciseInfo}>
           <Text style={s.exerciseName}>{item.name}</Text>
           <Text style={s.muted}>
             {bodyParts[item.bodyPart]} · {equipmentLabels[item.equipment]}
           </Text>
           {mediaMissing && <Text style={s.muted}>동작 사진 없음</Text>}
-          {selected && <Text style={s.selectedText}>추가됨</Text>}
+          {(selected || alreadyAdded) && <Text style={s.selectedText}>{alreadyAdded ? '추가됨' : '선택됨'}</Text>}
         </View>
         <View style={s.action} accessible={false}>
-          <Text style={s.actionText}>{selected ? '✓' : '+'}</Text>
+          <Text style={s.actionText}>{selected || alreadyAdded ? '✓' : '+'}</Text>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 

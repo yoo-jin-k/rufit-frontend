@@ -164,8 +164,8 @@ export function ManualWorkoutScreen({
           visible={picker}
           selectedIds={draft.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : []))}
           onClose={() => setPicker(false)}
-          onSelect={(exercise) => {
-            change((w) => addExercise(w, id(), exercise.name, exercise.id));
+          onSelect={(exercises) => {
+            change((w) => exercises.reduce((current, exercise) => addExercise(current, id(), exercise.name, exercise.id), w));
             setPicker(false);
           }}
         />

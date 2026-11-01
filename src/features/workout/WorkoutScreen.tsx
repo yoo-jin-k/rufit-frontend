@@ -501,8 +501,8 @@ export function WorkoutScreen({
           visible={showPicker}
           selectedIds={workout?.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : [])) ?? []}
           onClose={() => setShowPicker(false)}
-          onSelect={(exercise) =>
-            change((w) => addExercise(w, nextId(), exercise.name, exercise.id))
+          onSelect={(exercises) =>
+            change((w) => exercises.reduce((current, exercise) => addExercise(current, nextId(), exercise.name, exercise.id), w))
           }
         />
       </KeyboardAvoidingView>
