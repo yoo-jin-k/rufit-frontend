@@ -8,7 +8,7 @@ export type Journal = {
   visibility: 'private' | 'friends';
   createdAt: number;
 };
-export type ProfileData = { version: 1; nickname: string; bio?: string; gym?: string; journals: Journal[] };
+export type ProfileData = { version: 1; nickname: string; avatar?: string; bio?: string; gym?: string; journals: Journal[] };
 export const profileKey = 'rufit.profile.v1';
 export const emptyProfile = (): ProfileData => ({
   version: 1,
@@ -21,6 +21,7 @@ export function decodeProfile(raw: string | null): ProfileData {
   if (
     value?.version !== 1 ||
     typeof value.nickname !== 'string' ||
+    (value.avatar !== undefined && (typeof value.avatar !== 'string' || !value.avatar.startsWith('data:image/') || value.avatar.length > 2_800_000)) ||
     (value.bio !== undefined && (typeof value.bio !== 'string' || value.bio.length > 80)) ||
     (value.gym !== undefined && (typeof value.gym !== 'string' || value.gym.length > 60)) ||
     !Array.isArray(value.journals) ||
@@ -98,4 +99,14 @@ export function updateProfileDetails(profile: ProfileData, nickname: string, bio
 /** 기존 한 장 형식도 읽습니다. 빈 배열은 사진을 모두 삭제한 상태로 우선 처리합니다. */
 export function journalPhotos(entry?: Pick<Journal, 'photo' | 'photos'>): string[] {
   return entry?.photos ?? (entry?.photo ? [entry.photo] : []);
+}
+
+/** 프로필 사진만 변경하고 오운완 사진과 소개 등 나머지 데이터를 보존합니다. */
+export function updateProfileAvatar(profile: ProfileData, avatar?: string): ProfileData {
+  if (avatar !== undefined && (!avatar.startsWith('data:image/') || avatar.length > 2_800_000))
+    throw new Error('프로필 사진 형식이나 용량을 확인해 주세요.');
+  const next = { ...profile };
+  if (avatar) next.avatar = avatar;
+  else delete next.avatar;
+  return next;
 }

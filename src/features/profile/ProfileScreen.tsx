@@ -1,6 +1,8 @@
+import { ProfileAvatar } from './ProfileAvatar';
+import { ProfilePhotoEditor } from './ProfilePhotoEditor';
 import { TestPhoto } from '../../components/TestPhoto';
 import { LikedPostScreen } from './LikedPostScreen';
-import { addOwnSamplePosts, updateProfileDetails, journalPhotos } from './journalModel';
+import { addOwnSamplePosts, updateProfileDetails, updateProfileAvatar, journalPhotos } from './journalModel';
 import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
@@ -38,13 +40,24 @@ export function ProfileScreen({
     [gym, setGym] = useState(profile.value.gym ?? ''),
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
+  const [avatar, setAvatar] = useState(profile.value.avatar);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  function openEditor() {
+    setName(profile.value.nickname);
+    setBio(profile.value.bio ?? '');
+    setGym(profile.value.gym ?? '');
+    setAvatar(profile.value.avatar);
+    setError('');
+    setEditing(true);
+  }
   const [post, setPost] = useState<string | null>(null);
   // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
   const entries = profile.value.journals;
   if (friends) return <FriendsScreen onClose={() => setFriends(false)} />;
   if (editing)
     return (
-      <ScreenLayout title="프로필 편집" onBack={() => setEditing(false)}>
+      <ScreenLayout title="프로필 편집" onBack={() => { if (!photoBusy && !profile.busy) setEditing(false); }}>
+        <ProfilePhotoEditor photo={avatar} disabled={profile.busy} onChange={setAvatar} onBusy={setPhotoBusy} />
         <Text style={ui.muted}>닉네임</Text>
         <TextInput
           accessibilityLabel="닉네임"
@@ -76,9 +89,10 @@ export function ProfileScreen({
         <Button
           title="저장"
           loading={profile.busy}
+          disabled={photoBusy}
           onPress={async () => {
             try {
-              const next = updateProfileDetails(profile.value, name, bio, gym);
+              const next = updateProfileAvatar(updateProfileDetails(profile.value, name, bio, gym), avatar);
               await profile.save(next);
               setEditing(false);
             } catch (cause) {
@@ -109,18 +123,9 @@ export function ProfileScreen({
         </View>
       </View>
       <View style={ui.row}>
-        <View
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: 32,
-            backgroundColor: colors.primarySoft,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <AppIcon name="profile" size={30} />
-        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="프로필 사진 수정" disabled={!profile.ready} onPress={openEditor}>
+          <ProfileAvatar photo={profile.value.avatar} />
+        </Pressable>
         {[
           { label: '운동한 날', value: Object.keys(workoutsByDay(history)).length },
           { label: '오운완', value: entries.length },
@@ -159,13 +164,7 @@ export function ProfileScreen({
         title="프로필 편집"
         secondary
         disabled={!profile.ready}
-        onPress={() => {
-          setName(profile.value.nickname);
-          setBio(profile.value.bio ?? '');
-          setGym(profile.value.gym ?? '');
-          setError('');
-          setEditing(true);
-        }}
+        onPress={openEditor}
       />
       <View style={ui.row}>
         {['오운완', '전체 기록', '달력'].map((t) => (
