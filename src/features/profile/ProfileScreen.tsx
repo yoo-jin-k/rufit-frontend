@@ -39,9 +39,8 @@ export function ProfileScreen({
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
   const [post, setPost] = useState<string | null>(null);
-  const entries = profile.value.journals.filter(
-    (j) => history.some((w) => w.id === j.workoutId) || j.workoutId.startsWith('sample-own-'),
-  );
+  // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
+  const entries = profile.value.journals;
   if (friends) return <FriendsScreen onClose={() => setFriends(false)} />;
   if (editing)
     return (
@@ -200,24 +199,28 @@ export function ProfileScreen({
         <WorkoutCalendar monthly history={history} ready now={now} />
       ) : tab === '전체 기록' ? (
         <WorkoutHistory records={[...history].reverse()} journals={entries} onJournal={onJournal} />
-      ) : entries.some((j) => j.photo || j.testPhotoTile !== undefined) ? (
+      ) : entries.length > 0 ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -20 }}>
           {[...entries]
             .sort((a, b) => b.createdAt - a.createdAt)
-            .filter((j) => j.photo || j.testPhotoTile !== undefined)
             .map((j) => (
               <View key={j.workoutId} style={{ width: '33.333333%', padding: 1 }}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="오운완 사진과 메모 보기"
+                  accessibilityLabel={`${j.memo || '오운완'} 게시물 보기`}
                   onPress={() => {
                     setPost(`own:${j.workoutId}`);
                   }}
                 >
                   {j.testPhotoTile !== undefined ? (
                     <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
-                  ) : (
+                  ) : j.photo ? (
                     <Image source={{ uri: j.photo }} style={{ width: '100%', aspectRatio: 1 }} />
+                  ) : (
+                    <View style={{ aspectRatio: 1, padding: 10, gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }}>
+                      <AppIcon name="image" size={24} />
+                      <Text numberOfLines={3} style={[ui.muted, { textAlign: 'center' }]}>{j.memo || '사진 없는 오운완'}</Text>
+                    </View>
                   )}
                 </Pressable>
                 <LikeButton post={`own:${j.workoutId}`} />
@@ -250,7 +253,12 @@ export function ProfileScreen({
             }
           />
         )}
-      {post && <LikedPostScreen post={post} onClose={() => setPost(null)} />}
+      {post && <LikedPostScreen post={post} onClose={() => setPost(null)}
+        onEdit={history.some((workout) => `own:${workout.id}` === post) ? () => {
+          const workout = history.find((workout) => `own:${workout.id}` === post);
+          setPost(null);
+          if (workout) onJournal(workout);
+        } : undefined} /> }
     </ScreenLayout>
   );
 }

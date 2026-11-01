@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
+import { prepareJournalPhoto } from './prepareJournalPhoto';
 import type { Journal } from './journalModel';
 export function JournalComposer({
   workout,
@@ -24,7 +25,8 @@ export function JournalComposer({
     [photo, setPhoto] = useState(initial?.photo),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [picking, setPicking] = useState(false);
+    [picking, setPicking] = useState(false),
+    [photoError, setPhotoError] = useState(false);
   async function pick(camera: boolean) {
     if (picking || busy) return;
     setPicking(true);
@@ -49,19 +51,20 @@ export function JournalComposer({
       if (!result.canceled) {
         const asset = result.assets[0];
         if (!asset.base64) throw new Error('사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.');
-        if (asset.base64.length > 2_800_000)
-          throw new Error('사진이 큽니다. 2MB 이하 사진을 선택해 주세요.');
-        setPhoto(`data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`);
+        const preparedPhoto = await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg');
+        setPhoto(preparedPhoto);
+        setPhotoError(false);
         setError('');
       }
     } catch (e) {
+      setPhotoError(true);
       setError(e instanceof Error ? e.message : '사진을 불러오지 못했습니다.');
     } finally {
       setPicking(false);
     }
   }
   async function save() {
-    if (busy || picking) return;
+    if (busy || picking || photoError) return;
     setBusy(true);
     try {
       await onSave({
@@ -99,11 +102,11 @@ export function JournalComposer({
               <Button
                 title="오운완 저장하기"
                 loading={busy}
-                disabled={picking}
+                disabled={picking || photoError}
                 onPress={() => void save()}
               />
               <Button
-                title="건너뛰기 · 운동 기록은 그대로 남아요"
+                title={initial ? '수정 취소' : '나중에 작성하기'}
                 secondary
                 disabled={busy}
                 onPress={onClose}
@@ -111,19 +114,40 @@ export function JournalComposer({
             </>
           }
         >
+          {!!error && (
+            <Text accessibilityRole="alert" style={ui.error}>
+              {error}
+            </Text>
+          )}
+          {photoError && <Button title="사진 첨부 없이 계속 작성" secondary onPress={() => { setPhotoError(false); setError(''); }} />}
           <View style={ui.card}>
             <Text style={ui.heading}>{workoutDate(workout)} 운동 저장 완료</Text>
             <Text style={ui.muted}>{workoutSummary(workout)}</Text>
           </View>
           <View style={ui.between}>
+            <Text style={ui.heading}>오운완 한 줄 설명 · 글</Text>
+            <Text style={ui.muted}>선택 · {memo.length}/200</Text>
+          </View>
+          <TextInput
+            accessibilityLabel="오운완 글"
+            value={memo}
+            onChangeText={setMemo}
+            maxLength={200}
+            editable={!busy}
+            multiline
+            placeholder="오늘 운동은 어땠나요? 사진과 함께 남길 글을 적어 주세요."
+            style={[ui.input, { minHeight: 100, textAlignVertical: 'top' }]}
+          />
+          <View style={ui.between}>
             <Text style={ui.heading}>사진</Text>
-            <Text style={ui.muted}>선택</Text>
+            <Text style={ui.muted}>{picking ? '사진을 처리하고 있습니다' : photo ? '첨부됨 · 저장 버튼을 눌러 주세요' : '사진 미첨부 · 선택 사항'}</Text>
           </View>
           <View style={[ui.card, { alignItems: 'center', gap: 16 }]}>
             {photo ? (
               <Image
                 source={{ uri: photo }}
-                style={{ width: '100%', aspectRatio: 1, borderRadius: 12 }}
+                style={{ width: '100%', height: 220, borderRadius: 12 }}
+                resizeMode="contain"
               />
             ) : (
               <View style={{ height: 130, justifyContent: 'center' }}>
@@ -157,31 +181,13 @@ export function JournalComposer({
             )}
           </View>
           <View style={ui.between}>
-            <Text style={ui.heading}>메모</Text>
-            <Text style={ui.muted}>선택 · {memo.length}/200</Text>
-          </View>
-          <TextInput
-            accessibilityLabel="오운완 메모"
-            value={memo}
-            onChangeText={setMemo}
-            maxLength={200}
-            editable={!busy}
-            multiline
-            placeholder="오늘 운동은 어땠나요?"
-            style={[ui.input, { minHeight: 100, textAlignVertical: 'top' }]}
-          />
-          <View style={ui.between}>
             <Text style={ui.body}>공개 범위</Text>
             <Text style={ui.body}>나만 보기</Text>
           </View>
           <Text style={ui.muted}>
             현재 기록은 이 기기에만 보관됩니다. 친구 공개는 계정 연결 후 제공됩니다.
           </Text>
-          {!!error && (
-            <Text accessibilityRole="alert" style={ui.error}>
-              {error}
-            </Text>
-          )}
+
         </ScreenLayout>
       </SafeAreaView>
     </Modal>

@@ -449,7 +449,10 @@ export function WorkoutScreen({
             workout={journalWorkout}
             initial={profile.value.journals.find((j) => j.workoutId === journalWorkout.id)}
             onClose={() => setJournalWorkout(null)}
-            onSave={(j) => profile.save(upsertJournal(profile.value, j))}
+            onSave={async (j) => {
+              await profile.save(upsertJournal(profile.value, j));
+              setTab('profile');
+            }}
           />
         )}
         <MonthlyCompletion

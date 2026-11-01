@@ -6,7 +6,7 @@ import { LikeButton } from '../../components/LikeButton';
 import { TestPhoto } from '../../components/TestPhoto';
 import { Button } from '../../components/Button';
 import { colors } from '../../theme/tokens';
-export function LikedPostScreen({ post, onClose }: { post: string; onClose: () => void }) {
+export function LikedPostScreen({ post, onClose, onEdit }: { post: string; onClose: () => void; onEdit?: () => void }) {
   const profile = useProfile();
   const sample = __DEV__ && post === 'demo-own:post-1';
   const entry = post.startsWith('own:')
@@ -63,7 +63,8 @@ export function LikedPostScreen({ post, onClose }: { post: string; onClose: () =
               </>
             )}
           </ScrollView>
-          <Button title="알림으로 돌아가기" secondary onPress={onClose} />
+          {entry && onEdit && <Button title="사진 · 글 수정" onPress={onEdit} />}
+          <Button title="닫기" secondary onPress={onClose} />
         </View>
       </SafeAreaView>
     </Modal>
