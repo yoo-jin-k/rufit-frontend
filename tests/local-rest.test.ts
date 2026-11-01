@@ -4,6 +4,7 @@ import {
   addExercise,
   addSet,
   removeSet,
+  removeExercise,
   startWorkout,
   updateSet,
   finishWorkout,
@@ -207,4 +208,18 @@ test('휴식 설정은 선택한 종목에만 적용하고 전체 적용은 기�
   assert.equal(applyRestSettings(a, e, 0, false, 5000).rest, null);
   assert.equal(applyRestSettings(a, other, 30, false, 5000).rest!.endsAt, a.rest!.endsAt);
   for (const invalid of [-1, 3601, NaN, 2.5]) assert.throws(() => applyRestSettings(a, e, invalid, true, 5000));
+});
+
+
+test('종목 제거는 다른 종목과 과거 기록을 유지하고 대상 휴식을 해제합니다', () => {
+  let a = completeWithRest(archive(), 'e', 'e-1', true, 1000);
+  a = remember(a, addExercise(a.current!, 'second', '컬', curl));
+  const before = a.current!;
+  const removed = remember(a, removeExercise(before, 'e'));
+  assert.equal(removed.rest, null);
+  assert.deepEqual(removed.current!.exercises, [before.exercises[1]]);
+  assert.deepEqual(removed.history, a.history);
+  assert.equal(before.exercises.length, 2);
+  assert.throws(() => removeExercise(before, 'unknown'));
+  assert.throws(() => removeExercise({ ...before, finishedAt: 3000 }, 'e'));
 });

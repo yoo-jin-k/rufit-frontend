@@ -16,10 +16,12 @@ export function WorkoutHistory({
   records,
   journals = [],
   onJournal,
+  onSelect,
 }: {
   records: Workout[];
   journals?: Journal[];
   onJournal?: (w: Workout) => void;
+  onSelect?: (w: Workout) => void;
 }) {
   const [detail, setDetail] = useState<Workout | null>(null);
   return (
@@ -32,7 +34,7 @@ export function WorkoutHistory({
               key={w.id}
               accessibilityRole="button"
               accessibilityLabel={`${workoutDate(w)} 운동 기록 보기`}
-              onPress={() => setDetail(w)}
+              onPress={() => onSelect ? onSelect(w) : setDetail(w)}
               style={[ui.card, ui.row]}
             >
               <AppIcon name="workout" />

@@ -10,6 +10,12 @@ export function PreviousSets({ history, target, onClose, onLoad }: {
   history: Workout[]; target: Exercise; onClose(): void; onLoad(source: Exercise, replace: boolean): void;
 }) {
   const [selected, setSelected] = useState<Exercise | null>(null);
+  const [error, setError] = useState('');
+  function load(replace: boolean) {
+    if (!selected) return;
+    try { onLoad(selected, replace); onClose(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : '세트를 불러오지 못했습니다.'); }
+  }
   const records = previousExercises(history, target);
   return <Modal visible animationType="slide" onRequestClose={onClose}>
     <SafeAreaView style={ui.page}>
@@ -21,10 +27,11 @@ export function PreviousSets({ history, target, onClose, onLoad }: {
           {exercise.sets.map((set, index) => <Text key={set.id} style={ui.body}>{index + 1}세트 · {set.weight}kg × {set.reps}회</Text>)}
           <Button title={selected === exercise ? '선택됨' : '이 기록 선택'} secondary onPress={() => setSelected(exercise)} />
         </View>)}
+        {!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}
         {selected && <View style={{ gap: 12 }}>
-          <Button title="기존 세트 뒤에 추가" onPress={() => onLoad(selected, false)} />
+          <Button title="기존 세트 뒤에 추가" onPress={() => load(false)} />
           <Text style={ui.muted}>아래 버튼은 현재 종목의 {target.sets.length}개 세트를 선택한 기록으로 교체합니다.</Text>
-          <Button title="현재 세트를 이 기록으로 교체" secondary onPress={() => onLoad(selected, true)} />
+          <Button title="현재 세트를 이 기록으로 교체" secondary onPress={() => load(true)} />
         </View>}
         <Button title="닫기" secondary onPress={onClose} />
       </ScreenLayout>

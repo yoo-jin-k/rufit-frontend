@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { ui } from '../../components/ScreenLayout';
 import { bodyParts, equipmentLabels, type CatalogExercise } from './catalog';
 import { ExerciseMedia } from './ExerciseMedia';
+import { recommendedRest } from './recommendedRest';
 import { hasExerciseImage } from './images';
 
 export function ExerciseDetail({ exercise, onClose }: { exercise: CatalogExercise; onClose(): void }) {
@@ -20,8 +21,8 @@ export function ExerciseDetail({ exercise, onClose }: { exercise: CatalogExercis
           운동 목록에서 {bodyParts[exercise.bodyPart]} 부위로 분류됩니다.
         </Text>
         <Text style={ui.muted}>다른 이름: {exercise.aliases.join(' · ') || exercise.name}</Text>
-        {exercise.recommendedRestSeconds !== null && (
-          <Text style={ui.body}>기본 세트 간 휴식: {exercise.recommendedRestSeconds}초</Text>
+        {recommendedRest(exercise) !== undefined && (
+          <Text style={ui.body}>기본 세트 간 휴식: {recommendedRest(exercise)}초</Text>
         )}
       </View>
       <Text style={ui.heading}>기록 방법</Text>

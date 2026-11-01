@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
 // JSX 동작은 실제 RNW로 실행합니다. 기기 전용 안전영역과 SVG 도형만 DOM 표현으로 연결합니다.
-export function nativeWebLoader() {
+export function nativeWebLoader(mocks: Record<string, unknown> = {}) {
   const require = createRequire(`${process.cwd()}/package.json`);
   const cache = new Map<string, Record<string, unknown>>();
   function load(path: string): Record<string, unknown> {
@@ -17,7 +17,7 @@ export function nativeWebLoader() {
     });
     new Function('require', 'exports', outputText)(
       (name: string) =>
-        name === 'react-native'
+        Object.hasOwn(mocks, name) ? mocks[name] : name === 'react-native'
           ? require('react-native-web')
           : name === 'react-native-safe-area-context'
             ? { SafeAreaView: require('react-native-web').View }

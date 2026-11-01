@@ -110,3 +110,10 @@ export function updateProfileAvatar(profile: ProfileData, avatar?: string): Prof
   else delete next.avatar;
   return next;
 }
+
+/** 사진 순서와 글을 함께 비교하여 변경 없는 화면에서는 불필요한 확인을 생략합니다. */
+export function journalDraftChanged(initial: Journal | undefined, memo: string, photos: string[]): boolean {
+  const previous = journalPhotos(initial);
+  return memo !== (initial?.memo ?? '') || previous.length !== photos.length
+    || previous.some((photo, index) => photo !== photos[index]);
+}

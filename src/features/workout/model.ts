@@ -197,3 +197,10 @@ export function moveSet(workout: Workout, exerciseId: string, setId: string, tar
   sets.splice(targetIndex, 0, moving);
   return { ...workout, exercises: workout.exercises.map((item) => item.id === exerciseId ? { ...item, sets } : item) };
 }
+
+/** 진행 중인 운동에서 종목을 제거합니다. 다른 종목과 완료한 과거 기록은 수정하지 않습니다. */
+export function removeExercise(workout: Workout, exerciseId: string): Workout {
+  editable(workout);
+  if (!workout.exercises.some((exercise) => exercise.id === exerciseId)) throw new Error('종목을 찾을 수 없습니다.');
+  return { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) };
+}

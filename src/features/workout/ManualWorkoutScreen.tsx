@@ -136,8 +136,8 @@ export function ManualWorkoutScreen({
         {draft.exercises.find((exercise) => exercise.id === loadExerciseId) && (
           <PreviousSets history={history} target={draft.exercises.find((exercise) => exercise.id === loadExerciseId)!}
             onClose={() => setLoadExerciseId(null)} onLoad={(source, replace) => {
-              change((current) => importPreviousSets(current, loadExerciseId!, source, id, replace));
-              setLoadExerciseId(null);
+              setDraft(importPreviousSets(draft, loadExerciseId!, source, id, replace));
+              setError('');
             }} />
         )}
         <ExercisePicker

@@ -58,7 +58,7 @@ export function SettingsScreen({
         ],
       ],
     },
-    { title: '데이터', rows: [['기록 내보내기', '', 'export']] },
+    { title: '데이터', rows: [['운동 기록 내보내기', '', 'export']] },
     {
       title: '이용 안내',
       rows: [
@@ -116,6 +116,7 @@ export function SettingsScreen({
           ))}
         </View>
       ))}
+      <Text style={ui.muted}>내보내기는 완료한 운동 기록만 포함합니다. 사진·프로필·체중·삼대 측정은 포함되지 않습니다.</Text>
       {restEditing && (
         <View style={ui.card}>
           <Text style={ui.heading}>공통 휴식 시간</Text>

@@ -9,7 +9,7 @@ import { AppIcon } from '../../components/AppIcon';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
 import { prepareJournalPhoto } from './prepareJournalPhoto';
-import { journalPhotos, type Journal } from './journalModel';
+import { journalPhotos, journalDraftChanged, type Journal } from './journalModel';
 export function JournalComposer({
   workout,
   initial,
@@ -27,6 +27,13 @@ export function JournalComposer({
     [busy, setBusy] = useState(false),
     [picking, setPicking] = useState(false),
     [photoError, setPhotoError] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  // 작성 중인 글과 사진은 명시적으로 버리기 전까지 유지합니다.
+  function requestClose() {
+    if (busy || picking) return;
+    if (journalDraftChanged(initial, memo, photos)) setConfirmClose(true);
+    else onClose();
+  }
   async function pick(camera: boolean) {
     if (picking || busy || photos.length >= 5) return;
     setPicking(true);
@@ -95,16 +102,12 @@ export function JournalComposer({
     <Modal
       visible
       animationType="slide"
-      onRequestClose={() => {
-        if (!busy) onClose();
-      }}
+      onRequestClose={requestClose}
     >
       <SafeAreaView style={ui.page}>
         <ScreenLayout
           title="오운완 기록"
-          onBack={() => {
-            if (!busy) onClose();
-          }}
+          onBack={requestClose}
           footer={
             <>
               <Button
@@ -116,8 +119,8 @@ export function JournalComposer({
               <Button
                 title={initial ? '수정 취소' : '나중에 작성하기'}
                 secondary
-                disabled={busy}
-                onPress={onClose}
+                disabled={busy || picking}
+                onPress={requestClose}
               />
             </>
           }
@@ -160,7 +163,7 @@ export function JournalComposer({
                     <View style={{ flex: 1 }}><Button title="대표로 설정" secondary disabled={busy || picking || index === 0}
                       accessibilityLabel={`${index + 1}번 사진 대표로 설정`}
                       onPress={() => setPhotos((current) => [current[index], ...current.filter((_, i) => i !== index)])} /></View>
-                    <View style={{ flex: 1 }}><Button title="삭제" secondary disabled={busy || picking || photos.length >= 5}
+                    <View style={{ flex: 1 }}><Button title="삭제" secondary disabled={busy || picking}
                       accessibilityLabel={`${index + 1}번 사진 삭제`}
                       onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))} /></View>
                   </View>
@@ -197,6 +200,16 @@ export function JournalComposer({
           </Text>
 
         </ScreenLayout>
+        <Modal visible={confirmClose} transparent animationType="fade" onRequestClose={() => setConfirmClose(false)}>
+          <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#00000066' }}>
+            <View style={ui.card}>
+              <Text style={ui.heading}>작성 중인 내용을 버릴까요?</Text>
+              <Text style={ui.body}>저장한 운동 기록은 유지되며, 이번에 바꾼 글과 사진만 취소합니다.</Text>
+              <Button title="계속 작성하기" onPress={() => setConfirmClose(false)} />
+              <Button title="변경 내용 버리기" secondary onPress={onClose} />
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </Modal>
   );

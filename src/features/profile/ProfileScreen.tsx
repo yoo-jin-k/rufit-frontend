@@ -9,7 +9,8 @@ import { LikeButton } from '../../components/LikeButton';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
 import { useState } from 'react';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
@@ -50,6 +51,7 @@ export function ProfileScreen({
     setError('');
     setEditing(true);
   }
+  const [choosingWorkout, setChoosingWorkout] = useState(false);
   const [post, setPost] = useState<string | null>(null);
   // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
   const entries = profile.value.journals;
@@ -111,8 +113,7 @@ export function ProfileScreen({
             accessibilityRole="button"
             accessibilityLabel="오운완 기록 추가"
             onPress={() => {
-              const w = history.at(-1);
-              if (w) onJournal(w);
+              if (history.length) setChoosingWorkout(true);
               else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
             }}
             style={{ padding: 10 }}
@@ -255,6 +256,15 @@ export function ProfileScreen({
             }
           />
         )}
+      {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다. */}
+      <Modal visible={choosingWorkout} animationType="slide" onRequestClose={() => setChoosingWorkout(false)}>
+        <SafeAreaView style={ui.page}>
+          <ScreenLayout title="오운완을 남길 운동 선택" onBack={() => setChoosingWorkout(false)}>
+            <Text style={ui.muted}>사진과 글을 남길 운동 날짜를 선택해 주세요. 기존 오운완은 수정할 수 있습니다.</Text>
+            <WorkoutHistory records={history} onSelect={(workout) => { setChoosingWorkout(false); onJournal(workout); }} />
+          </ScreenLayout>
+        </SafeAreaView>
+      </Modal>
       {post && <LikedPostScreen post={post} onClose={() => setPost(null)}
         onEdit={history.some((workout) => `own:${workout.id}` === post) ? () => {
           const workout = history.find((workout) => `own:${workout.id}` === post);

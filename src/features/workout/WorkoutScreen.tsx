@@ -47,6 +47,7 @@ import {
   addExercise,
   addSet,
   removeSet,
+  removeExercise,
   moveSet,
   finishWorkout,
   startWorkout,
@@ -103,6 +104,7 @@ export function WorkoutScreen({
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
 
+  const [removeExerciseId, setRemoveExerciseId] = useState<string | null>(null);
   const [restSettingsId, setRestSettingsId] = useState<string | null>(null);
   const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
@@ -185,6 +187,7 @@ export function WorkoutScreen({
                   </Pressable>
                   <View style={{ backgroundColor: colors.surface, borderRadius: 24 }}><NotificationButton /></View>
                 </View>
+                {!!error && <Text accessibilityRole="alert" style={{ color: '#FFD0D0', lineHeight: 21 }}>{error}</Text>}
               </View>
             )}
             <ScrollView
@@ -283,6 +286,7 @@ export function WorkoutScreen({
                     return (
                       <View style={s.card} key={e.id}>
                         <WorkoutExerciseHeader
+                          onRemove={() => setRemoveExerciseId(e.id)}
                           name={e.name}
                           catalog={catalog}
                           fontScale={window.fontScale}
@@ -342,7 +346,7 @@ export function WorkoutScreen({
                   })}
                 </>
               )}
-              {!!error && (
+              {!!error && (!workout || finished) && (
                 <Text accessibilityRole="alert" style={s.error}>
                   {error}
                 </Text>
@@ -412,6 +416,16 @@ export function WorkoutScreen({
           </View>
         )}
         <BottomNavigation value={tab} onChange={setTab} />
+        <Modal visible={!!removeExerciseId} transparent animationType="fade" onRequestClose={() => setRemoveExerciseId(null)}>
+          <View style={s.confirmBackdrop}><View style={s.card}>
+            <Text style={s.heading}>이 종목을 현재 운동에서 뺄까요?</Text>
+            <Text style={s.muted}>이 종목의 입력 세트가 함께 제거됩니다. 이전에 저장한 운동 기록은 유지됩니다.</Text>
+            <Button title="계속 운동하기" onPress={() => setRemoveExerciseId(null)} />
+            <Button title="현재 운동에서 종목 제거" secondary onPress={() => {
+              act((w) => removeExercise(w, removeExerciseId!)); setRemoveExerciseId(null);
+            }} />
+          </View></View>
+        </Modal>
         {restExercise && <RestTimerSheet key={restExercise.id} name={restExercise.name}
           seconds={restFor(restExercise).seconds} recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
           onClose={() => setRestSettingsId(null)} onApply={(seconds, all) => { applyRest(restExercise, seconds, all); setNow(Date.now()); }} />}
@@ -493,8 +507,7 @@ export function WorkoutScreen({
         {workout?.exercises.find((exercise) => exercise.id === loadExerciseId) && (
           <PreviousSets history={history} target={workout.exercises.find((exercise) => exercise.id === loadExerciseId)!}
             onClose={() => setLoadExerciseId(null)} onLoad={(source, replace) => {
-              act((current) => importPreviousSets(current, loadExerciseId!, source, nextId, replace));
-              setLoadExerciseId(null);
+              change((current) => importPreviousSets(current, loadExerciseId!, source, nextId, replace));
             }} />
         )}
         <ExercisePicker
@@ -511,15 +524,17 @@ export function WorkoutScreen({
 }
 
 function WorkoutExerciseHeader({
-  name,
+  name, onRemove,
 }: {
   name: string;
+  onRemove(): void;
   catalog?: CatalogExercise;
   fontScale: number;
 }) {
   return (
     <View style={s.exerciseHeader}>
-      <Text style={s.heading}>{name}</Text>
+      <Text style={[s.heading, { flex: 1 }]}>{name}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${name} 종목 제거`} onPress={onRemove} style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}><Text style={s.muted}>제거</Text></Pressable>
     </View>
   );
 }
