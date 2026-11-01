@@ -1,3 +1,4 @@
+import { recommendedRest } from '../exercises/recommendedRest.ts';
 import { findCatalogExercise } from '../exercises/catalog.ts';
 import { updateSet, type Exercise } from './model.ts';
 import { remember, type WorkoutArchive } from './storage.ts';
@@ -7,11 +8,11 @@ function preferenceKey(exercise: Exercise) {
     ? `catalog:${exercise.catalogId}`
     : `name:${exercise.name.normalize('NFKC').trim()}`;
 }
-// 개인값(0초 포함)을 먼저 쓰고 종목 추천, 기본90초 순으로 결정합니다.
+// 개인값(0초 포함), 공통 설정, 종목 권장값, 기본 90초 순으로 결정합니다.
 export function exerciseRest(archive: WorkoutArchive, exercise: Exercise) {
   const key = preferenceKey(exercise);
   const personal = Object.hasOwn(archive.personalRest, key) ? archive.personalRest[key] : undefined;
-  const recommended = findCatalogExercise(exercise.catalogId)?.recommendedRestSeconds ?? undefined;
+  const recommended = recommendedRest(findCatalogExercise(exercise.catalogId));
   return {
     seconds: personal ?? archive.personalRest['defaults:rest'] ?? recommended ?? 90,
     source:
@@ -96,4 +97,23 @@ export function completeAllWithRest(archive: WorkoutArchive, exerciseId: string,
   const exercise = archive.current?.exercises.find((item) => item.id === exerciseId);
   if (!exercise?.sets.length) throw new Error('완료할 세트가 없습니다.');
   return exercise.sets.reduce((current, set) => completeWithRest(current, exerciseId, set.id, completed, now), archive);
+}
+
+/** 설정 창에서 선택한 범위에 적용합니다. 실행 중인 대상 휴식은 선택한 시간으로 다시 시작합니다. */
+export function applyRestSettings(archive: WorkoutArchive, exercise: Exercise, seconds: number | null, all: boolean, now: number): WorkoutArchive {
+  if (!Number.isSafeInteger(now)) throw new Error('휴식 시각을 확인해 주세요.');
+  let next = setPersonalRest(archive, exercise, seconds);
+  if (all) {
+    // 모든 종목 적용은 과거 개인 예외도 해제하여 다음에 추가한 종목까지 같은 설정을 사용합니다.
+    next = { ...next, personalRest: seconds === null ? {} : { 'defaults:rest': seconds } };
+  } else if (seconds === null) {
+    // 공통 설정이 있어도 이 종목의 권장값을 명시적으로 선택할 수 있습니다.
+    next = setPersonalRest(next, exercise, recommendedRest(findCatalogExercise(exercise.catalogId)) ?? 90);
+  }
+  if (next.rest && (all || next.rest.exerciseId === exercise.id)) {
+    const target = next.current?.exercises.find((item) => item.id === next.rest?.exerciseId);
+    const duration = target ? exerciseRest(next, target).seconds : 0;
+    next = { ...next, rest: duration ? { ...next.rest, endsAt: now + duration * 1000 } : null };
+  }
+  return next;
 }

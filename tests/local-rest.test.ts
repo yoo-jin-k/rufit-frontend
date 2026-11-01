@@ -17,6 +17,7 @@ import {
   decodeArchive,
 } from '../src/features/workout/storage.ts';
 import {
+  applyRestSettings,
   completeWithRest,
   completeAllWithRest,
   setPersonalRest,
@@ -45,11 +46,11 @@ test('종목별 추천이 다르고 개인 0초를 우선하며 추천 사용으
   assert.equal(exerciseRest(off, { ...e, catalogId: curl }).seconds, 90);
   assert.deepEqual(a.personalRest, {});
 });
-test('추천값이 null인 신규 종목은 공통 기본값을 쓰고 개인 설정을 우선한다', () => {
+test('신규 복합 종목은 분류 기본값을 쓰고 개인 설정을 우선한다', () => {
   const a = archive(),
     e = { ...a.current!.exercises[0], catalogId: incline, name: '바벨 인클라인 벤치 프레스' };
   const initial = exerciseRest(a, e);
-  assert.deepEqual(initial, { seconds: 90, source: '기본', recommended: undefined });
+  assert.deepEqual(initial, { seconds: 120, source: '권장', recommended: 120 });
   const personal = setPersonalRest(a, e, 45);
   assert.equal(exerciseRest(personal, e).seconds, 45);
   assert.deepEqual(exerciseRest(setPersonalRest(personal, e, null), e), initial);
@@ -182,4 +183,28 @@ test('전체 체크는 모든 세트와 연동되고 잘못된 입력이 있으�
   const invalid = remember(original, addSet(original.current!, 'e', 'blank'));
   assert.throws(() => completeAllWithRest(invalid, 'e', true, 1000));
   assert.equal(invalid.current!.exercises[0].sets.some((set) => set.completed), false);
+});
+
+
+test('휴식 설정은 선택한 종목에만 적용하고 전체 적용은 기존 예외도 변경합니다', () => {
+  let a = completeWithRest(archive(), 'e', 'e-1', true, 1000);
+  const e = a.current!.exercises[0];
+  const other = { ...e, id: 'other', catalogId: curl };
+  a = setPersonalRest(a, other, 45);
+  const single = applyRestSettings(a, e, 60, false, 2000);
+  assert.equal(single.rest!.endsAt, 62000);
+  assert.equal(exerciseRest(single, other).seconds, 45);
+  const all = applyRestSettings(single, e, 120, true, 3000);
+  assert.equal(exerciseRest(all, other).seconds, 120);
+  assert.equal(all.rest!.endsAt, 123000);
+  const recommended = applyRestSettings(all, e, null, true, 4000);
+  assert.equal(exerciseRest(recommended, e).seconds, 180);
+  assert.equal(exerciseRest(recommended, other).seconds, 90);
+  assert.equal(recommended.rest!.endsAt, 184000);
+  assert.deepEqual(recommended.current, a.current);
+  assert.deepEqual(recommended.history, a.history);
+  assert.deepEqual(decodeArchive(JSON.stringify(recommended)), recommended);
+  assert.equal(applyRestSettings(a, e, 0, false, 5000).rest, null);
+  assert.equal(applyRestSettings(a, other, 30, false, 5000).rest!.endsAt, a.rest!.endsAt);
+  for (const invalid of [-1, 3601, NaN, 2.5]) assert.throws(() => applyRestSettings(a, e, invalid, true, 5000));
 });

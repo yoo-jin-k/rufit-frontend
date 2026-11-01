@@ -54,14 +54,13 @@ import {
   pauseWorkout,
   resumeWorkout,
   elapsedWorkoutMs,
-  formatWorkoutTime,
   IncompleteSetsError,
   type Workout,
 } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
-import { RestSetting, formatRest } from './RestSetting';
-import { WorkoutTimerCard } from './WorkoutTimerCard';
-import { RestTimerCard } from './RestTimerCard';
+import { formatRest } from './RestSetting';
+import { RestTimerSheet } from './RestTimerSheet';
+import { recommendedRest } from '../exercises/recommendedRest';
 import { restTimerView, workoutViewport } from './timerView';
 import { timerStyles } from './TimerCard.styles';
 import { SetRow } from './SetRow';
@@ -84,7 +83,7 @@ export function WorkoutScreen({
     restFor,
     completeSet,
     completeAllSets,
-    saveRest,
+    applyRest,
     defaultRest,
     saveDefaultRest,
     adjustRest,
@@ -104,6 +103,7 @@ export function WorkoutScreen({
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
 
+  const [restSettingsId, setRestSettingsId] = useState<string | null>(null);
   const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
@@ -145,6 +145,15 @@ export function WorkoutScreen({
       setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
     }
   }
+  // 종료 요청은 상단에서 처리하며 미완료 세트 확인은 스크롤 위치와 무관하게 표시합니다.
+  function requestFinish() {
+    try { completeWorkout(); }
+    catch (e) {
+      if (e instanceof IncompleteSetsError) { setError(''); setConfirmFinish(true); }
+      else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
+    }
+  }
+  const restExercise = workout?.exercises.find((e) => e.id === restSettingsId);
   const finished = workout?.finishedAt !== undefined;
   const total = workout?.exercises.reduce((count, e) => count + e.sets.length, 0) ?? 0;
   const completed =
@@ -157,6 +166,27 @@ export function WorkoutScreen({
       <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {tab === 'workout' ? (
           <>
+            {!!workout && !finished && (
+              <View style={s.activeHeader}>
+                <View style={ui.between}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.headerHint}>운동 기록 중</Text>
+                    <Text style={s.headerTitle}>운동 시간 {Math.floor(elapsedWorkoutMs(workout, now) / 60000)}분</Text>
+                  </View>
+                  <Pressable accessibilityRole="button" onPress={requestFinish} style={s.headerAction}>
+                    <Text style={s.headerTitle}>운동 종료</Text>
+                  </Pressable>
+                </View>
+                <View style={ui.between}>
+                  <Text style={s.headerHint}>{completed} / {total}세트 완료</Text>
+                  <Pressable accessibilityRole="button" style={s.headerAction}
+                    onPress={() => act((w) => w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()))}>
+                    <Text style={s.headerHint}>{workout.pausedAt !== undefined ? '운동 재개' : '일시정지'}</Text>
+                  </Pressable>
+                  <View style={{ backgroundColor: colors.surface, borderRadius: 24 }}><NotificationButton /></View>
+                </View>
+              </View>
+            )}
             <ScrollView
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={[
@@ -164,12 +194,6 @@ export function WorkoutScreen({
                 { paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding },
               ]}
             >
-              {!!workout && !finished && (
-                <View style={ui.between}>
-                  <Text style={s.heading}>운동</Text>
-                  <NotificationButton />
-                </View>
-              )}
               {(!workout || finished) && (
                 <>
                   <View style={{ gap: 6 }}>
@@ -248,37 +272,6 @@ export function WorkoutScreen({
                 </>
               ) : (
                 <>
-                  <View style={s.summary}>
-                    <Text style={s.heading}>{finished ? '오늘도 해냈어요!' : '운동 기록 중'}</Text>
-                    <Text style={s.progress}>
-                      {completed} / {total}세트 완료
-                    </Text>
-                  </View>
-                  <WorkoutTimerCard
-                    phase={
-                      finished ? 'finished' : workout.pausedAt !== undefined ? 'paused' : 'running'
-                    }
-                    elapsedLabel={formatWorkoutTime(elapsedWorkoutMs(workout, now))}
-                    onPause={() => act((w) => pauseWorkout(w, Date.now()))}
-                    onResume={() => act((w) => resumeWorkout(w, Date.now()))}
-                  />
-                  {rest && restView && (
-                    <RestTimerCard
-                      phase={restView.phase}
-                      remainingLabel={formatRest(restView.seconds)}
-                      exerciseName={
-                        workout.exercises.find((e) => e.id === rest.exerciseId)?.name ?? ''
-                      }
-                      canSubtract={restView.canSubtract}
-                      canAdd={restView.canAdd}
-                      stackActions={viewport.stackRestActions}
-                      onAdjust={(seconds) => {
-                        adjustRest(seconds);
-                        setNow(Date.now());
-                      }}
-                      onSkip={skipRest}
-                    />
-                  )}
                   {!workout.exercises.length && (
                     <View style={s.empty}>
                       <Text style={s.heading}>어떤 운동부터 할까요?</Text>
@@ -294,12 +287,10 @@ export function WorkoutScreen({
                           catalog={catalog}
                           fontScale={window.fontScale}
                         />
-                        <RestSetting
-                          name={e.name}
-                          {...restFor(e)}
-                          finished={finished}
-                          onSave={(seconds) => saveRest(e, seconds)}
-                        />
+                        <Pressable accessibilityRole="button" accessibilityLabel={`${e.name} 휴식시간 설정`}
+                          style={{ minHeight: 44, justifyContent: 'center' }} onPress={() => setRestSettingsId(e.id)}>
+                          <Text style={s.muted}>휴식 {formatRest(restFor(e).seconds)} · {restFor(e).source}  ›</Text>
+                        </Pressable>
                         <SetControls
                           allCompleted={e.sets.length > 0 && e.sets.every((set) => set.completed)}
                           onCompleteAll={() => {
@@ -349,32 +340,6 @@ export function WorkoutScreen({
                       </View>
                     );
                   })}
-                  {!finished ? (
-                    <>
-                      {confirmFinish && (
-                        <View style={s.card}>
-                          <Text style={s.heading}>미완료 세트를 제외하고 종료할까요?</Text>
-                          <Button
-                            title="완료한 세트만 저장하고 종료"
-                            onPress={() => {
-                              try {
-                                completeWorkout(true);
-                              } catch (e) {
-                                setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
-                              }
-                            }}
-                          />
-                          <Button
-                            title="계속 운동하기"
-                            secondary
-                            onPress={() => setConfirmFinish(false)}
-                          />
-                        </View>
-                      )}
-                    </>
-                  ) : (
-                    <Button title="새 운동 준비" onPress={() => setWorkout(null)} />
-                  )}
                 </>
               )}
               {!!error && (
@@ -383,31 +348,31 @@ export function WorkoutScreen({
                 </Text>
               )}
             </ScrollView>
-            <View style={ui.dock}>
-              {/* 운동 중에는 종목 추가와 종료를 함께 고정하여 긴 목록에서도 바로 접근할 수 있습니다. */}
-              {workout && !finished && (
-                <Button title="＋ 종목 추가" secondary disabled={!ready} onPress={() => setShowPicker(true)} />
-              )}
-              <Button
-                title={!workout || finished ? '운동 시작하기' : '운동 종료'}
-                disabled={!ready}
-                onPress={() => {
-                  if (!workout || finished) {
-                    setWorkout(startWorkout(nextId(), Date.now()));
-                    setShowPicker(true);
-                    return;
-                  }
-                  try {
-                    completeWorkout();
-                  } catch (e) {
-                    if (e instanceof IncompleteSetsError) {
-                      setError('');
-                      setConfirmFinish(true);
-                    } else setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
-                  }
-                }}
-              />
-            </View>
+            {/* 하단 조작부는 목록 밖에 있어 스크롤해도 같은 위치를 유지합니다. */}
+            {workout && !finished ? <View style={s.activeDock}>
+              <Pressable accessibilityRole="button" accessibilityLabel="종목 추가" disabled={!ready}
+                style={s.addExercise} onPress={() => setShowPicker(true)}><Text style={s.plus}>＋</Text></Pressable>
+              {rest && restView && <View style={s.restBar}>
+                <Pressable accessibilityRole="button" accessibilityLabel="휴식 타이머 설정" style={{ flex: 1, minWidth: 90 }}
+                  onPress={() => setRestSettingsId(rest.exerciseId)}>
+                  <Text style={s.muted}>{restView.phase === 'expired' ? '휴식 완료' : '휴식'}  ⌃</Text>
+                  <Text style={s.restTime}>{formatRest(restView.seconds)}</Text>
+                </Pressable>
+                {([-10, 10] as const).map((seconds) => <Pressable key={seconds} accessibilityRole="button"
+                  accessibilityLabel={`휴식 ${seconds < 0 ? '10초 줄이기' : '10초 늘리기'}`}
+                  disabled={seconds < 0 ? !restView.canSubtract : !restView.canAdd}
+                  style={s.timerAction} onPress={() => { adjustRest(seconds); setNow(Date.now()); }}>
+                  <Text style={s.heading}>{seconds < 0 ? '−' : '+'}</Text><Text style={s.muted}>10초</Text>
+                </Pressable>)}
+                <Pressable accessibilityRole="button" accessibilityLabel="휴식 종료" style={s.timerAction} onPress={skipRest}>
+                  <Text style={{ fontSize: 28, color: '#D64545' }}>×</Text>
+                </Pressable>
+              </View>}
+            </View> : <View style={ui.dock}>
+              <Button title="운동 시작하기" disabled={!ready} onPress={() => {
+                setWorkout(startWorkout(nextId(), Date.now())); setShowPicker(true);
+              }} />
+            </View>}
           </>
         ) : tab === 'analysis' ? (
           <AnalysisScreen
@@ -447,6 +412,19 @@ export function WorkoutScreen({
           </View>
         )}
         <BottomNavigation value={tab} onChange={setTab} />
+        {restExercise && <RestTimerSheet key={restExercise.id} name={restExercise.name}
+          seconds={restFor(restExercise).seconds} recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
+          onClose={() => setRestSettingsId(null)} onApply={(seconds, all) => { applyRest(restExercise, seconds, all); setNow(Date.now()); }} />}
+        <Modal visible={confirmFinish} transparent animationType="fade" onRequestClose={() => setConfirmFinish(false)}>
+          <View style={s.confirmBackdrop}><View style={s.card}>
+            <Text style={s.heading}>미완료 세트를 제외하고 종료할까요?</Text>
+            {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+            <Button title="완료한 세트만 저장하고 종료" onPress={() => {
+              try { completeWorkout(true); } catch (e) { setError(e instanceof Error ? e.message : '다시 시도해 주세요.'); }
+            }} />
+            <Button title="계속 운동하기" secondary onPress={() => setConfirmFinish(false)} />
+          </View></View>
+        </Modal>
         {journalWorkout && (
           <JournalComposer
             workout={journalWorkout}
@@ -547,6 +525,17 @@ function WorkoutExerciseHeader({
 }
 
 const s = StyleSheet.create({
+  activeHeader: { backgroundColor: colors.text, paddingHorizontal: 20, paddingVertical: 10, gap: 2 },
+  headerTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  headerHint: { color: '#E5E5E8', fontSize: 13 },
+  headerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  activeDock: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 8 },
+  addExercise: { width: 52, height: 52, borderRadius: 26, alignSelf: 'flex-end', backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
+  plus: { color: '#FFFFFF', fontSize: 32, lineHeight: 38 },
+  restBar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border },
+  restTime: { fontSize: 32, fontWeight: '700', color: colors.text, fontVariant: ['tabular-nums'] },
+  timerAction: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderRadius: 24 },
+  confirmBackdrop: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#00000066' },
   page: { flex: 1, backgroundColor: colors.background },
   topline: {
     flexDirection: 'row',
