@@ -1,6 +1,6 @@
+import { SetCheckIcon } from './SetCheckIcon';
 import { useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { colors } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import type { WorkoutSet } from './model';
 import { setFieldErrors, stackedSetRow } from './setRowView';
@@ -118,8 +118,8 @@ export function SetRow({
             {dragHandle ? <Pressable accessibilityRole="button"
               accessibilityLabel={`${prefix} ${set.completed ? '완료 취소' : '완료'}`}
               disabled={finished} onPress={complete}
-              style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: set.completed ? colors.primary : colors.border }}>
-              <Text style={{ fontSize: 24, fontWeight: '700', color: colors.onPrimary }}>✓</Text>
+              style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+              <SetCheckIcon checked={set.completed} />
             </Pressable> : <Button
               compact
               title={set.completed || dragHandle ? '✓' : '완료'}

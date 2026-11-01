@@ -1,3 +1,4 @@
+import { SetCheckIcon } from './SetCheckIcon';
 /** +는 마지막 세트를 복제하고 −는 마지막 세트만 제거합니다. 빈 목록에서도 새 세트를 만들 수 있습니다. */
 import { Pressable, Text, View } from 'react-native';
 import { colors } from '../../theme/tokens';
@@ -23,8 +24,8 @@ export function SetControls({ name, count, disabled, onAdd, onRemove, onLoad, al
         accessibilityLabel={`${name} 전체 세트 ${allCompleted ? '완료 취소' : '완료'}`}
         accessibilityState={{ checked: allCompleted, disabled: disabled || !count }}
         aria-checked={allCompleted} disabled={disabled || !count} onPress={onCompleteAll}
-        style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: allCompleted ? colors.primary : colors.border }}>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: colors.onPrimary }}>✓✓</Text>
+        style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+        <SetCheckIcon checked={allCompleted} all />
       </Pressable>}
     </View>
   );
