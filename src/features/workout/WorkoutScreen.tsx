@@ -62,6 +62,7 @@ import {
 } from './model';
 import { useWorkoutArchive } from './useWorkoutArchive';
 import { formatRest } from './RestSetting';
+import { RestTimerDock } from './RestTimerDock';
 import { RestTimerSheet } from './RestTimerSheet';
 import { recommendedRest } from '../exercises/recommendedRest';
 import { restTimerView, workoutViewport } from './timerView';
@@ -94,6 +95,8 @@ export function WorkoutScreen({
     saveDefaultRest,
     adjustRest,
     skipRest,
+    pauseRest,
+    resumeRest,
     ready,
     state,
     unsavedAfterFailure,
@@ -120,7 +123,7 @@ export function WorkoutScreen({
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const viewport = workoutViewport(window.width, insets.left, insets.right, window.fontScale);
-  const restView = rest ? restTimerView(rest.endsAt, now) : null;
+  const restView = rest ? restTimerView(rest.endsAt, rest.pausedAt ?? now) : null;
   // 표시만 주기적으로 갱신합니다. 접기·회전·백그라운드 전환은 운동을 자동 정지하지 않습니다.
   useEffect(() => {
     const refresh = () => setNow(Date.now());
@@ -369,22 +372,11 @@ export function WorkoutScreen({
             {workout && !finished ? <View style={s.activeDock}>
               <Pressable accessibilityRole="button" accessibilityLabel="종목 추가" disabled={!ready}
                 style={s.addExercise} onPress={() => setShowPicker(true)}><Text style={s.plus}>＋</Text></Pressable>
-              {rest && restView && <View style={s.restBar}>
-                <Pressable accessibilityRole="button" accessibilityLabel="휴식 타이머 설정" style={{ flex: 1, minWidth: 90 }}
-                  onPress={() => setRestSettingsId(rest.exerciseId)}>
-                  <Text style={s.muted}>{restView.phase === 'expired' ? '휴식 완료' : '휴식'}  ⌃</Text>
-                  <Text style={s.restTime}>{formatRest(restView.seconds)}</Text>
-                </Pressable>
-                {([-10, 10] as const).map((seconds) => <Pressable key={seconds} accessibilityRole="button"
-                  accessibilityLabel={`휴식 ${seconds < 0 ? '10초 줄이기' : '10초 늘리기'}`}
-                  disabled={seconds < 0 ? !restView.canSubtract : !restView.canAdd}
-                  style={s.timerAction} onPress={() => { adjustRest(seconds); setNow(Date.now()); }}>
-                  <Text style={s.heading}>{seconds < 0 ? '−' : '+'}</Text><Text style={s.muted}>10초</Text>
-                </Pressable>)}
-                <Pressable accessibilityRole="button" accessibilityLabel="휴식 종료" style={s.timerAction} onPress={skipRest}>
-                  <Text style={{ fontSize: 28, color: '#D64545' }}>×</Text>
-                </Pressable>
-              </View>}
+              {rest && restView && <RestTimerDock view={restView} paused={rest.pausedAt !== undefined}
+                onSettings={() => setRestSettingsId(rest.exerciseId)}
+                onTogglePause={() => { if (rest.pausedAt !== undefined) resumeRest(); else pauseRest(); setNow(Date.now()); }}
+                onAdjust={(seconds) => { adjustRest(seconds); setNow(Date.now()); }} onClose={skipRest} />}
+
             </View> : <View style={ui.dock}>
               <Button title="운동 시작하기" disabled={!ready} onPress={() => {
                 setWorkout(startWorkout(nextId(), Date.now())); setShowPicker(true);
@@ -563,9 +555,6 @@ const s = StyleSheet.create({
   activeDock: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 8 },
   addExercise: { width: 52, height: 52, borderRadius: 26, alignSelf: 'flex-end', backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
   plus: { color: '#FFFFFF', fontSize: 32, lineHeight: 38 },
-  restBar: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border },
-  restTime: { fontSize: 32, fontWeight: '700', color: colors.text, fontVariant: ['tabular-nums'] },
-  timerAction: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderRadius: 24 },
   confirmBackdrop: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#00000066' },
   page: { flex: 1, backgroundColor: colors.background },
   topline: {

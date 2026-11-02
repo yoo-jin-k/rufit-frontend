@@ -4,7 +4,7 @@
  */
 import { validDate } from '../strength/model.ts';
 import { finishWorkout, type Workout } from './model.ts';
-export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number };
+export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number; pausedAt?: number };
 export type WorkoutArchive = {
   schemaVersion: 3;
   current: Workout | null;
@@ -108,6 +108,10 @@ export function decodeArchive(raw: string | null): WorkoutArchive {
         typeof rest.setId !== 'string' ||
         !finite(rest.endsAt) ||
         !Number.isSafeInteger(rest.endsAt) ||
+        (rest.pausedAt !== undefined &&
+          (!finite(rest.pausedAt) || !Number.isSafeInteger(rest.pausedAt) ||
+            rest.pausedAt > rest.endsAt ||
+            rest.pausedAt < ((value.current as Workout | null)?.startedAt ?? Infinity))) ||
         !restMatches(rest as LocalRest, value.current as Workout | null)))
   )
     throw new Error('휴식 설정을 읽을 수 없습니다. 기존 데이터는 보존했습니다.');

@@ -15,6 +15,8 @@ import {
   exerciseRest,
   setPersonalRest,
   adjustLocalRest,
+  pauseLocalRest,
+  resumeLocalRest,
 } from './localRest.ts';
 
 // 훅 생명주기와 저장 상태를 연결합니다. 재렌더/창 크기 변경으로 상태 객체를 다시 만들지 않습니다.
@@ -57,6 +59,8 @@ export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.n
       controller.change((current) => setPersonalRest(current, exercise, seconds)),
     adjustRest: (seconds: number) =>
       controller.change((current) => adjustLocalRest(current, seconds, now())),
+    pauseRest: () => controller.change((current) => pauseLocalRest(current, now())),
+    resumeRest: () => controller.change((current) => resumeLocalRest(current, now())),
     skipRest: () => controller.change((current) => ({ ...current, rest: null })),
     state: value.state,
     ready: value.ready,

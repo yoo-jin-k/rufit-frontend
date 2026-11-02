@@ -72,12 +72,13 @@ export function adjustLocalRest(
   if (!archive.rest) return archive;
   if (!Number.isSafeInteger(seconds) || !Number.isSafeInteger(now))
     throw new Error('휴식 시각을 확인해 주세요.');
-  const remaining = Math.max(0, archive.rest.endsAt - now);
+  const anchor = archive.rest.pausedAt ?? now;
+  const remaining = Math.max(0, archive.rest.endsAt - anchor);
   return {
     ...archive,
     rest: {
       ...archive.rest,
-      endsAt: now + Math.min(3600000, Math.max(0, remaining + seconds * 1000)),
+      endsAt: anchor + Math.min(3600000, Math.max(0, remaining + seconds * 1000)),
     },
   };
 }
@@ -113,7 +114,25 @@ export function applyRestSettings(archive: WorkoutArchive, exercise: Exercise, s
   if (next.rest && (all || next.rest.exerciseId === exercise.id)) {
     const target = next.current?.exercises.find((item) => item.id === next.rest?.exerciseId);
     const duration = target ? exerciseRest(next, target).seconds : 0;
-    next = { ...next, rest: duration ? { ...next.rest, endsAt: now + duration * 1000 } : null };
+    const { pausedAt: _pausedAt, ...running } = next.rest;
+    next = { ...next, rest: duration ? { ...running, endsAt: now + duration * 1000 } : null };
   }
   return next;
+}
+
+/** 정지 시각을 저장하므로 앱 재실행 후에도 남은 휴식 시간이 줄어들지 않습니다. */
+export function pauseLocalRest(archive: WorkoutArchive, now: number): WorkoutArchive {
+  const rest = archive.rest;
+  if (!rest || rest.pausedAt !== undefined || rest.endsAt <= now) return archive;
+  if (!Number.isSafeInteger(now) || now < (archive.current?.startedAt ?? Infinity))
+    throw new Error('휴식 시각을 확인해 주세요.');
+  return { ...archive, rest: { ...rest, pausedAt: now } };
+}
+
+/** 재개 시에는 정지 중 경과한 시간을 종료 시각에 더하고 운동 타이머는 변경하지 않습니다. */
+export function resumeLocalRest(archive: WorkoutArchive, now: number): WorkoutArchive {
+  if (archive.rest?.pausedAt === undefined) return archive;
+  const { pausedAt, ...rest } = archive.rest;
+  if (!Number.isSafeInteger(now) || now < pausedAt) throw new Error('휴식 시각을 확인해 주세요.');
+  return { ...archive, rest: { ...rest, endsAt: now + rest.endsAt - pausedAt } };
 }
