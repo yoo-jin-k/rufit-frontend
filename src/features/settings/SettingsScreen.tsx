@@ -7,6 +7,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import type { Workout } from '../workout/model';
 export function SettingsScreen({
+  onServerHistory,
   defaultRest,
   onRest,
   nickname,
@@ -15,6 +16,7 @@ export function SettingsScreen({
   onAuth,
   authLabel,
 }: {
+  onServerHistory?: () => void;
   defaultRest?: number;
   onRest: (value: number | null) => void;
   nickname: string;
@@ -91,6 +93,7 @@ export function SettingsScreen({
         <Text style={ui.muted}>내 정보</Text>
         <AppIcon name="chevron" size={16} />
       </Pressable>
+      {onServerHistory && <Button title="계정의 서버 운동 기록 보기" secondary onPress={onServerHistory} />}
       {groups.map((group) => (
         <View key={group.title} style={{ gap: 10 }}>
           <Text style={ui.muted}>{group.title}</Text>

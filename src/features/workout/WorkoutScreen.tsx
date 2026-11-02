@@ -1,3 +1,5 @@
+import type { RufitSession } from '../../api/session';
+import { ServerHistoryScreen } from './ServerHistoryScreen';
 import { PreviousSets } from './PreviousSets';
 import { importPreviousSets } from './previousSetModel';
 import { SetControls } from './SetControls';
@@ -69,9 +71,11 @@ import { LocalSaveStatus } from './LocalSaveStatus';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen({
+  session = null,
   authLabel = '로그인',
   onOpenAuth,
 }: {
+  session?: RufitSession | null;
   authLabel?: string;
   onOpenAuth?: () => void;
 }) {
@@ -95,6 +99,7 @@ export function WorkoutScreen({
     retry,
     retryPending,
   } = useWorkoutArchive();
+  const [serverHistory, setServerHistory] = useState(false);
   const [tab, setTab] = useState<MainTab>('workout');
   const profile = useProfile();
   const [journalWorkout, setJournalWorkout] = useState<Workout | null>(null);
@@ -395,6 +400,7 @@ export function WorkoutScreen({
           />
         ) : (
           <SettingsScreen
+            onServerHistory={session?.isActive() ? () => setServerHistory(true) : undefined}
             defaultRest={defaultRest}
             onRest={saveDefaultRest}
             nickname={profile.value.nickname}
@@ -426,6 +432,8 @@ export function WorkoutScreen({
             }} />
           </View></View>
         </Modal>
+        {serverHistory && session?.isActive() && <ServerHistoryScreen key={`${session.scope.server}:${session.scope.accountId}`}
+          session={session} onClose={() => setServerHistory(false)} />}
         {restExercise && <RestTimerSheet key={restExercise.id} name={restExercise.name}
           seconds={restFor(restExercise).seconds} recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
           onClose={() => setRestSettingsId(null)} onApply={(seconds, all) => { applyRest(restExercise, seconds, all); setNow(Date.now()); }} />}

@@ -34,6 +34,7 @@ function memoryStore(): SessionStore & { value: StoredSession | null; clears: nu
       this.value = null;
       this.clears++;
     },
+    async load() { return this.value; },
     async hasSavedSession() {
       return this.value !== null;
     },
@@ -621,4 +622,53 @@ test('logout 서버 응답이 제한 시간을 넘으면 로컬 로그아웃을 
     kind: 'signed-out',
     notice: '이 기기에서 로그아웃했어요. 서버 세션 종료는 아직 확인되지 않았어요.',
   });
+});
+
+
+function restoreSetup() {
+  const store = memoryStore();
+  store.value = { schemaVersion: 1, server: 'https://api.example.com', provider: 'GOOGLE',
+    account: tokens.account, sessionId: tokens.sessionId, accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+    refreshToken: tokens.refreshToken, refreshTokenExpiresAt: tokens.refreshTokenExpiresAt };
+  let calls = 0;
+  const api: AuthApi = { server: 'https://api.example.com', refresh: async () => { calls++; return tokens; },
+    startLogin: async () => { throw new Error('복원에서 호출하면 안 됩니다.'); },
+    exchange: async () => { throw new Error('복원에서 호출하면 안 됩니다.'); }, logout: async () => {} };
+  const coordinator = new AuthCoordinator({ api, store, createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) },
+    fetch: async () => new Response(JSON.stringify({ id: tokens.account.id }), { status: 200 }),
+  });
+  return { store, api, coordinator, calls: () => calls };
+}
+test('재실행 시 보안 저장 토큰을 갱신하고 계정 검증 뒤 로그인 상태를 복원합니다', async () => {
+  const setup = restoreSetup();
+  await Promise.all([setup.coordinator.restore(), setup.coordinator.restore()]);
+  assert.equal(setup.calls(), 1);
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.equal(setup.coordinator.getSession()?.scope.accountId, tokens.account.id);
+});
+test('다른 서버·만료·계정 불일치는 로그인 복원을 거부합니다', async () => {
+  for (const field of ['server', 'expiry', 'account']) {
+    const setup = restoreSetup();
+    if (field === 'server') setup.store.value!.server = 'https://other.example.com';
+    if (field === 'expiry') setup.store.value!.refreshTokenExpiresAt = '2000-01-01T00:00:00Z';
+    if (field === 'account') setup.store.value!.account = { ...tokens.account, id: 'different' };
+    await setup.coordinator.restore();
+    assert.equal(setup.coordinator.getSession(), null);
+    assert.equal(setup.coordinator.getState().kind, 'signed-out');
+    assert.equal(setup.store.value, null);
+    if (field !== 'account') assert.equal(setup.calls(), 0);
+  }
+});
+test('로그인 복원을 취소한 뒤 도착한 응답은 세션을 되살리지 않습니다', async () => {
+  const setup = restoreSetup();
+  let complete!: (value: SessionTokens) => void;
+  let started!: () => void;
+  const ready = new Promise<void>((resolve) => { started = resolve; });
+  setup.api.refresh = () => { started(); return new Promise((resolve) => { complete = resolve; }); };
+  const pending = setup.coordinator.restore();
+  await ready;
+  setup.coordinator.cancelLogin(); complete(tokens); await pending;
+  assert.equal(setup.coordinator.getSession(), null);
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
 });

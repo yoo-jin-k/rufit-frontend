@@ -4,7 +4,7 @@ import { WelcomeScreen } from '../features/auth/WelcomeScreen';
  * 앱의 공통 화면과 인증 상태를 연결하는 최상위 구성 요소입니다.
  * 인증 기능의 활성 여부는 실행 환경 설정을 따르며 게스트 운동 화면도 제공합니다.
  */
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthModal } from '../features/auth/AuthModal';
@@ -25,6 +25,7 @@ export default function App() {
     () => (nativeAuthAvailable && baseUrl ? createNativeAuthCoordinator(baseUrl) : null),
     [baseUrl],
   );
+  useEffect(() => { void coordinator?.restore(); }, [coordinator]);
   const status = useSyncExternalStore(
     coordinator?.subscribe ?? subscribeWithoutAuth,
     coordinator?.getState ?? getSignedOutSnapshot,
@@ -42,7 +43,7 @@ export default function App() {
       <StatusBar style="dark" />
       <AppSurface>
         {entered || authLabel === '계정' ? (
-          <WorkoutScreen authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
+          <WorkoutScreen session={coordinator?.getSession() ?? null} authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
         ) : (
           <WelcomeScreen onLogin={() => setShowAuth(true)} onGuest={() => setEntered(true)} />
         )}

@@ -2,6 +2,7 @@
  * 로그인 시도부터 세션 확인, 갱신, 로그아웃까지의 상태 전이를 조율합니다.
  * 화면은 이 조정자의 상태를 구독하며 토큰 저장과 네트워크 요청을 직접 수행하지 않습니다.
  */
+import { decodeStoredSession } from './storedSession.ts';
 import { ApiError } from '../../api/client.ts';
 import { createRufitSession, type RufitSession } from '../../api/session.ts';
 import type { AuthApi } from './authApi.ts';
@@ -104,6 +105,34 @@ export class AuthCoordinator {
     const next = this.storageQueue.catch(() => {}).then(work);
     this.storageQueue = next;
     return next;
+  }
+
+  /** 재실행 시 갱신 토큰을 교환하고 /me까지 확인한 뒤 로그인 상태를 공개합니다. */
+  async restore() {
+    if (this.runtime || this.activeOperation !== null || this.pendingLocalLogout || !this.options.store.load) return;
+    const operation = ++this.epoch;
+    this.activeOperation = operation;
+    try {
+      const stored = await this.options.store.load();
+      const saved = stored === null ? null : decodeStoredSession(JSON.stringify(stored));
+      if (operation !== this.epoch || !saved) return;
+      if (saved.server.replace(/\/$/, '') !== this.options.api.server.replace(/\/$/, '')
+        || Date.parse(saved.refreshTokenExpiresAt) <= Date.now())
+        throw new Error('로그인 정보가 만료되었거나 서버가 변경되었습니다. 다시 로그인해 주세요.');
+      this.publish({ kind: 'signing-in', provider: saved.provider, stage: 'verifying' });
+      const tokens = await this.options.api.refresh(saved.refreshToken);
+      if (operation !== this.epoch) return;
+      if (tokens.account.id !== saved.account.id || tokens.sessionId !== saved.sessionId)
+        throw new Error('복원한 로그인 계정이 일치하지 않습니다. 다시 로그인해 주세요.');
+      await this.accept(tokens, saved.provider, operation);
+    } catch {
+      if (operation !== this.epoch) return;
+      // 교환 응답이 유실되면 이전 토큰을 재사용하지 않고 다시 로그인하도록 안내합니다.
+      await this.serialStore(() => this.options.store.clear()).catch(() => {});
+      if (operation === this.epoch) this.publish({ kind: 'signed-out', notice: '로그인을 복원하지 못했습니다. 다시 로그인해 주세요. 기기 기록은 유지됩니다.' });
+    } finally {
+      if (this.activeOperation === operation) this.activeOperation = null;
+    }
   }
 
   async login(provider: SocialProvider, client: AuthClient, returnUrl: string) {
@@ -268,6 +297,7 @@ export class AuthCoordinator {
   }
 
   async logout() {
+    if (this.activeOperation !== null) this.cancelLogin();
     const current = this.runtime;
     if (!current && this.pendingLocalLogout) {
       try {

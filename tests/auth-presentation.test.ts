@@ -86,7 +86,7 @@ test('로그아웃 확인은 닫힘·세션 교체 reset에서 닫히고 현재 
 test('로그인 계정에도 기기 보관·비동기화·재실행 재로그인 안내를 유지한다', () => {
   assert.match(signedInLocalNotice, /이 기기에 보관/);
   assert.match(signedInLocalNotice, /자동으로 동기화되지 않/);
-  assert.match(restartLoginNotice, /앱을 다시 열면 다시 로그인/);
+  assert.match(restartLoginNotice, /앱을 다시 열면 저장된 로그인을 확인/);
 });
 
 test('하단 inset은 디자인 여백과 중복 합산하지 않고 공식 Google 이름을 그대로 읽는다', () => {
