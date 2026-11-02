@@ -1,3 +1,4 @@
+import { validDate } from '../strength/model.ts';
 import type { WorkoutSnapshot } from '../../api/client.ts';
 import type { RufitSession } from '../../api/session.ts';
 import { isWorkout } from './storage.ts';
@@ -27,6 +28,12 @@ export function serverWorkout(snapshot: WorkoutSnapshot): Workout {
     }
     exercise.sets.push({ id: `${snapshot.id}:set:${index}`, weight: String(set.weight), reps: String(set.reps), completed: true });
   });
+  if (snapshot.recordDate != null || snapshot.entryMode != null) {
+    if (snapshot.entryMode !== 'manual' || !snapshot.recordDate || !validDate(snapshot.recordDate)
+      || workout.startedAt !== workout.finishedAt || workout.pausedDurationMs !== 0)
+      throw new Error('서버 수동 기록의 날짜를 확인하지 못했습니다.');
+    workout.recordDate = snapshot.recordDate; workout.entryMode = 'manual';
+  }
   if (!isWorkout(workout)) throw new Error('서버 운동 기록의 날짜와 세트 값을 확인하지 못했습니다.');
   return workout;
 }

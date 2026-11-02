@@ -93,7 +93,7 @@ export function SettingsScreen({
         <Text style={ui.muted}>내 정보</Text>
         <AppIcon name="chevron" size={16} />
       </Pressable>
-      {onServerHistory && <Button title="계정의 서버 운동 기록 보기" secondary onPress={onServerHistory} />}
+      {onServerHistory && <Button title="계정 기록 동기화" secondary onPress={onServerHistory} />}
       {groups.map((group) => (
         <View key={group.title} style={{ gap: 10 }}>
           <Text style={ui.muted}>{group.title}</Text>

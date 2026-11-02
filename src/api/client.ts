@@ -4,7 +4,13 @@ export type SetInput = {
   weight: number;
   reps: number;
 };
+export type MeasurementKind = 'weight' | 'strength';
+export type ServerMeasurement = { date: string; version: number; weight: number | null; bench: number | null; squat: number | null; deadlift: number | null };
+export type MeasurementEdit = { version: number; weight?: number; bench?: number; squat?: number; deadlift?: number };
+export type OfflineWorkoutImport = { startedAt: string; finishedAt: string; sets: {set: SetInput; completed: boolean}[]; note: string; confirmed: true; pausedDurationMs: number; recordDate?: string; entryMode?: 'manual' };
 export type WorkoutSnapshot = {
+  recordDate?: string | null;
+  entryMode?: 'manual' | null;
   id: string;
   startedAt: string;
   finishedAt: string | null;
@@ -333,6 +339,12 @@ export function createRufitApi(options: Options) {
     active: () => request<WorkoutSnapshot | null>('GET', '/workouts/active'),
     workoutSummary: (id: string) => request<WorkoutSummary>('GET', `${workoutPath(id)}/summary`),
     workout: (id: string) => request<WorkoutSnapshot>('GET', workoutPath(id)),
+    importWorkout: (key: string, body: OfflineWorkoutImport) =>
+      request<{workout: WorkoutSnapshot; importedVersion: number; replayed: boolean}>('POST', '/workouts/import', body, {'Idempotency-Key': key}),
+    measurements: (kind: MeasurementKind, page = 0) =>
+      request<Page<ServerMeasurement>>('GET', `/measurements/${kind}?page=${page}&size=100`),
+    saveMeasurement: (kind: MeasurementKind, date: string, body: MeasurementEdit) =>
+      request<ServerMeasurement>('PUT', `/measurements/${kind}/${segment(date)}`, body),
     history: (page = 0, size = 20) =>
       request<Page<WorkoutSnapshot>>('GET', `/workouts?page=${page}&size=${size}`),
     dailyHistory: (date: string, zone = 'Asia/Seoul', page = 0, size = 20) =>

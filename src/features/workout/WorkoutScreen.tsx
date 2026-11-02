@@ -433,7 +433,7 @@ export function WorkoutScreen({
           </View></View>
         </Modal>
         {serverHistory && session?.isActive() && <ServerHistoryScreen key={`${session.scope.server}:${session.scope.accountId}`}
-          session={session} onClose={() => setServerHistory(false)} />}
+          session={session} history={history} onChanged={() => setNow(Date.now())} onClose={() => setServerHistory(false)} />}
         {restExercise && <RestTimerSheet key={restExercise.id} name={restExercise.name}
           seconds={restFor(restExercise).seconds} recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
           onClose={() => setRestSettingsId(null)} onApply={(seconds, all) => { applyRest(restExercise, seconds, all); setNow(Date.now()); }} />}
