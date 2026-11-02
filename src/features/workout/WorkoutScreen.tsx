@@ -266,7 +266,7 @@ export function WorkoutScreen({
                             ? '오늘 운동을 완료했어요'
                             : '오늘의 운동을 시작해 보세요'}
                         </Text>
-                        <Text style={s.muted}>운동을 시작하고 첫 세트를 기록해 보세요.</Text>
+                        <Text style={s.muted}>{finished ? '저장한 운동은 최근 운동과 프로필에서 확인할 수 있어요.' : '운동을 시작하고 첫 세트를 기록해 보세요.'}</Text>
                       </View>
                     </View>
                   </View>
