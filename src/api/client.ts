@@ -1,3 +1,10 @@
+export type FriendRequest = { id: string; requesterId: string; targetId: string; state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' };
+export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
+export type SocialMembers = { items: { memberId: string; nickname: string }[] };
+/** 검색 허용은 별도의 명시적 저장으로만 변경하며 기기 프로필을 자동 공개하지 않습니다. */
+export type DirectorySettings = { memberId: string | null; nickname: string | null; discoverable: boolean; version: number };
+export type DirectoryEdit = { nickname: string; discoverable: boolean; version: number };
+export type DirectoryResults = { items: { memberId: string; nickname: string }[]; page: number; size: number; hasNext: boolean };
 export type SetInput = {
   exerciseId?: string | null;
   exerciseName: string;
@@ -413,6 +420,19 @@ export function createRufitApi(options: Options) {
       ),
     calendar: (month: string, zone = 'Asia/Seoul') =>
       request<Calendar>('GET', `/workouts/calendar?month=${segment(month)}&zone=${segment(zone)}`),
+    friendRequests: () => request<FriendRequests>('GET', '/social/requests'),
+    sendFriendRequest: (requestId: string, targetId: string) =>
+      request<FriendRequest>('POST', '/social/requests', { requestId, targetId }),
+    respondFriendRequest: (id: string, action: 'ACCEPT' | 'REJECT' | 'CANCEL') =>
+      request<FriendRequest>('POST', `/social/requests/${segment(id)}/respond`, { action }),
+    friends: () => request<SocialMembers>('GET', '/social/friends'),
+    blockedMembers: () => request<SocialMembers>('GET', '/social/blocks'),
+    blockMember: (id: string) => request<null>('POST', `/social/blocks/${segment(id)}`),
+    unblockMember: (id: string) => request<null>('DELETE', `/social/blocks/${segment(id)}`),
+    directorySettings: () => request<DirectorySettings>('GET', '/social/directory/me'),
+    updateDirectory: (edit: DirectoryEdit) => request<DirectorySettings>('PUT', '/social/directory/me', edit),
+    searchDirectory: (query: string, page = 0, size = 20) =>
+      request<DirectoryResults>('GET', `/social/directory/search?q=${segment(query)}&page=${page}&size=${size}`),
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
     createRoutine: (title: string, sets: SetInput[], idempotencyKey?: string) =>
