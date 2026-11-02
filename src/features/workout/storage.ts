@@ -3,7 +3,7 @@
  * 읽기에 실패한 기록을 빈 기록으로 대체하지 않으며, 기존 저장 자료를 보존합니다.
  */
 import { validDate } from '../strength/model.ts';
-import type { Workout } from './model.ts';
+import { finishWorkout, type Workout } from './model.ts';
 export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number };
 export type WorkoutArchive = {
   schemaVersion: 3;
@@ -157,4 +157,13 @@ export function createWorkoutStorage(storage: Storage) {
       return pending;
     },
   };
+}
+
+/** 같은 종료 요청의 재전달은 무시하고, 현재 운동과 이력·휴식을 한 저장본으로 갱신합니다. */
+export function finishArchivedWorkout(
+  archive: WorkoutArchive, workoutId: string, now: number, discardIncomplete = false,
+): WorkoutArchive {
+  const current = archive.current;
+  if (!current || current.id !== workoutId || current.finishedAt !== undefined) return archive;
+  return remember(archive, finishWorkout(current, now, discardIncomplete));
 }

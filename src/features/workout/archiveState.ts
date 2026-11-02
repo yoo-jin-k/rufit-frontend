@@ -141,7 +141,11 @@ export function createArchiveState(storage: ArchivePersistence) {
       };
     },
     change(transform: (archive: WorkoutArchive) => WorkoutArchive) {
-      if (active && snapshot.ready) void save(transform(snapshot.archive));
+      if (active && snapshot.ready) {
+        const next = transform(snapshot.archive);
+        // 완료된 요청의 재전달처럼 변경이 없는 경우에는 저장 중 상태로 되돌리지 않습니다.
+        if (next !== snapshot.archive) void save(next);
+      }
     },
     retry,
   };

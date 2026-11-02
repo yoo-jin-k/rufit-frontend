@@ -22,7 +22,7 @@ import { WorkoutHistory, workoutDate } from './WorkoutHistory';
  * 월간 달성률은 종료 명령 이후 기기 저장이 성공한 경우에만 표시합니다.
  */
 import { MonthlyCompletion } from '../calendar/MonthlyCompletion';
-import { monthlyProgress } from '../calendar/monthlyProgress';
+import { completionMonthFor, monthlyProgress } from '../calendar/monthlyProgress';
 import { localDay } from '../calendar/model';
 import { ManualWorkoutScreen } from './ManualWorkoutScreen';
 import { WorkoutCalendar } from '../calendar/WorkoutCalendar';
@@ -52,7 +52,6 @@ import {
   removeSet,
   removeExercise,
   moveSet,
-  finishWorkout,
   startWorkout,
   updateSet,
   pauseWorkout,
@@ -84,6 +83,7 @@ export function WorkoutScreen({
     workout,
     setWorkout,
     addManualWorkout,
+    finishCurrentWorkout,
     history,
     rest,
     restFor,
@@ -135,8 +135,12 @@ export function WorkoutScreen({
   }, []);
   // 저장 성공 상태에서만 팝업을 표시하며 실패 시 기존 재시도 안내를 유지합니다.
   function completeWorkout(discardIncomplete = false) {
-    change((w) => finishWorkout(w, Date.now(), discardIncomplete));
-    setCompletionMonth(localDay(Date.now()).slice(0, 7));
+    if (!workout || workout.finishedAt !== undefined) return;
+    finishCurrentWorkout(workout.id, discardIncomplete);
+    setCompletionMonth(completionMonthFor(workout));
+    setNow(Date.now());
+    setConfirmFinish(false);
+    setError('');
   }
   function change(fn: (current: Workout) => Workout) {
     setWorkout((current) => {
