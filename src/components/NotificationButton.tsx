@@ -1,3 +1,5 @@
+import { useCheers } from '../features/cheers/useCheers';
+import { receivedCheers } from '../features/cheers/model';
 import { useLikes } from '../features/profile/useLikes';
 import { receivedLikes } from '../features/profile/likeModel';
 import { getTestProfile } from '../features/profile/testSocialData';
@@ -17,6 +19,10 @@ import { testSelf } from '../features/profile/friendTestModel';
 export function NotificationButton() {
   const [open, setOpen] = useState(false);
   const { records, blocks, ready, error } = useTestFriends();
+  const cheers = useCheers();
+  const cheerSocial = useTestFriends();
+  const cheerNotifications = receivedCheers(cheers.data, cheerSocial, testSelf);
+  const cheerUnread = cheerNotifications.filter((c) => !c.read).length;
   const likes = useLikes();
   const profile = useProfile(open);
   const [target, setTarget] = useState<string | null>(null);
@@ -43,12 +49,12 @@ export function NotificationButton() {
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`알림, 받은 친구 신청 ${requests.length}개, 새 좋아요 ${unread}개`}
+        accessibilityLabel={`알림, 받은 친구 신청 ${requests.length}개, 새 좋아요 ${unread}개, 새 응원 ${cheerUnread}개`}
         onPress={() => setOpen(true)}
         style={s.trigger}
       >
         <AppIcon name="bell" color={colors.text} />
-        {(requests.length > 0 || unread > 0) && <View testID="notification-dot" style={s.dot} />}
+        {(requests.length > 0 || unread > 0 || cheerUnread > 0) && <View testID="notification-dot" style={s.dot} />}
       </Pressable>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <SafeAreaView style={s.page}>
@@ -68,9 +74,14 @@ export function NotificationButton() {
                 </Text>
               )}
               {!ready && !error && <Text style={s.muted}>알림을 불러오는 중입니다.</Text>}
-              {ready && likes.ready && !requests.length && !received.length && (
+              {ready && likes.ready && !requests.length && !received.length && !cheerNotifications.length && (
                 <Text style={s.muted}>새로운 알림이 없습니다.</Text>
               )}
+              {cheerNotifications.slice().reverse().map((cheer) => <Pressable key={`${cheer.from}:${cheer.workout}`} accessibilityRole="button" accessibilityLabel="응원 알림 읽음 처리" style={s.likeRow} onPress={() => void cheers.update((d) => ({ ...d, cheers: d.cheers.map((c) => c.from === cheer.from && c.to === cheer.to && c.workout === cheer.workout ? { ...c, read: true } : c) }))}>
+                <TestPhoto tile={getTestProfile(cheer.from)?.avatar ?? 0} size={34} round label="응원한 친구 사진" />
+                <View style={{ flex: 1 }}><Text style={s.body}>{getTestProfile(cheer.from)?.nickname ?? '친구'}님이 운동을 응원했어요.</Text><Text style={s.muted}>로컬 테스트 · {cheer.read ? '읽음' : '눌러서 읽음 처리'}</Text></View>
+                {!cheer.read && <View style={s.unread} />}
+              </Pressable>)}
               {requests.map((r) => (
                 <FriendRow key={r.from} actor={testSelf} other={r.from} notification />
               ))}

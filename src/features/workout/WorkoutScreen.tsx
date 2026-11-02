@@ -1,3 +1,4 @@
+import { WorkoutFriends, useWorkoutPresence } from '../cheers/WorkoutFriends';
 import type { RufitSession } from '../../api/session';
 import { ServerHistoryScreen } from './ServerHistoryScreen';
 import { PreviousSets } from './PreviousSets';
@@ -99,6 +100,7 @@ export function WorkoutScreen({
     retry,
     retryPending,
   } = useWorkoutArchive();
+  useWorkoutPresence(ready && workout && workout.finishedAt === undefined ? workout.id : null, __DEV__ && !session);
   const [serverHistory, setServerHistory] = useState(false);
   const [tab, setTab] = useState<MainTab>('workout');
   const profile = useProfile();
@@ -224,9 +226,11 @@ export function WorkoutScreen({
                     now={now}
                     onAdd={setManualDate}
                   />
+                  <WorkoutFriends enabled={__DEV__ && !session} />
                   <Text style={s.heading}>오늘의 운동</Text>
                 </>
               )}
+              {!!workout && !finished && <WorkoutFriends workout={workout.id} enabled={__DEV__ && !session} />}
               <LocalSaveStatus
                 state={state}
                 ready={ready}
