@@ -8,7 +8,9 @@ import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { RufitSession } from '../../api/session';
+import { ServerFriendsScreen } from './ServerFriendsScreen';
 import { Image, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
@@ -26,14 +28,17 @@ export function ProfileScreen({
   history,
   profile,
   onJournal,
+  session = null,
 }: {
+  session?: RufitSession | null;
   now: number;
   history: Workout[];
   profile: ReturnType<typeof useProfile>;
   onJournal: (workout: Workout) => void;
 }) {
   const social = useTestFriends();
-  const friendCount = countTestFriends(social.records, testSelf);
+  const [serverCount, setServerCount] = useState<number | null>(null);
+  const friendCount = session ? (serverCount ?? '확인 중') : countTestFriends(social.records, testSelf);
   const [tab, setTab] = useState('오운완'),
     [editing, setEditing] = useState(false),
     [name, setName] = useState(profile.value.nickname),
@@ -41,6 +46,14 @@ export function ProfileScreen({
     [gym, setGym] = useState(profile.value.gym ?? ''),
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
+  useEffect(() => {
+    let current = true;
+    if (session) void session.api.directorySettings().then(async settings => {
+      const count = settings.memberId ? (await session.api.friends()).items.length : 0;
+      if (current && session.isActive()) setServerCount(count);
+    }).catch(() => { if (current) setError('친구 수를 불러오지 못했습니다. 친구 목록에서 다시 확인해 주세요.'); });
+    return () => { current = false; };
+  }, [session, friends]);
   const [avatar, setAvatar] = useState(profile.value.avatar);
   const [photoBusy, setPhotoBusy] = useState(false);
   function openEditor() {
@@ -55,7 +68,7 @@ export function ProfileScreen({
   const [post, setPost] = useState<string | null>(null);
   // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
   const entries = profile.value.journals;
-  if (friends) return <FriendsScreen onClose={() => setFriends(false)} />;
+  if (friends) return session ? <ServerFriendsScreen key={session.scope.accountId} session={session} nickname={profile.value.nickname} onClose={() => setFriends(false)} /> : <FriendsScreen onClose={() => setFriends(false)} />;
   if (editing)
     return (
       <ScreenLayout title="프로필 편집" onBack={() => { if (!photoBusy && !profile.busy) setEditing(false); }}>

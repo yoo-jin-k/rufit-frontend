@@ -393,6 +393,8 @@ export function WorkoutScreen({
           />
         ) : tab === 'profile' ? (
           <ProfileScreen
+            key={session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}
+            session={session}
             now={now}
             history={history}
             profile={profile}

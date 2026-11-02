@@ -1,4 +1,4 @@
-export type FriendRequest = { id: string; requesterId: string; targetId: string; state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' };
+export type FriendRequest = { id: string; requesterId: string; targetId: string; requesterNickname: string; targetNickname: string; state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' };
 export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
 export type SocialMembers = { items: { memberId: string; nickname: string }[] };
 /** 검색 허용은 별도의 명시적 저장으로만 변경하며 기기 프로필을 자동 공개하지 않습니다. */
