@@ -59,11 +59,11 @@ export function JournalComposer({
         : await ImagePicker.launchImageLibraryAsync(options);
       if (!result.canceled) {
         if (result.assets.length > 5 - photos.length)
-          throw new Error(`あと${5 - photos.length}枚まで追加できます。写真を選び直して下さい。`);
-        // 変換がすべて成功してから追加し、途中失敗時も既存写真を維持します。
+          throw new Error(`사진은 ${5 - photos.length}장 더 추가할 수 있습니다. 다시 선택해 주세요.`);
+        // 모든 사진 변환이 성공한 뒤 추가하여 실패 시에도 기존 사진을 보존합니다.
         const added: string[] = [];
         for (const asset of result.assets) {
-          if (!asset.base64) throw new Error('写真を読み取れませんでした。別の写真を選んでください。');
+          if (!asset.base64) throw new Error('사진을 읽을 수 없습니다. 다른 사진을 선택해 주세요.');
           added.push(await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg'));
         }
         setPhotos((current) => [...current, ...added]);
@@ -149,6 +149,13 @@ export function JournalComposer({
             placeholder="오늘 운동은 어땠나요? 사진과 함께 남길 글을 적어 주세요."
             style={[ui.input, { minHeight: 100, textAlignVertical: 'top' }]}
           />
+          {photoError && (
+            <View style={ui.card}>
+              <Text style={ui.muted}>불러오지 못한 사진은 추가되지 않았습니다. 기존 사진과 글은 유지됩니다.</Text>
+              <Button title="실패한 사진 추가 건너뛰기" secondary disabled={busy || picking}
+                onPress={() => { setPhotoError(false); setError(''); }} />
+            </View>
+          )}
           <View style={ui.between}>
             <Text style={ui.heading}>사진</Text>
             <Text style={ui.muted}>{picking ? '사진을 처리하고 있습니다' : photos.length ? `${photos.length}/5장 · 저장 버튼을 눌러 주세요` : '사진 미첨부 · 선택 사항'}</Text>
