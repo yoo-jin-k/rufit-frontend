@@ -14,11 +14,14 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
   });
   const { ServerFriendsScreen } = load('src/features/profile/ServerFriendsScreen.tsx') as { ServerFriendsScreen: ComponentType<Record<string, unknown>> };
   const root = createRoot(document.getElementById('root')!);
-  let accepted = false, updates = 0;
+  let accepted = false, updates = 0, blocked = false, blockCalls = 0;
   const api = {
     directorySettings: async () => ({ memberId: 'me', nickname: '테스트 회원', discoverable: false, version: 1 }),
+    blockedMembers: async () => ({ items: blocked ? [{ memberId: 'friend', nickname: '운동 친구' }] : [] }),
+    blockMember: async (id: string) => { assert.equal(id, 'friend'); blockCalls++; blocked = true; accepted = false; },
+    unblockMember: async () => { blocked = false; },
     friends: async () => ({ items: accepted ? [{ memberId: 'friend', nickname: '운동 친구' }] : [] }),
-    friendRequests: async () => ({ incoming: accepted ? [] : [{ id: 'request', requesterId: 'friend', targetId: 'me', requesterNickname: '운동 친구', targetNickname: '테스트 회원', state: 'PENDING' }], outgoing: [] }),
+    friendRequests: async () => ({ incoming: accepted || blocked ? [] : [{ id: 'request', requesterId: 'friend', targetId: 'me', requesterNickname: '운동 친구', targetNickname: '테스트 회원', state: 'PENDING' }], outgoing: [] }),
     respondFriendRequest: async (id: string, action: string) => { assert.equal(id, 'request'); assert.equal(action, 'ACCEPT'); accepted = true; },
     updateDirectory: async () => { updates++; },
   };
@@ -31,5 +34,19 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
     await act(async () => accept.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
     assert.match(document.body.textContent!, /받은 신청 · 0/);
     assert.match(document.body.textContent!, /친구 · 1/);
+    const click = async (label: string) => {
+      const element = document.querySelector(`[aria-label="${label}"]`); assert.ok(element, label);
+      await act(async () => element.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    };
+    await click('운동 친구 더보기');
+    assert.equal(blockCalls, 0, '더보기만 눌러서는 차단하지 않습니다.');
+    assert.match(document.body.textContent!, /차단을 해제해도 친구 관계는 복구되지 않습니다/);
+    await click('차단하기');
+    assert.equal(blockCalls, 1);
+    assert.match(document.body.textContent!, /친구 · 0/);
+    await click('차단 목록 · 1');
+    await click('차단 해제');
+    assert.match(document.body.textContent!, /차단 목록 접기/);
+    assert.match(document.body.textContent!, /친구 · 0/);
   } finally { await act(async () => root.unmount()); dom.window.close(); }
 });
