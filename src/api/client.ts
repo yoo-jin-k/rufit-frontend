@@ -1,3 +1,4 @@
+export type ServerNotification = { id: string; type: 'FRIEND_REQUEST' | 'FRIEND_ACCEPTED'; actorId: string; actorNickname: string; requestId: string; createdAt: string; read: boolean };
 export type ReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE' | 'OTHER';
 export type MemberProfile = { memberId: string; nickname: string; relationship: 'SELF' | 'FRIEND' | 'INCOMING' | 'OUTGOING' | 'NONE' };
 export type FriendRequest = { id: string; requesterId: string; targetId: string; requesterNickname: string; targetNickname: string; state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' };
@@ -430,6 +431,8 @@ export function createRufitApi(options: Options) {
     removeFriend: (id: string) => request<null>('DELETE', `/social/friends/${segment(id)}`),
     memberProfile: (id: string) => request<MemberProfile>('GET', `/social/members/${segment(id)}`),
     reportMember: (requestId: string, targetId: string, reason: ReportReason) => request<{ id: string; status: 'RECEIVED' }>('POST', '/social/reports', { requestId, targetId, reason }),
+    notifications: (before?: string) => request<{ items: ServerNotification[]; unreadCount: number; hasNext: boolean }>('GET', `/social/notifications${before ? `?before=${encodeURIComponent(before)}` : ''}`),
+    readNotification: (id: string) => request<void>('POST', `/social/notifications/${segment(id)}/read`),
     friends: () => request<SocialMembers>('GET', '/social/friends'),
     blockedMembers: () => request<SocialMembers>('GET', '/social/blocks'),
     blockMember: (id: string) => request<null>('POST', `/social/blocks/${segment(id)}`),

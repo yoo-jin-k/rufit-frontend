@@ -1,3 +1,4 @@
+import { NotificationProvider } from '../features/notifications/NotificationProvider';
 import { AppSurface } from '../components/AppSurface';
 import { WelcomeScreen } from '../features/auth/WelcomeScreen';
 /**
@@ -41,6 +42,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <NotificationProvider session={coordinator?.getSession() ?? null} accountMode={authLabel === '계정'}>
       <AppSurface>
         {entered || authLabel === '계정' ? (
           <WorkoutScreen session={coordinator?.getSession() ?? null} authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
@@ -56,6 +58,7 @@ export default function App() {
           demo={demo}
         />
       </AppSurface>
+      </NotificationProvider>
     </SafeAreaProvider>
   );
 }

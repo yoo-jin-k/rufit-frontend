@@ -1,3 +1,5 @@
+import { useServerNotifications } from '../features/notifications/NotificationProvider';
+import { ServerNotificationButton } from '../features/notifications/ServerNotificationButton';
 import { useCheers } from '../features/cheers/useCheers';
 import { receivedCheers } from '../features/cheers/model';
 import { useLikes } from '../features/profile/useLikes';
@@ -17,6 +19,10 @@ import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
 import { testSelf } from '../features/profile/friendTestModel';
 export function NotificationButton() {
+  const inbox = useServerNotifications();
+  return inbox?.accountMode ? <ServerNotificationButton /> : <LocalNotificationButton />;
+}
+function LocalNotificationButton() {
   const [open, setOpen] = useState(false);
   const { records, blocks, ready, error } = useTestFriends();
   const cheers = useCheers();

@@ -8,8 +8,8 @@ import { Button } from '../../components/Button';
 import { ServerMemberActions } from './ServerMemberActions';
 
 /** 계정 친구는 서버 응답으로만 표시하며 검색 노출은 사용자가 명시적으로 저장합니다. */
-export function ServerFriendsScreen({ session, nickname, onClose }: {
-  session: RufitSession; nickname: string; onClose: () => void;
+export function ServerFriendsScreen({ session, nickname, onClose, initialMemberId }: {
+  session: RufitSession; nickname: string; onClose: () => void; initialMemberId?: string;
 }) {
   const [profile, setProfile] = useState<MemberProfile | null>(null);
   const [directory, setDirectory] = useState<DirectorySettings | null>(null);
@@ -46,13 +46,17 @@ export function ServerFriendsScreen({ session, nickname, onClose }: {
     locked.current = true;
     // refresh는 서버 응답을 기다린 뒤 상태를 갱신하며 동기 상태 변경은 하지 않습니다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh().then(settings => {
+    void refresh().then(async settings => {
       if (settings && active()) { setName(settings.nickname ?? nickname); setVisible(settings.discoverable); }
+      if (initialMemberId) {
+        const member = await session.api.memberProfile(initialMemberId);
+        if (active()) setProfile(member);
+      }
     }).catch(cause => {
       if (active()) setError(cause instanceof Error ? cause.message : '친구 목록을 불러오지 못했습니다.');
     }).finally(() => { locked.current = false; if (active()) setBusy(false); });
     return () => { alive.current = false; };
-  }, [refresh, active, nickname]);
+  }, [refresh, active, nickname, initialMemberId, session]);
   async function search(nextPage = 0) {
     const term = nextPage ? searchTerm : query.trim();
     await run(async () => {
@@ -85,7 +89,7 @@ export function ServerFriendsScreen({ session, nickname, onClose }: {
       const value = await session.api.memberProfile(id); if (active()) setProfile(value);
     })}><Text style={ui.heading}>{label}</Text></Pressable>;
   }
-  if (profile) return <ScreenLayout title="친구 프로필" onBack={() => setProfile(null)}>
+  if (profile) return <ScreenLayout title="친구 프로필" onBack={() => initialMemberId ? onClose() : setProfile(null)}>
     {!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}
     <View style={ui.card}><Text style={ui.heading}>{profile.nickname}</Text>
       <Text style={ui.body}>{{SELF:'내 프로필', FRIEND:'친구', INCOMING:'받은 친구 신청', OUTGOING:'보낸 친구 신청', NONE:'아직 친구가 아닙니다'}[profile.relationship]}</Text>

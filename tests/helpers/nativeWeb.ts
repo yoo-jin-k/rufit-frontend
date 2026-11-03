@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -17,7 +18,8 @@ export function nativeWebLoader(mocks: Record<string, unknown> = {}) {
     });
     new Function('require', 'exports', outputText)(
       (name: string) =>
-        Object.hasOwn(mocks, name) ? mocks[name] : name === 'react-native'
+        Object.hasOwn(mocks, name) ? mocks[name] : name === 'expo-crypto'
+          ? { randomUUID } : name === 'react-native'
           ? require('react-native-web')
           : name === 'react-native-safe-area-context'
             ? { SafeAreaView: require('react-native-web').View }
