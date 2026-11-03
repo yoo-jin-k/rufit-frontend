@@ -8,7 +8,7 @@
 | 시스템 브라우저 + PKCE handoff | 구현 |
 | `/me` 확인 후 SecureStore 저장 | 구현 |
 | refresh 단일 실행·logout | 구현 |
-| 웹 로그인 | 제공하지 않음(게스트 기록만 지원) |
+| 웹 로그인 | 명시적으로 활성화한 로컬 웹에서 카카오 검증 지원. 운영 웹은 미지원 |
 | 카카오·Google 실계정 로그인 | 공급자 앱 등록 후 검증 필요 |
 | 앱 재시작 시 자동 복원 | SecureStore → 갱신 → 계정 검증 후 복원 구현, 실기기 검증 대기 |
 | 로그인한 계정의 서버 운동 기록 | 설정에서 조회·새로고침·페이지 추가 구현 |
@@ -75,3 +75,10 @@ RUFIT_AUTH_INTEGRATION_URL=http://127.0.0.1:8096 npm run auth:integrate:backend
 - 사용자께서는 개발자 앱을 등록했다고 답하셨으나 제공자와 설정 위치를 확인 중입니다. 저장소에서는 실제 설정 파일을 발견하지 못했습니다. 비밀값은 채팅이나 Git에 기록하지 않습니다.
 
 채팅 배치는 상단 메시지 아이콘 안을 선택한 것으로 기록하며, 이번 인증/기록 조회 변경에서 채팅 UI나 서버를 추가하지 않습니다.
+
+## 2026-11-04 로컬 웹 카카오 검증
+- EXPO_PUBLIC_RUFIT_WEB_LOGIN_ENABLED=true와 localhost 또는 127.0.0.1에서만 웹 로그인을 활성화합니다. 제공자 활성화 및 HTTPS API 주소 설정도 필요합니다.
+- 서버는 RUFIT_WEB_LOGIN_ENABLED=true, RUFIT_WEB_LOGIN_RETURN_URI=http://localhost:8100/auth/callback.html, RUFIT_ALLOWED_ORIGINS=http://localhost:8100을 사용합니다. 카카오 콘솔의 HTTPS callback 주소는 기존과 동일합니다.
+- 클릭 시 팝업을 먼저 열고 서버 로그인 시도를 만든 후 제공자 화면으로 이동합니다. 부모 창은 동일 출처의 정확한 callback 경로만 읽으며, 기존 조정자가 attemptId/PKCE를 검증합니다.
+- access token은 메모리에, 갱신 정보는 sessionStorage에만 저장합니다. 탭 내 새로고침 복원용이며 운영 웹 장기 로그인은 지원하지 않습니다. 탭 복제는 브라우저의 sessionStorage 복사 동작에 따라 갱신 충돌이 발생할 수 있으므로 시험은 한 탭에서 진행합니다.
+- 취소/팝업 차단/잘못된 복귀 주소/손상된 저장 정보/로그아웃 시 기록 보존을 검증합니다. 실제 계정 로그인 동의와 서버 교환 성공은 별도 수동 검증이 필요합니다.

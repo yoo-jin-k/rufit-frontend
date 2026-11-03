@@ -21,6 +21,7 @@ type BrowserResult =
   | { type: 'cancel' | 'dismiss' | 'locked' | 'opened' }
   | { type: 'error'; url?: string };
 type Browser = {
+  prepare?(): void;
   open(url: string, returnUrl: string): Promise<BrowserResult>;
   close?(): Promise<void> | void;
 };
@@ -143,6 +144,7 @@ export class AuthCoordinator {
     this.activeOperation = operation;
     this.publish({ kind: 'signing-in', provider, stage: 'opening' });
     try {
+      this.options.browser.prepare?.();
       const pkce = await this.options.createPkce();
       if (operation !== this.epoch) return;
       const attempt = await this.options.api.startLogin(provider, client, pkce.challenge);
@@ -189,7 +191,10 @@ export class AuthCoordinator {
           provider,
         });
     } finally {
-      if (this.activeOperation === operation) this.activeOperation = null;
+      if (this.activeOperation === operation) {
+        this.activeOperation = null;
+        await this.options.browser.close?.();
+      }
     }
   }
 

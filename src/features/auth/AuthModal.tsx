@@ -154,7 +154,7 @@ export function AuthModal({
             onPress={closeToWorkout}
           />
           <Image source={logo} resizeMode="contain" style={s.logo} accessibilityLabel="루핏" />
-          {Platform.OS === 'web' ? (
+          {Platform.OS === 'web' && !coordinator ? (
             <>
               <Text style={s.title}>로그인은 모바일 앱에서 이용할 수 있어요.</Text>
               <Text style={s.body}>웹에서는 로그인 없이 운동을 기록할 수 있어요.</Text>
@@ -178,7 +178,7 @@ export function AuthModal({
                 </View>
               )}
               <Text style={s.localNotice}>{signedInLocalNotice}</Text>
-              <Text style={s.localNotice}>{restartLoginNotice}</Text>
+              <Text style={s.localNotice}>{Platform.OS === 'web' ? '로컬 웹 시험용 로그인입니다. 새로고침하면 복원하며, 탭을 닫으면 종료됩니다.' : restartLoginNotice}</Text>
               {confirmLogout ? (
                 <View style={s.card}>
                   <Text style={s.heading}>로그아웃할까요?</Text>

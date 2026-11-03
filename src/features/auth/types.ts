@@ -1,5 +1,5 @@
 export type SocialProvider = 'KAKAO' | 'GOOGLE';
-export type AuthClient = 'IOS' | 'ANDROID';
+export type AuthClient = 'IOS' | 'ANDROID' | 'WEB';
 
 export type LoginAttempt = {
   attemptId: string;

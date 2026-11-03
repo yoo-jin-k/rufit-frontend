@@ -161,7 +161,7 @@ export function createAuthApi(options: Options) {
         await post('/login-attempts', {
           provider,
           client,
-          returnRoute: 'APP_LOGIN',
+          returnRoute: client === 'WEB' ? 'WEB_LOGIN' : 'APP_LOGIN',
           codeChallenge,
           codeChallengeMethod: 'S256',
         }),
