@@ -25,3 +25,17 @@ export function completedWorkoutSummary(workout: Workout) {
     exercises: `${exercises.length}개 | ${exercises[0]?.name ?? '운동'}${exercises.length > 1 ? ` 외 ${exercises.length - 1}개` : ''}`,
   };
 }
+
+/** 저장 횟수와 관계없이 하루 전체를 요약합니다. 원본 기록은 합치거나 수정하지 않습니다. */
+export function dailyWorkoutSummary(records: Workout[]) {
+  const exercises = new Map<string, Workout['exercises'][number]>();
+  for (const record of records) for (const exercise of record.exercises) {
+    const key = exercise.catalogId ?? exercise.name.normalize('NFKC').trim();
+    const previous = exercises.get(key);
+    exercises.set(key, { ...exercise, sets: [...(previous?.sets ?? []), ...exercise.sets] });
+  }
+  const measured = records.filter(record => record.entryMode !== 'manual');
+  const durationMs = measured.reduce((total, record) => total + elapsedWorkoutMs(record, record.finishedAt ?? record.startedAt), 0);
+  const summary = completedWorkoutSummary({ id: 'daily-summary', startedAt: 0, finishedAt: durationMs, exercises: [...exercises.values()] });
+  return { ...summary, duration: measured.length === 0 ? '시간 미측정' : `${summary.duration}${measured.length < records.length ? ' · 일부 시간 미측정' : ''}` };
+}

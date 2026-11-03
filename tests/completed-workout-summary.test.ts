@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { completedWorkoutsOnDay, completedWorkoutSummary } from '../src/features/workout/completedWorkoutSummary.ts';
+import { completedWorkoutsOnDay, completedWorkoutSummary, dailyWorkoutSummary } from '../src/features/workout/completedWorkoutSummary.ts';
 import type { Workout } from '../src/features/workout/model.ts';
 const now = new Date(2026, 10, 3, 13).getTime();
 const workout: Workout = {
@@ -28,4 +28,12 @@ test('수동 입력은 측정하지 않은 시간을 표시하고 한 종목에�
   const summary = completedWorkoutSummary({ ...workout, entryMode: 'manual', exercises: [workout.exercises[0]] });
   assert.equal(summary.duration, '시간 미측정');
   assert.equal(summary.exercises, '1개 | 스쿼트');
+});
+
+test('같은 날 여러 번 저장해도 하루 합계 한 개로 요약하고 동일 종목은 중복 집계하지 않습니다', () => {
+  const second = { ...workout, id: 'second' };
+  const original = JSON.stringify([workout, second]);
+  assert.deepEqual(dailyWorkoutSummary([workout, second]), { duration: '4분', volume: '1,120', parts: '하체, 가슴', exercises: '2개 | 스쿼트 외 1개' });
+  assert.equal(JSON.stringify([workout, second]), original);
+  assert.equal(dailyWorkoutSummary([workout, { ...second, entryMode: 'manual' }]).duration, '2분 · 일부 시간 미측정');
 });

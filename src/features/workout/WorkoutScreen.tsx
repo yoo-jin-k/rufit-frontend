@@ -1,4 +1,4 @@
-import { completedWorkoutsOnDay } from './completedWorkoutSummary';
+import { TodayWorkoutCard } from './TodayWorkoutCard';
 import { WorkoutFriends, useWorkoutPresence } from '../cheers/WorkoutFriends';
 import type { RufitSession } from '../../api/session';
 import { ServerHistoryScreen } from './ServerHistoryScreen';
@@ -247,15 +247,7 @@ export function WorkoutScreen({
               />
               {!ready ? null : !workout || finished ? (
                 <>
-                  {completedWorkoutsOnDay(history, now).length ? (
-                    <WorkoutHistory records={completedWorkoutsOnDay(history, now)} sessionCards
-                      journals={profile.value.journals} onJournal={setJournalWorkout} />
-                  ) : (
-                    <View style={ui.card}>
-                      <Text style={s.heading}>오늘의 운동을 시작해 보세요</Text>
-                      <Text style={s.muted}>운동을 완료하고 저장하면 이곳에 표시됩니다.</Text>
-                    </View>
-                  )}
+                  <TodayWorkoutCard history={history} now={now} journals={profile.value.journals} onJournal={setJournalWorkout} />
                   <View style={ui.between}>
                     <Text style={s.heading}>최근 운동</Text>
                     <Pressable
