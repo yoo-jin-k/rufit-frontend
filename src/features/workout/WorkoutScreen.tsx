@@ -1,3 +1,4 @@
+import { completedWorkoutsOnDay } from './completedWorkoutSummary';
 import { WorkoutFriends, useWorkoutPresence } from '../cheers/WorkoutFriends';
 import type { RufitSession } from '../../api/session';
 import { ServerHistoryScreen } from './ServerHistoryScreen';
@@ -23,7 +24,6 @@ import { WorkoutHistory, workoutDate } from './WorkoutHistory';
  */
 import { MonthlyCompletion } from '../calendar/MonthlyCompletion';
 import { completionMonthFor, monthlyProgress } from '../calendar/monthlyProgress';
-import { localDay } from '../calendar/model';
 import { ManualWorkoutScreen } from './ManualWorkoutScreen';
 import { WorkoutCalendar } from '../calendar/WorkoutCalendar';
 import { BodyWeightScreen } from '../bodyweight/BodyWeightScreen';
@@ -247,29 +247,15 @@ export function WorkoutScreen({
               />
               {!ready ? null : !workout || finished ? (
                 <>
-                  <View
-                    style={[
-                      ui.card,
-                      {
-                        borderWidth: 1,
-                        borderStyle: 'dashed',
-                        borderColor: colors.border,
-                        backgroundColor: colors.surface,
-                      },
-                    ]}
-                  >
-                    <View style={ui.row}>
-                      <AppIcon name="workout" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.heading}>
-                          {history.some((record) => workoutDate(record) === localDay(now))
-                            ? '오늘 운동을 완료했어요'
-                            : '오늘의 운동을 시작해 보세요'}
-                        </Text>
-                        <Text style={s.muted}>{finished ? '저장한 운동은 최근 운동과 프로필에서 확인할 수 있어요.' : '운동을 시작하고 첫 세트를 기록해 보세요.'}</Text>
-                      </View>
+                  {completedWorkoutsOnDay(history, now).length ? (
+                    <WorkoutHistory records={completedWorkoutsOnDay(history, now)} sessionCards
+                      journals={profile.value.journals} onJournal={setJournalWorkout} />
+                  ) : (
+                    <View style={ui.card}>
+                      <Text style={s.heading}>오늘의 운동을 시작해 보세요</Text>
+                      <Text style={s.muted}>운동을 완료하고 저장하면 이곳에 표시됩니다.</Text>
                     </View>
-                  </View>
+                  )}
                   <View style={ui.between}>
                     <Text style={s.heading}>최근 운동</Text>
                     <Pressable

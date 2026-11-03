@@ -1,3 +1,4 @@
+import { completedWorkoutSummary } from './completedWorkoutSummary';
 import { LikeButton } from '../../components/LikeButton';
 import type { Journal } from '../profile/journalModel';
 import { Button } from '../../components/Button';
@@ -17,7 +18,9 @@ export function WorkoutHistory({
   journals = [],
   onJournal,
   onSelect,
+  sessionCards = false,
 }: {
+  sessionCards?: boolean;
   records: Workout[];
   journals?: Journal[];
   onJournal?: (w: Workout) => void;
@@ -37,6 +40,7 @@ export function WorkoutHistory({
               onPress={() => onSelect ? onSelect(w) : setDetail(w)}
               style={[ui.card, ui.row]}
             >
+              {sessionCards ? <CompletedSessionCard workout={w} /> : <>
               <AppIcon name="workout" />
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={ui.muted}>{workoutDate(w)}</Text>
@@ -47,6 +51,7 @@ export function WorkoutHistory({
                 <Text style={ui.muted}>{workoutSummary(w)}</Text>
               </View>
               <AppIcon name="chevron" size={16} />
+              </>}
             </Pressable>
           ))
       ) : (
@@ -96,4 +101,18 @@ export function WorkoutHistory({
       </Modal>
     </View>
   );
+}
+
+/** 카드 전체를 누르면 기존 운동 상세 화면으로 연결합니다. 긴 종목명은 줄바꿈합니다. */
+function CompletedSessionCard({ workout }: { workout: Workout }) {
+  const summary = completedWorkoutSummary(workout);
+  return <View style={{ flex: 1, gap: 12 }}>
+    <View style={ui.between}><Text style={ui.heading}>자유 운동</Text><AppIcon name="chevron" size={16} /></View>
+    <View style={[ui.row, { flexWrap: 'wrap' }]}>
+      <Text style={ui.body}>완료</Text>
+      <Text style={ui.muted}>{summary.duration} · {summary.volume} kg</Text>
+    </View>
+    {!!summary.parts && <Text style={ui.body}>{summary.parts}</Text>}
+    <Text style={ui.muted}>{summary.exercises}</Text>
+  </View>;
 }
