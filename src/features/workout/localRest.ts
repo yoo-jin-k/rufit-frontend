@@ -120,10 +120,10 @@ export function applyRestSettings(archive: WorkoutArchive, exercise: Exercise, s
   return next;
 }
 
-/** 정지 시각을 저장하므로 앱 재실행 후에도 남은 휴식 시간이 줄어들지 않습니다. */
+/** 휴식과 종료 후 세트 타이머 모두 정지 시각을 저장하여 재실행 시 표시를 유지합니다. */
 export function pauseLocalRest(archive: WorkoutArchive, now: number): WorkoutArchive {
   const rest = archive.rest;
-  if (!rest || rest.pausedAt !== undefined || rest.endsAt <= now) return archive;
+  if (!rest || rest.pausedAt !== undefined) return archive;
   if (!Number.isSafeInteger(now) || now < (archive.current?.startedAt ?? Infinity))
     throw new Error('휴식 시각을 확인해 주세요.');
   return { ...archive, rest: { ...rest, pausedAt: now } };

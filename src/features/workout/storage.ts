@@ -110,7 +110,6 @@ export function decodeArchive(raw: string | null): WorkoutArchive {
         !Number.isSafeInteger(rest.endsAt) ||
         (rest.pausedAt !== undefined &&
           (!finite(rest.pausedAt) || !Number.isSafeInteger(rest.pausedAt) ||
-            rest.pausedAt > rest.endsAt ||
             rest.pausedAt < ((value.current as Workout | null)?.startedAt ?? Infinity))) ||
         !restMatches(rest as LocalRest, value.current as Workout | null)))
   )

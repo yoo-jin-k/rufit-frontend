@@ -11,26 +11,28 @@ export function RestTimerDock({ view, paused, onSettings, onTogglePause, onAdjus
   onAdjust(seconds: -10 | 10): void;
   onClose(): void;
 }) {
+  const isSet = view.phase === 'expired';
+  const label = isSet ? '세트' : '휴식';
   return (
     <View style={s.restBar}>
     <Pressable accessibilityRole="button" accessibilityLabel="휴식 타이머 설정" style={{ flex: 1, minWidth: 90 }}
       onPress={onSettings}>
-      <Text style={s.muted}>{paused ? '휴식 일시정지' : view.phase === 'expired' ? '휴식 완료' : '휴식'}  ⌃</Text>
-      <Text style={s.restTime}>{formatRest(view.seconds)}</Text>
+      <Text style={s.muted}>{`${label}${paused ? ' 일시정지' : ''}`}  ⌃</Text>
+      <Text style={s.restTime}>{formatRest(isSet ? view.elapsedSeconds : view.seconds)}</Text>
     </Pressable>
     <Pressable accessibilityRole="button"
-      accessibilityLabel={paused ? '휴식 재개' : '휴식 일시정지'}
-      disabled={view.phase === 'expired'} style={s.timerAction}
+      accessibilityLabel={`${label} ${paused ? '재개' : '일시정지'}`}
+      style={s.timerAction}
       onPress={onTogglePause}>
       <Text style={s.muted}>{paused ? '재개' : '정지'}</Text>
     </Pressable>
-    {([-10, 10] as const).map((seconds) => <Pressable key={seconds} accessibilityRole="button"
+    {!isSet && ([-10, 10] as const).map((seconds) => <Pressable key={seconds} accessibilityRole="button"
       accessibilityLabel={`휴식 ${seconds < 0 ? '10초 줄이기' : '10초 늘리기'}`}
       disabled={seconds < 0 ? !view.canSubtract : !view.canAdd}
       style={s.timerAction} onPress={() => { onAdjust(seconds); }}>
       <Text style={s.heading}>{seconds < 0 ? '−' : '+'}</Text><Text style={s.muted}>10초</Text>
     </Pressable>)}
-    <Pressable accessibilityRole="button" accessibilityLabel="휴식 종료" style={s.timerAction} onPress={onClose}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label} 타이머 닫기`} style={s.timerAction} onPress={onClose}>
       <Text style={{ fontSize: 28, color: '#D64545' }}>×</Text>
     </Pressable>
     </View>

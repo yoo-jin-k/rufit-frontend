@@ -28,11 +28,23 @@ test('정지 중 설정 적용은 새 시간으로 시작하고 운동 완료는
   assert.equal(restTimerView(changed.rest!.endsAt, 61000).seconds, 120);
   assert.equal(finishArchivedWorkout(paused, 'rest-test', 61000).rest, null);
 });
-test('만료된 휴식은 정지하지 않고 잘못된 정지 시각은 복구하지 않습니다', () => {
+test('잘못된 정지 시각은 복구하지 않습니다', () => {
   const archive = fixture();
-  assert.equal(pauseLocalRest(archive, 100000), archive);
-  for (const pausedAt of [null, '1000', -1, 100000, 1.5]) {
+  for (const pausedAt of [null, '1000', -1, 1.5]) {
     assert.throws(() => decodeArchive(JSON.stringify({ ...archive, rest: { ...archive.rest, pausedAt } })));
   }
   assert.throws(() => resumeLocalRest(pauseLocalRest(archive, 11000), 10000));
+});
+
+test('휴식 후 세트 시간을 정지·복구·재개하고 다음 완료 시 새 휴식으로 전환합니다', () => {
+  const archive = fixture();
+  const end = archive.rest!.endsAt;
+  const paused = decodeArchive(JSON.stringify(pauseLocalRest(archive, end + 26000)));
+  assert.equal(restTimerView(paused.rest!.endsAt, paused.rest!.pausedAt!).elapsedSeconds, 26);
+  const resumed = resumeLocalRest(paused, end + 60000);
+  assert.equal(restTimerView(resumed.rest!.endsAt, end + 61000).elapsedSeconds, 27);
+  const unchecked = completeWithRest(resumed, 'e', 'e-1', false, end + 62000);
+  const next = completeWithRest(unchecked, 'e', 'e-1', true, end + 63000);
+  assert.equal(restTimerView(next.rest!.endsAt, end + 63000).seconds, 90);
+  assert.equal(next.rest!.pausedAt, undefined);
 });

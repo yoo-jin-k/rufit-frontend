@@ -26,12 +26,14 @@ test('타이머 배치는 실제 safe area와 글자 배율에 따라 바뀐다'
 test('휴식 경계 버튼과 표시 초는 일치하며 만료 후 +10초만 다시 허용한다', () => {
   assert.deepEqual(restTimerView(6000, 1000), {
     seconds: 5,
+    elapsedSeconds: 0,
     phase: 'active',
     canSubtract: true,
     canAdd: true,
   });
   assert.deepEqual(restTimerView(1000, 1000), {
     seconds: 0,
+    elapsedSeconds: 0,
     phase: 'expired',
     canSubtract: false,
     canAdd: true,
@@ -61,4 +63,13 @@ test('정지된 운동에서 휴식 경계 조절은 시간·세트·개인설�
 test('큰 시간 표시는 축소 없이 콜론 뒤에서 줄바꿈할 수 있다', () => {
   assert.equal(wrappableTime('123:45:06'), '123:\u200B45:\u200B06');
   assert.equal(wrappableTime('60:00').replaceAll('\u200B', ''), '60:00');
+});
+
+// 휴식 만료 경계에서 0:00을 표시한 뒤 다음 세트의 경과 시간을 올립니다.
+test('휴식 종료 직후 세트 타이머가 0초부터 증가하며 늦은 재진입도 반영합니다', () => {
+  assert.equal(restTimerView(10000, 9999).seconds, 1);
+  assert.equal(restTimerView(10000, 10000).elapsedSeconds, 0);
+  assert.equal(restTimerView(10000, 10999).elapsedSeconds, 0);
+  assert.equal(restTimerView(10000, 11000).elapsedSeconds, 1);
+  assert.equal(restTimerView(10000, 36000).elapsedSeconds, 26);
 });

@@ -23,6 +23,8 @@ export function restTimerView(endsAt: number, now: number) {
   const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
   return {
     seconds,
+    // 휴식 종료 시각을 기준으로 계산하여 재진입해도 세트 시간이 이어집니다.
+    elapsedSeconds: Math.max(0, Math.floor((now - endsAt) / 1000)),
     phase: seconds === 0 ? ('expired' as const) : ('active' as const),
     canSubtract: seconds > 0,
     canAdd: seconds < 3600,
