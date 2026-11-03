@@ -41,3 +41,19 @@ test('친구 요청 키와 응답 동작을 보존하고 차단 해제는 본인
   assert.deepEqual(calls[1].body, { action: 'ACCEPT' });
   assert.equal(calls[2].method, 'DELETE');
 });
+
+test('친구 해제·공개 프로필·신고는 공개 회원 ID와 정해진 요청 형식만 사용합니다', async () => {
+  const calls: { url: string; method: string; body: unknown }[] = [];
+  const api = createRufitApi({ baseUrl: 'https://api.example.test', getAccessToken: () => 'test-token', fetch: async (url, init) => {
+    calls.push({ url: String(url), method: init?.method ?? 'GET', body: init?.body ? JSON.parse(String(init.body)) : null });
+    return init?.method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json({});
+  } });
+  await api.removeFriend('member/id');
+  await api.memberProfile('member/id');
+  await api.reportMember('stable-report-id', 'member/id', 'HARASSMENT');
+  assert.deepEqual(calls, [
+    { url: 'https://api.example.test/api/v1/social/friends/member%2Fid', method: 'DELETE', body: null },
+    { url: 'https://api.example.test/api/v1/social/members/member%2Fid', method: 'GET', body: null },
+    { url: 'https://api.example.test/api/v1/social/reports', method: 'POST', body: { requestId: 'stable-report-id', targetId: 'member/id', reason: 'HARASSMENT' } },
+  ]);
+});
