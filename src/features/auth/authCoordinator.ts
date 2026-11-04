@@ -2,7 +2,7 @@ import {ApiError} from '../../api/client.ts';
 import {createRufitSession, type RufitSession} from '../../api/session.ts';
 import type {AuthApi} from './authApi.ts';
 import type {SessionStore} from './secureSessionStore.ts';
-import type {AuthClient, AuthStatus, SessionTokens, SocialProvider, StoredSession} from './types.ts';
+import type {AuthClient, AuthErrorReason, AuthStatus, SessionTokens, SocialProvider, StoredSession} from './types.ts';
 
 type BrowserResult = {type: 'success'; url: string} | {type: 'cancel' | 'dismiss' | 'locked' | 'opened'} | {type: 'error'; url?: string};
 type Browser = {open(url: string, returnUrl: string): Promise<BrowserResult>; close?(): Promise<void> | void};
@@ -17,6 +17,11 @@ type Options = {
 };
 type Runtime = {tokens: SessionTokens; provider: SocialProvider; session: RufitSession};
 
+class AuthFlowError extends Error {
+  readonly reason: AuthErrorReason;
+  constructor(reason: AuthErrorReason, message: string) { super(message); this.reason = reason; }
+}
+
 function sameReturnRoute(actual: URL, expected: URL) {
   return actual.protocol === expected.protocol && actual.hostname === expected.hostname && actual.port === expected.port && actual.pathname === expected.pathname;
 }
@@ -24,17 +29,17 @@ function sameReturnRoute(actual: URL, expected: URL) {
 export function parseHandoffUrl(value: string, returnUrl: string, attemptId: string) {
   const url = new URL(value);
   const expected = new URL(returnUrl);
-  if (!sameReturnRoute(url, expected)) throw new Error('로그인 복귀 주소가 올바르지 않습니다.');
+  if (!sameReturnRoute(url, expected)) throw new AuthFlowError('rejected-callback', '로그인 복귀 주소가 올바르지 않습니다.');
   const returnedAttempt = url.searchParams.get('attemptId');
   const error = url.searchParams.get('error');
   const returnedCodes = url.searchParams.getAll('handoffCode');
   if (url.searchParams.getAll('attemptId').length !== 1 || url.searchParams.getAll('error').length > 1 || returnedCodes.length > 1 || error && returnedCodes.length)
-    throw new Error('로그인 복귀 값을 확인하지 못했습니다.');
-  if (returnedAttempt !== attemptId) throw new Error('다른 로그인 시도의 응답입니다.');
+    throw new AuthFlowError('rejected-callback', '로그인 복귀 값을 확인하지 못했습니다.');
+  if (returnedAttempt !== attemptId) throw new AuthFlowError('rejected-callback', '다른 로그인 시도의 응답입니다.');
   if (error === 'LOGIN_CANCELLED') return {kind: 'cancelled'} as const;
-  if (error) throw new Error('소셜 로그인을 완료하지 못했습니다.');
+  if (error) throw new AuthFlowError('rejected-callback', '소셜 로그인을 완료하지 못했습니다.');
   const handoffCode = returnedCodes[0];
-  if (!handoffCode || !/^[A-Za-z0-9_-]{43}$/.test(handoffCode)) throw new Error('로그인 교환 코드를 확인하지 못했습니다.');
+  if (!handoffCode || !/^[A-Za-z0-9_-]{43}$/.test(handoffCode)) throw new AuthFlowError('rejected-callback', '로그인 교환 코드를 확인하지 못했습니다.');
   return {kind: 'success', handoffCode} as const;
 }
 
@@ -93,7 +98,8 @@ export class AuthCoordinator {
       if (operation !== this.epoch) return;
       await this.accept(tokens, provider, operation);
     } catch (error) {
-      if (operation === this.epoch) this.publish({kind: 'error', message: error instanceof Error ? error.message : '로그인을 완료하지 못했습니다.'});
+      if (operation === this.epoch) this.publish({kind: 'error', reason: error instanceof AuthFlowError ? error.reason : 'login-failed',
+        message: error instanceof Error ? error.message : '로그인을 완료하지 못했습니다.', action: 'retry-login', provider});
     } finally {
       if (this.activeOperation === operation) this.activeOperation = null;
     }
@@ -105,6 +111,10 @@ export class AuthCoordinator {
     this.activeOperation = null;
     void this.options.browser.close?.();
     this.publish({kind: 'signed-out', notice: '로그인을 취소했어요. 운동 기록은 그대로예요.'});
+  }
+
+  showLoginSelection() {
+    if (this.state.kind === 'error' && this.state.action === 'retry-login') this.publish({kind: 'signed-out'});
   }
 
   private async accept(tokens: SessionTokens, provider: SocialProvider, operation: number, previous?: Runtime) {
@@ -130,7 +140,7 @@ export class AuthCoordinator {
       });
     } catch {
       session.close();
-      throw new Error('로그인 정보를 안전하게 저장하지 못했어요. 로그인을 완료하지 않았어요. 기기 상태를 확인한 뒤 다시 로그인해 주세요.');
+      throw new AuthFlowError('secure-store', '로그인 정보를 안전하게 저장하지 못했어요. 기기 상태를 확인한 뒤 다시 로그인해 주세요.');
     }
     if (operation !== this.epoch || this.runtime?.session !== session) session.close();
   }
@@ -147,7 +157,7 @@ export class AuthCoordinator {
         if (operation !== this.epoch) return;
         current.session.close(); this.runtime = null; ++this.epoch;
         await this.serialStore(() => this.options.store.clear()).catch(() => {});
-        this.publish({kind: 'error', message: error instanceof Error ? `${error.message} 다시 로그인해 주세요.` : '세션을 갱신하지 못했습니다. 다시 로그인해 주세요.', action: 'retry-login'});
+        this.publish({kind: 'error', reason: 'reauth-required', message: error instanceof Error ? `${error.message} 다시 로그인해 주세요.` : '세션을 갱신하지 못했습니다. 다시 로그인해 주세요.', action: 'retry-login', provider: current.provider});
       }).finally(() => { this.refreshPromise = null; });
     return this.refreshPromise;
   }
@@ -159,7 +169,7 @@ export class AuthCoordinator {
         await this.serialStore(() => this.options.store.clear());
         this.pendingLocalLogout = false;
         this.publish({kind: 'signed-out', notice: '이 기기에서 로그아웃했어요. 서버 세션 종료는 아직 확인되지 않았어요.'});
-      } catch { this.publish({kind: 'error', message: '기기의 로그인 정보를 지우지 못했어요. 로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'}); }
+      } catch { this.publish({kind: 'error', reason: 'logout-local', message: '로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'}); }
       return;
     }
     if (!current) { this.publish({kind: 'signed-out'}); return; }
@@ -177,10 +187,10 @@ export class AuthCoordinator {
       await Promise.all([local, Promise.race([server, wait])]);
     } catch {
       this.pendingLocalLogout = true;
-      this.publish({kind: 'error', message: '기기의 로그인 정보를 지우지 못했어요. 로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'});
+      this.publish({kind: 'error', reason: 'logout-local', message: '로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'});
       return;
     } finally { if (waitTimer) clearTimeout(waitTimer); }
-    if (!localCleared) { this.pendingLocalLogout = true; this.publish({kind: 'error', message: '기기의 로그인 정보를 지우지 못했어요. 로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'}); }
+    if (!localCleared) { this.pendingLocalLogout = true; this.publish({kind: 'error', reason: 'logout-local', message: '로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'}); }
     else this.publish({kind: 'signed-out', notice: serverConfirmed ? '이 기기에서 로그아웃했어요.' : '이 기기에서 로그아웃했어요. 서버 세션 종료는 아직 확인되지 않았어요.'});
   }
 }

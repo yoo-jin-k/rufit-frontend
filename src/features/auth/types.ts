@@ -23,10 +23,12 @@ export type StoredSession = Omit<SessionTokens, 'accessToken' | 'tokenType'> & {
   provider: SocialProvider;
 };
 
+export type AuthErrorReason = 'login-failed' | 'rejected-callback' | 'secure-store' | 'reauth-required' | 'logout-local';
+
 export type AuthStatus =
   | {kind: 'signed-out'; notice?: string}
   | {kind: 'signing-in'; provider: SocialProvider; stage: 'opening' | 'browser-pending' | 'verifying'}
   | {kind: 'signed-in'; accountId: string; provider: SocialProvider}
   | {kind: 'refreshing'; accountId: string; provider: SocialProvider}
   | {kind: 'signing-out'; accountId: string}
-  | {kind: 'error'; message: string; action?: 'retry-login' | 'retry-logout'};
+  | {kind: 'error'; message: string; reason: AuthErrorReason; action: 'retry-login' | 'retry-logout'; provider?: SocialProvider};

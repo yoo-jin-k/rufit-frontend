@@ -97,7 +97,7 @@ test('보안 저장 삭제 실패 뒤 logout 재시도는 서버 비밀을 재�
     browser: {open: async () => ({type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`})}});
   await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
   await coordinator.logout();
-  assert.deepEqual(coordinator.getState(), {kind: 'error', message: '기기의 로그인 정보를 지우지 못했어요. 로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'});
+  assert.deepEqual(coordinator.getState(), {kind: 'error', reason: 'logout-local', message: '로그아웃을 완료하지 못했어요. 다시 시도해 주세요.', action: 'retry-logout'});
   await coordinator.logout();
   assert.equal(coordinator.getState().kind, 'signed-out');
   assert.equal(logoutCalls, 1);
@@ -115,10 +115,30 @@ test('보안 저장 쓰기가 실패하면 세션을 공개하지 않고 성공 
     createSession: async () => ({scope: Object.freeze({server: api.server, accountId: tokens.account.id}), api: Object.freeze({}), isActive: () => !closed, saveDraft: async () => { throw new Error(); }, close: () => { closed = true; }}) as never,
     browser: {open: async () => ({type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`})}});
   await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
-  assert.equal(coordinator.getState().kind, 'error');
+  assert.deepEqual(coordinator.getState(), {kind: 'error', reason: 'secure-store', message: '로그인 정보를 안전하게 저장하지 못했어요. 기기 상태를 확인한 뒤 다시 로그인해 주세요.', action: 'retry-login', provider: 'KAKAO'});
   assert.equal(coordinator.getSession(), null);
   assert.equal(closed, true);
   assert.equal(JSON.stringify(coordinator.getState()).includes('native secret'), false);
+});
+
+test('변조된 복귀 응답은 분류하고 다시 시도할 때만 새 login attempt를 만든다', async () => {
+  let starts = 0;
+  let opens = 0;
+  const api = {
+    server: 'https://api.example.com',
+    startLogin: async () => { starts++; return {attemptId, authorizationUrl: 'https://kauth.kakao.com/oauth/authorize', expiresAt: '2099-01-01T00:00:00Z'}; },
+    exchange: async () => tokens, refresh: async () => tokens, logout: async () => {},
+  } as AuthApi;
+  const coordinator = new AuthCoordinator({api, store: memoryStore(), createPkce: async () => ({verifier, challenge}),
+    browser: {open: async () => ++opens === 1
+      ? {type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=short`}
+      : {type: 'cancel'}}});
+  await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
+  assert.deepEqual(coordinator.getState(), {kind: 'error', reason: 'rejected-callback', message: '로그인 교환 코드를 확인하지 못했습니다.', action: 'retry-login', provider: 'KAKAO'});
+  assert.equal(starts, 1);
+  await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
+  assert.equal(starts, 2);
+  assert.equal(coordinator.getState().kind, 'signed-out');
 });
 
 test('동시 refresh는 한 요청에 합류하고 같은 계정·sessionId만 보안 저장 후 교체한다', async () => {
@@ -160,9 +180,14 @@ test('결과를 알 수 없는 session exchange는 자동 재시도하거나 로
     browser: {open: async () => ({type: 'success', url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`})}});
   await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
   assert.equal(exchangeCalls, 1);
-  assert.equal(coordinator.getState().kind, 'error');
+  const errorState = coordinator.getState();
+  assert.equal(errorState.kind, 'error');
+  assert.equal(errorState.kind === 'error' && errorState.reason, 'login-failed');
   assert.equal(coordinator.getSession(), null);
   assert.equal(store.value, null);
+  coordinator.showLoginSelection();
+  assert.equal(coordinator.getState().kind, 'signed-out');
+  assert.equal(exchangeCalls, 1);
 });
 
 test('취소 뒤 늦게 도착한 session exchange는 보안 저장과 성공 상태를 만들지 않는다', async () => {
