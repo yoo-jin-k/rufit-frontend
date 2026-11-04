@@ -1,0 +1,63 @@
+{
+  "before": {
+    "minus": {
+      "top": 198,
+      "bottom": 246,
+      "width": 528,
+      "height": 48
+    },
+    "plus": {
+      "top": 206,
+      "bottom": 254,
+      "width": 528,
+      "height": 48
+    },
+    "close": {
+      "top": 314,
+      "bottom": 362,
+      "width": 528,
+      "height": 48
+    },
+    "overlap": true
+  },
+  "after": {
+    "minus": {
+      "top": 198,
+      "bottom": 246,
+      "width": 528,
+      "height": 48
+    },
+    "plus": {
+      "top": 254,
+      "bottom": 302,
+      "width": 528,
+      "height": 48
+    },
+    "close": {
+      "top": 314,
+      "bottom": 362,
+      "width": 528,
+      "height": 48
+    },
+    "overlap": false
+  },
+  "handlers": {
+    "minusOnce": true,
+    "plusOnce": true,
+    "pausedWorkoutPreserved": true,
+    "personalSettingPreserved": true,
+    "restTargetPreserved": true,
+    "closeClearsOnlyRest": true
+  },
+  "conditions": {
+    "viewport": {
+      "width": 768,
+      "height": 900
+    },
+    "cardContainerWidth": 560,
+    "stackActions": true,
+    "actualComponentsAndArchiveHook": true,
+    "inMemoryTestStorage": true,
+    "noNativeFontScaleTest": true
+  }
+}

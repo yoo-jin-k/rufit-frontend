@@ -1,0 +1,23 @@
+{
+  "primary": {
+    "bg": "rgb(36, 107, 83)",
+    "width": 280,
+    "height": 48,
+    "outline": "3px"
+  },
+  "secondary": {
+    "bg": "rgb(231, 240, 235)",
+    "width": 280,
+    "height": 48,
+    "outline": "3px"
+  },
+  "disabledAndLoadingBlocked": true,
+  "loadingWidthStable": true,
+  "focusOutline": "2px",
+  "pressedColors": true,
+  "expiredAndMaximumBoundaries": true,
+  "restAdjustmentPreservesPausedWorkout": true,
+  "longNameAnd123HourTimer": true,
+  "nativeDeviceTested": false,
+  "errors": []
+}
