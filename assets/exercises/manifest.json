@@ -1,0 +1,260 @@
+{
+  "provider": "Free Exercise DB",
+  "repository": "https://github.com/yuhonas/free-exercise-db",
+  "commit": "a859101d633a01c4a1a920d6a8ce41dabba0705f",
+  "license": "Unlicense",
+  "exercises": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "바벨 스쿼트",
+        "squat"
+      ],
+      "sourceId": "Barbell_Squat",
+      "file": "01.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Barbell_Squat/1.jpg",
+      "sha256": "8663a34f2d0a0a33d3d39b505cf3cdd38e282c1c9020d39d5587976e8d8a3020"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "벤치프레스",
+      "bodyPart": "CHEST",
+      "equipment": "BARBELL",
+      "aliases": [
+        "벤치 프레스",
+        "bench press"
+      ],
+      "sourceId": "Barbell_Bench_Press_-_Medium_Grip",
+      "file": "02.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg",
+      "sha256": "5056475ae5def865dbe52882d30d2730142de2b03231bda304f82fd0b088f608"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "데드리프트",
+      "bodyPart": "FULL_BODY",
+      "equipment": "BARBELL",
+      "aliases": [
+        "deadlift"
+      ],
+      "sourceId": "Barbell_Deadlift",
+      "file": "03.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Barbell_Deadlift/1.jpg",
+      "sha256": "cf206d0738830af831872cfb054c7cf91a43b435f4cc20f4fdb00a2664654e90"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "오버헤드프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "밀리터리 프레스",
+        "숄더 프레스",
+        "overhead press"
+      ],
+      "sourceId": "Standing_Military_Press",
+      "file": "04.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Standing_Military_Press/1.jpg",
+      "sha256": "b9419884fa57bd7de1dff2d0f811aa61d4cd5547b3c6ebafaca01c7017d8be1a"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "랫풀다운",
+      "bodyPart": "BACK",
+      "equipment": "MACHINE",
+      "aliases": [
+        "랫 풀 다운",
+        "lat pulldown"
+      ],
+      "sourceId": "Wide-Grip_Lat_Pulldown",
+      "file": "05.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Wide-Grip_Lat_Pulldown/1.jpg",
+      "sha256": "781952e629e8a4cff549df94ee6b1da7e32c7cd507382d47e8566718c07807dd"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "레그프레스",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "레그 프레스",
+        "leg press"
+      ],
+      "sourceId": "Leg_Press",
+      "file": "06.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Leg_Press/1.jpg",
+      "sha256": "f4e08d4ad4e6542f5dd923bbfabe9a28bf6c960bed02b1b9d65f6bafd6ceb051"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "푸시업",
+      "bodyPart": "CHEST",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "푸쉬업",
+        "팔굽혀펴기",
+        "push up"
+      ],
+      "sourceId": "Pushups",
+      "file": "07.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Pushups/1.jpg",
+      "sha256": "e835d50facea325828d7a3700185a0d8ba9f908db3f033334f81a6f85f774f27"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "풀업",
+      "bodyPart": "BACK",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "턱걸이",
+        "pull up"
+      ],
+      "sourceId": "Pullups",
+      "file": "08.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Pullups/1.jpg",
+      "sha256": "40549a52b064e5084a85e2c36afb51438df6ac1097169379a05f21565f8b4f3f"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "덤벨컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "덤벨 컬",
+        "이두",
+        "dumbbell curl"
+      ],
+      "sourceId": "Dumbbell_Bicep_Curl",
+      "file": "09.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Dumbbell_Bicep_Curl/1.jpg",
+      "sha256": "ec2c3a539aa80ea911a85e00ca9fb74502407e8ef0d8a4526e3b076a5a52b30a"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "트라이셉스푸시다운",
+      "bodyPart": "ARMS",
+      "equipment": "CABLE",
+      "aliases": [
+        "트라이셉스 푸시다운",
+        "삼두",
+        "triceps pushdown"
+      ],
+      "sourceId": "Triceps_Pushdown",
+      "file": "10.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Triceps_Pushdown/1.jpg",
+      "sha256": "76f7793452cebb4f00846f9fd5ce3306d90d4b1912b192125cd428c2d8b76a3c"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "맨몸 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "에어 스쿼트",
+        "bodyweight squat"
+      ],
+      "sourceId": "Bodyweight_Squat",
+      "file": "11.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Bodyweight_Squat/1.jpg",
+      "sha256": "3fa6886632674f02308cdee53ce32649fd648774701fbd20ee280d63be40e5a4"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": "덤벨 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell squat"
+      ],
+      "sourceId": "Dumbbell_Squat",
+      "file": "12.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Dumbbell_Squat/1.jpg",
+      "sha256": "8ece837174f84fae7650f5bd74634898e6262679641f3b24198ddc78ebc2fd7a"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": "프론트 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "front squat"
+      ],
+      "sourceId": "Front_Barbell_Squat",
+      "file": "13.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Front_Barbell_Squat/1.jpg",
+      "sha256": "6bb5c5eee794bd13d411271f0ad1cdeabdfecf5cdeb471727996555d07ff43fb"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000014",
+      "name": "덤벨 사이드 레터럴 레이즈",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "사레레",
+        "사이드 레터럴 레이즈",
+        "lateral raise"
+      ],
+      "sourceId": "Side_Lateral_Raise",
+      "file": "14.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Side_Lateral_Raise/1.jpg",
+      "sha256": "9210e0fb0202c306026d45a55703aaec89b3bef7aafeb7791aa1d06adcf58ab3"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000015",
+      "name": "덤벨 숄더 프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "어깨 프레스",
+        "dumbbell shoulder press"
+      ],
+      "sourceId": "Dumbbell_Shoulder_Press",
+      "file": "15.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Dumbbell_Shoulder_Press/1.jpg",
+      "sha256": "940d5aad6b85960e833f88e218de8ce4f806d84cf2764741f1cbff9cce365d84"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "덤벨 업라이트 로우",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "upright row"
+      ],
+      "sourceId": "Standing_Dumbbell_Upright_Row",
+      "file": "16.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Standing_Dumbbell_Upright_Row/1.jpg",
+      "sha256": "7a329816fdbe96c8d208747cab069a55217980247728096cce380aeedb1c5335"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000017",
+      "name": "덤벨 벤치 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell bench press"
+      ],
+      "sourceId": "Dumbbell_Bench_Press",
+      "file": "17.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Dumbbell_Bench_Press/1.jpg",
+      "sha256": "29ce1d1335b10ae5e92b208c512f4f562493379a9c49bafb249f945c5b702299"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000018",
+      "name": "크런치",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "복근",
+        "crunch"
+      ],
+      "sourceId": "Crunches",
+      "file": "18.jpg",
+      "sourceUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/Crunches/1.jpg",
+      "sha256": "84df8957fcc20c051475a2d28fedb0c1a3b3e63b00913ae4acec1ed0dc150d22"
+    }
+  ]
+}
