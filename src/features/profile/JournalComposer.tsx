@@ -1,8 +1,9 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import type { RufitSession } from '../../api/session';
 import { ApiError } from '../../api/client';
 /** 사진은 선택이며 카메라 권한은 촬영 버튼을 눌렀을 때만 요청합니다. 임시 URI 대신 사진 내용을 저장합니다. */
 import { useState } from 'react';
-import { Image, Modal, Text, TextInput, View } from 'react-native';
+import { Image, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
@@ -75,6 +76,7 @@ export function JournalComposer({
         setError('');
       }
     } catch (e) {
+      // 선택 실패는 안내만 표시합니다. 기존 글과 사진 저장은 계속 허용합니다.
       setPhotoError(true);
       setError(e instanceof Error ? e.message : '사진을 불러오지 못했습니다.');
     } finally {
@@ -82,7 +84,7 @@ export function JournalComposer({
     }
   }
   async function save() {
-    if (busy || picking || photoError) return;
+    if (busy || picking) return;
     setBusy(true);
     try {
       const entry: Journal = {
@@ -130,7 +132,7 @@ export function JournalComposer({
                 }
                 loading={busy}
                 disabled={
-                  picking || photoError || (destination === 'account' && cloudVersion === null)
+                  picking || (destination === 'account' && cloudVersion === null)
                 }
                 onPress={() => void save()}
               />

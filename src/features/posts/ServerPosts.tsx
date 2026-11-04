@@ -1,6 +1,8 @@
+import { useReadRecovery } from '../../hooks/useReadRecovery';
+import { AppModal as Modal } from '../../components/AppModal';
 import { ServerPostEditor } from './ServerPostEditor';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Modal, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
@@ -72,6 +74,7 @@ export function ServerPostList({
       alive.current = false;
     };
   }, [load]);
+  useReadRecovery(/연결|네트워크|시간 초과|network|fetch/i.test(error), () => load());
   return (
     <View style={{ gap: 12 }}>
       <Text style={ui.heading}>{memberId ? '친구 공개 오운완' : '내 계정 오운완'}</Text>

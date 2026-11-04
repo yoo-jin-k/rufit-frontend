@@ -1,3 +1,4 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /**
  * 운동 종목의 검색, 부위·장비 필터, 선택 처리를 담당합니다.
  * 종목 데이터와 미디어 표현을 별도 모듈에 위임하여 카탈로그 확장 시 화면 수정을 줄입니다.
@@ -8,7 +9,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Linking,
-  Modal,
+
   Platform,
   Pressable,
   ScrollView,

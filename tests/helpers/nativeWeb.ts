@@ -34,7 +34,7 @@ export function nativeWebLoader(mocks: Record<string, unknown> = {}) {
               : name === 'react-native'
                 ? require('react-native-web')
                 : name === 'react-native-safe-area-context'
-                  ? { SafeAreaView: require('react-native-web').View }
+                  ? { SafeAreaView: require('react-native-web').View, SafeAreaProvider: require('react-native-web').View }
                   : name === 'react-native-svg'
                     ? {
                         __esModule: true,

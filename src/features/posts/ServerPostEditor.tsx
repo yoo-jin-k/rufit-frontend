@@ -1,5 +1,6 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { useRef, useState } from 'react';
-import { Image, Modal, Text, TextInput, View } from 'react-native';
+import { Image, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';

@@ -4,15 +4,17 @@ import { PanResponder, Text, View } from 'react-native';
 import { colors } from '../../theme/tokens';
 import { setDragStyles } from './SetDrag.styles';
 import type { WorkoutSet } from './model';
-export function SortableSets({ sets, disabled, name, onMove, children }: {
+export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, children }: {
   sets: WorkoutSet[]; disabled: boolean; name: string;
   onMove(id: string, target: number): void;
+  onDraggingChange?(dragging: boolean): void;
   children(set: WorkoutSet, index: number, handle: ReactNode): ReactNode;
 }) {
   const [layouts, setLayouts] = useState<Record<string, { y: number; height: number }>>({});
   const [drag, setDrag] = useState<{ id: string; dy: number } | null>(null);
   function drop(id: string, dy: number) {
     setDrag(null);
+    onDraggingChange?.(false);
     const source = layouts[id];
     if (!source || disabled) return;
     const center = source.y + source.height / 2 + dy;
@@ -30,9 +32,10 @@ export function SortableSets({ sets, disabled, name, onMove, children }: {
     {sets.map((set, index) => {
       const handle = <DragNumber
         disabled={disabled}
+        onStart={() => onDraggingChange?.(true)}
         onDrag={(dy) => setDrag({ id: set.id, dy })}
         onDrop={(dy) => drop(set.id, dy)}
-        onCancel={() => setDrag(null)}
+        onCancel={() => { setDrag(null); onDraggingChange?.(false); }}
         accessibilityRole="adjustable"
         accessibilityLabel={`${name} ${index + 1}세트 순서 이동`}
         accessibilityValue={{ min: 1, max: sets.length, now: index + 1 }}
@@ -60,18 +63,19 @@ export function SortableSets({ sets, disabled, name, onMove, children }: {
 /** 핸들의 responder를 유지하여 드래그 중 재렌더링되어도 이동 거리가 초기화되지 않도록 합니다. */
 class DragNumber extends Component<React.ComponentProps<typeof View> & {
   disabled?: boolean;
-  onDrag(dy: number): void; onDrop(dy: number): void; onCancel(): void;
+  onStart(): void; onDrag(dy: number): void; onDrop(dy: number): void; onCancel(): void;
 }> {
   private pan = PanResponder.create({
     onStartShouldSetPanResponder: () => !this.props.disabled,
     onMoveShouldSetPanResponder: (_, gesture) => !this.props.disabled && Math.abs(gesture.dy) > 4,
+    onPanResponderGrant: () => this.props.onStart(),
     onPanResponderMove: (_, gesture) => this.props.onDrag(gesture.dy),
     onPanResponderRelease: (_, gesture) => this.props.onDrop(gesture.dy),
     onPanResponderTerminate: () => this.props.onCancel(),
     onPanResponderTerminationRequest: () => false,
   });
   render() {
-    const { onDrag: _drag, onDrop: _drop, onCancel: _cancel, disabled: _disabled, ...props } = this.props;
+    const { onStart: _start, onDrag: _drag, onDrop: _drop, onCancel: _cancel, disabled: _disabled, ...props } = this.props;
     return <View {...props} {...this.pan.panHandlers} />;
   }
 }

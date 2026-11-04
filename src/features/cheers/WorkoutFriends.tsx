@@ -1,8 +1,9 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /** 주간 달력 아래 친구 목록과 운동 중 받은 응원을 공유합니다. 기존 흑백 토큰만 사용합니다. */
 import { useEffect, useState } from 'react';
 import {
   AppState,
-  Modal,
+
   Pressable,
   ScrollView,
   StyleSheet,

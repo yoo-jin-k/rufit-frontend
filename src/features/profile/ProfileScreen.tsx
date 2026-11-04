@@ -1,3 +1,4 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { ServerPostList } from '../posts/ServerPosts';
 import { ProfileAvatar } from './ProfileAvatar';
 import { ProfilePhotoEditor } from './ProfilePhotoEditor';
@@ -17,7 +18,7 @@ import { NotificationButton } from '../../components/NotificationButton';
 import { useEffect, useState } from 'react';
 import type { RufitSession } from '../../api/session';
 import { ServerFriendsScreen } from './ServerFriendsScreen';
-import { Image, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';

@@ -1,6 +1,7 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /** 가져오기 전 날짜와 모든 세트 값을 보여주며 닫기만 하면 현재 운동을 바꾸지 않습니다. */
 import { useState } from 'react';
-import { Modal, Text, View } from 'react-native';
+import {  Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';

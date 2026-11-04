@@ -1,3 +1,4 @@
+import { authBrowserLifecycle } from './authBrowserLifecycle';
 import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -39,9 +40,14 @@ export function createNativeAuthCoordinator(baseUrl: string) {
     fetch: nativeFetch,
     store: createSecureSessionStore(),
     createPkce: createHandoffPkce,
-    browser: {
-      open: (url, returnUrl) => WebBrowser.openAuthSessionAsync(url, returnUrl),
-      close: () => WebBrowser.dismissAuthSession(),
-    },
+    browser: authBrowserLifecycle(
+      (url, returnUrl) => {
+        // 구글 로그인마다 계정 선택을 표시합니다. 인증 주소의 호스트는 API 계층에서 검증합니다.
+        const target = new URL(url);
+        if (target.hostname === 'accounts.google.com') target.searchParams.set('prompt', 'select_account');
+        return WebBrowser.openAuthSessionAsync(target.toString(), returnUrl);
+      },
+      () => WebBrowser.dismissAuthSession(),
+    ),
   });
 }

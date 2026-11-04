@@ -1,6 +1,7 @@
+import { AppModal as Modal } from './AppModal';
 /** 친구 목록과 알림 카드에서 같은 메뉴를 사용합니다. 신고는 로컬 저장임을 명시하며 실제 접수로 표시하지 않습니다. */
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
 import { SocialButton } from './SocialButton';

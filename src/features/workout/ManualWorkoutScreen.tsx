@@ -1,3 +1,4 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { PreviousSets } from './PreviousSets';
 import { importPreviousSets } from './previousSetModel';
 import { SetControls } from './SetControls';
@@ -10,7 +11,7 @@ import { ScreenLayout } from '../../components/ScreenLayout';
  * 현재 진행 중인 운동과 휴식 타이머는 변경하지 않습니다.
  */
 import { useState } from 'react';
-import { Modal, Text, View, useWindowDimensions } from 'react-native';
+import {  Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { ExercisePicker } from '../exercises/ExercisePicker';

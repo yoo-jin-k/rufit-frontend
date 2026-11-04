@@ -76,3 +76,18 @@ test('저장 실패 뒤 완료 연타는 새 쓰기를 만들지 않고 재시�
     assert.equal(state.getSnapshot().archive.current!.finishedAt, end);
   } finally { disconnect(); }
 });
+
+test('빈 운동 종료는 이전 기록을 보존하고 운동일 수를 추가하지 않습니다', async () => {
+  const { workout, end } = fixture();
+  const completed = finishArchivedWorkout(remember(emptyArchive(), workout), workout.id, end);
+  const running = remember(completed, startWorkout('empty-session', end + 1));
+  const cancelled = remember(running, null);
+  assert.equal(cancelled.current, null);
+  assert.equal(cancelled.rest, null);
+  assert.deepEqual(cancelled.history, completed.history);
+  assert.equal(monthlyProgress(cancelled.history, '2026-10').workoutDays, 1);
+  let raw: string | null = null;
+  const storage = createWorkoutStorage({ getItem: async () => raw, setItem: async (_, value) => { raw = value; } });
+  await storage.save(cancelled);
+  assert.equal((await storage.load()).current, null);
+});

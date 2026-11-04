@@ -72,7 +72,7 @@ test('사진 5장에서도 삭제 가능하고 작성 취소 확인 뒤 계속 �
   }
 });
 
-test('사진 읽기 실패 후 추가를 건너뛰면 기존 사진과 메모를 저장할 수 있습니다', async () => {
+test('사진 읽기 실패 후에도 기존 사진과 메모를 바로 저장할 수 있습니다', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   Object.assign(globalThis, {
     window: dom.window,
@@ -128,8 +128,7 @@ test('사진 읽기 실패 후 추가를 건너뛰면 기존 사진과 메모를
     );
     await click('앨범에서 선택');
     assert.match(document.body.textContent!, /사진을 읽을 수 없습니다/);
-    assert.equal(button('이 기기에 오운완 저장').getAttribute('aria-disabled'), 'true');
-    await click('실패한 사진 추가 건너뛰기');
+    assert.notEqual(button('이 기기에 오운완 저장').getAttribute('aria-disabled'), 'true');
     await click('이 기기에 오운완 저장');
     assert.equal(saved?.memo, '보존할 글');
     assert.deepEqual(saved?.photos, ['data:image/jpeg;base64,existing']);

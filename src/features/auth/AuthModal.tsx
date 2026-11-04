@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react';
+import { AppModal as Modal } from '../../components/AppModal';
+import { useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Image,
-  Modal,
+
   Platform,
   Pressable,
   ScrollView,
@@ -71,6 +72,18 @@ function ProviderButton({
   );
 }
 
+/** iOS 인증 브라우저 위에 별도 네이티브 시트를 겹치지 않도록 앱 내부 화면으로 표시합니다. */
+function AuthPresentation({ visible, onClose, children }: {
+  visible: boolean; onClose(): void; children: ReactNode;
+}) {
+  if (Platform.OS === 'ios') return visible ? (
+    <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: colors.surface }]}>
+      {children}
+    </View>
+  ) : null;
+  return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>{children}</Modal>;
+}
+
 export function AuthModal({
   visible,
   onClose,
@@ -116,6 +129,12 @@ export function AuthModal({
   useEffect(() => {
     updateLogoutConfirmation('reset');
   }, [sessionKey, visible]);
+  const previousStatus = useRef(status.kind);
+  useEffect(() => {
+    // 새 로그인이 완료된 경우에만 닫습니다. 사용자가 연 계정 관리 화면은 유지합니다.
+    if (previousStatus.current === 'signing-in' && status.kind === 'signed-in') onClose();
+    previousStatus.current = status.kind;
+  }, [status.kind, onClose]);
   function login(provider: SocialProvider) {
     if (!coordinator || !nativeAuthClient) return;
     void coordinator.login(provider, nativeAuthClient, authReturnUrl);
@@ -129,12 +148,7 @@ export function AuthModal({
     else coordinator?.showLoginSelection();
   }
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={closeToWorkout}
-    >
+    <AuthPresentation visible={visible} onClose={closeToWorkout}>
       <SafeAreaView style={s.page} edges={['top', 'left', 'right']}>
         <ScrollView
           ref={scroll}
@@ -288,7 +302,7 @@ export function AuthModal({
           )}
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </AuthPresentation>
   );
 }
 

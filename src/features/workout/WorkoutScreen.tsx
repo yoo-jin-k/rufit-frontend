@@ -1,3 +1,4 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { useServerLive } from '../cheers/useServerLive';
 import { ServerWorkoutFriends } from '../cheers/ServerWorkoutFriends';
 import { TodayWorkoutCard } from './TodayWorkoutCard';
@@ -32,7 +33,7 @@ import { StrengthScreen } from '../strength/StrengthScreen';
 import { useEffect, useState } from 'react';
 import {
   AppState,
-  Modal,
+
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -123,6 +124,8 @@ export function WorkoutScreen({
   const [showWeight, setShowWeight] = useState(false);
   const [showStrength, setShowStrength] = useState(false);
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
+  const [draggingSet, setDraggingSet] = useState(false);
 
   const [removeExerciseId, setRemoveExerciseId] = useState<string | null>(null);
   const [restSettingsId, setRestSettingsId] = useState<string | null>(null);
@@ -173,6 +176,11 @@ export function WorkoutScreen({
   }
   // 종료 요청은 상단에서 처리하며 미완료 세트 확인은 스크롤 위치와 무관하게 표시합니다.
   function requestFinish() {
+    // 완료 세트가 없는 운동은 기록을 만들지 않고 종료할 수 있습니다.
+    if (!workout?.exercises.some(e => e.sets.some(set => set.completed))) {
+      setConfirmEmpty(true);
+      return;
+    }
     try {
       completeWorkout();
     } catch (e) {
@@ -201,7 +209,7 @@ export function WorkoutScreen({
                   <View style={{ flex: 1 }}>
                     <Text style={s.headerHint}>운동 기록 중</Text>
                     <Text style={s.headerTitle}>
-                      운동 시간 {Math.floor(elapsedWorkoutMs(workout, now) / 60000)}분
+                      운동 시간 {formatRest(Math.floor(elapsedWorkoutMs(workout, now) / 1000))}
                     </Text>
                   </View>
                   <Pressable
@@ -243,6 +251,7 @@ export function WorkoutScreen({
               </View>
             )}
             <ScrollView
+              scrollEnabled={!draggingSet}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={[
                 timerStyles.content,
@@ -380,6 +389,7 @@ export function WorkoutScreen({
                           <Text style={[s.muted, { flex: 1, textAlign: 'center' }]}>횟수</Text>
                         </View>
                         <SortableSets
+                          onDraggingChange={setDraggingSet}
                           sets={e.sets}
                           name={e.name}
                           disabled={finished}
@@ -512,6 +522,16 @@ export function WorkoutScreen({
             />
           </View>
         )}
+        <Modal visible={confirmEmpty} transparent animationType="fade" onRequestClose={() => setConfirmEmpty(false)}>
+          <View style={s.confirmBackdrop}><View style={s.card}>
+            <Text style={s.heading}>기록 없이 운동을 종료할까요?</Text>
+            <Text style={s.muted}>완료한 세트가 없습니다. 입력 중인 내용은 삭제되며 운동일 수에는 포함되지 않습니다.</Text>
+            <Button title="계속 운동하기" onPress={() => setConfirmEmpty(false)} />
+            <Button title="기록 없이 종료" secondary onPress={() => {
+              setWorkout(null); setConfirmEmpty(false); setError('');
+            }} />
+          </View></View>
+        </Modal>
         <BottomNavigation value={tab} onChange={setTab} />
         <Modal
           visible={!!removeExerciseId}

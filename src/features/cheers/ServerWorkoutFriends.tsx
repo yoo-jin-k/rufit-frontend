@@ -1,5 +1,6 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {  Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RufitSession } from '../../api/session';
 import { Button } from '../../components/Button';

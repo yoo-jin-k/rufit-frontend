@@ -1,3 +1,4 @@
+import { AppModal as Modal } from './AppModal';
 import { useServerNotifications } from '../features/notifications/NotificationProvider';
 import { ServerNotificationButton } from '../features/notifications/ServerNotificationButton';
 import { useCheers } from '../features/cheers/useCheers';
@@ -10,7 +11,7 @@ import { useProfile } from '../features/profile/useProfile';
 import { TestPhoto } from './TestPhoto';
 /** 모든 메뉴에서 같은 친구 신청을 표시합니다. 빨간 점은 아직 처리하지 않은 신청이 있다는 뜻입니다. */
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
 import { FriendRow } from './FriendRow';

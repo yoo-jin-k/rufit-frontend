@@ -1,6 +1,7 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /** 휴식 시간은 임시 선택 후 적용합니다. 배경 닫기와 취소는 저장값을 바꾸지 않습니다. */
 import { useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import {  Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { ui } from '../../components/ScreenLayout';

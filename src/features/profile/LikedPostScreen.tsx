@@ -1,7 +1,8 @@
+import { AppModal as Modal } from '../../components/AppModal';
 import { JournalGallery } from './JournalGallery';
 import { journalPhotos } from './journalModel';
 /** 좋아요 알림의 게시물 ID로 원본 오운완을 찾습니다. 없어진 게시물은 별도 안내하며 샘플로 대체하지 않습니다. */
-import { Modal, ScrollView, Text, View } from 'react-native';
+import {  ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile } from './useProfile';
 import { LikeButton } from '../../components/LikeButton';

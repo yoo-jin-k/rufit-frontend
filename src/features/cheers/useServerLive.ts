@@ -1,3 +1,4 @@
+import { useReadRecovery } from '../../hooks/useReadRecovery';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { RufitSession } from '../../api/session';
@@ -43,6 +44,7 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
       }
     }
   }, [session]);
+  useReadRecovery(/연결|네트워크|시간 초과|network|fetch/i.test(error), refresh);
   useEffect(() => {
     const update = () => {
       if (AppState.currentState === 'active') void refresh();

@@ -1,5 +1,6 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /** 운동 저장 성공 이후에만 표시합니다. 오운완 작성은 별도 흐름이며 건너뛰어도 운동을 삭제하지 않습니다. */
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import {  StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';

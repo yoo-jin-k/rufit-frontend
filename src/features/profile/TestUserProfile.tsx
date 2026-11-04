@@ -1,6 +1,7 @@
+import { AppModal as Modal } from '../../components/AppModal';
 /** 가상 사용자의 공개 샘플 프로필입니다. 실제 기록 보관함과 분리하고 차단 상태에서는 내용을 숨깁니다. */
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TestPhoto } from '../../components/TestPhoto';
 import { AppIcon } from '../../components/AppIcon';
