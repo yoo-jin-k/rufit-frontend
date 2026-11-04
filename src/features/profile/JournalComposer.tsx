@@ -2,15 +2,14 @@ import type { RufitSession } from '../../api/session';
 import { ApiError } from '../../api/client';
 /** 사진은 선택이며 카메라 권한은 촬영 버튼을 눌렀을 때만 요청합니다. 임시 URI 대신 사진 내용을 저장합니다. */
 import { useState } from 'react';
-import { Image, Modal, Platform, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
-import { prepareJournalPhoto } from './prepareJournalPhoto';
+import { pickJournalPhotos } from './pickJournalPhotos';
 import { journalPhotos, journalDraftChanged, type Journal } from './journalModel';
 export function JournalComposer({
   workout,
@@ -69,36 +68,8 @@ export function JournalComposer({
     if (picking || busy || photos.length >= 5) return;
     setPicking(true);
     try {
-      if (camera && Platform.OS !== 'web') {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted)
-          throw new Error(
-            '카메라 권한이 필요합니다. 앨범을 선택하거나 사진 없이 기록할 수 있습니다.',
-          );
-      }
-      const options: ImagePicker.ImagePickerOptions = {
-        mediaTypes: ['images'],
-        base64: true,
-        quality: 0.5,
-        allowsEditing: camera,
-        allowsMultipleSelection: !camera,
-        selectionLimit: 5 - photos.length,
-        aspect: [1, 1],
-      };
-      const result = camera
-        ? await ImagePicker.launchCameraAsync(options)
-        : await ImagePicker.launchImageLibraryAsync(options);
-      if (!result.canceled) {
-        if (result.assets.length > 5 - photos.length)
-          throw new Error(
-            `사진은 ${5 - photos.length}장 더 추가할 수 있습니다. 다시 선택해 주세요.`,
-          );
-        // 모든 사진 변환이 성공한 뒤 추가하여 실패 시에도 기존 사진을 보존합니다.
-        const added: string[] = [];
-        for (const asset of result.assets) {
-          if (!asset.base64) throw new Error('사진을 읽을 수 없습니다. 다른 사진을 선택해 주세요.');
-          added.push(await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg'));
-        }
+      const added = await pickJournalPhotos(camera, 5 - photos.length);
+      if (added.length) {
         setPhotos((current) => [...current, ...added]);
         setPhotoError(false);
         setError('');

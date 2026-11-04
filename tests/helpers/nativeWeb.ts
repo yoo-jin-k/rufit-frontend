@@ -18,16 +18,34 @@ export function nativeWebLoader(mocks: Record<string, unknown> = {}) {
     });
     new Function('require', 'exports', outputText)(
       (name: string) =>
-        Object.hasOwn(mocks, name) ? mocks[name] : name === 'expo-crypto'
-          ? { randomUUID } : name === 'react-native'
-          ? require('react-native-web')
-          : name === 'react-native-safe-area-context'
-            ? { SafeAreaView: require('react-native-web').View }
-            : name === 'react-native-svg'
-              ? { __esModule: true, default: 'svg', Path: 'path', Circle: 'circle', Rect: 'rect' }
-              : name.startsWith('.')
-                ? load(resolve(dirname(path), name))
-                : require(name),
+        Object.hasOwn(mocks, name)
+          ? mocks[name]
+          : name === 'expo-image-picker'
+            ? {
+                launchCameraAsync: () => {
+                  throw new Error('사진 선택 테스트에는 명시적인 기기 모의 응답이 필요합니다.');
+                },
+                launchImageLibraryAsync: () => {
+                  throw new Error('사진 선택 테스트에는 명시적인 기기 모의 응답이 필요합니다.');
+                },
+              }
+            : name === 'expo-crypto'
+              ? { randomUUID }
+              : name === 'react-native'
+                ? require('react-native-web')
+                : name === 'react-native-safe-area-context'
+                  ? { SafeAreaView: require('react-native-web').View }
+                  : name === 'react-native-svg'
+                    ? {
+                        __esModule: true,
+                        default: 'svg',
+                        Path: 'path',
+                        Circle: 'circle',
+                        Rect: 'rect',
+                      }
+                    : name.startsWith('.')
+                      ? load(resolve(dirname(path), name))
+                      : require(name),
       exports,
     );
     return exports;

@@ -1,3 +1,4 @@
+import { ServerPostEditor } from './ServerPostEditor';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -134,6 +135,8 @@ export function ServerPostDetail({
   const [post, setPost] = useState<ServerPost | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(true);
+  const [editing, setEditing] = useState(false),
+    [confirmDelete, setConfirmDelete] = useState(false);
   const alive = useRef(true),
     locked = useRef(false);
   const load = useCallback(async () => {
@@ -176,62 +179,140 @@ export function ServerPostDetail({
       if (alive.current) setBusy(false);
     }
   }
+  async function remove() {
+    if (!post || locked.current || !session.isActive()) return;
+    locked.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      await session.api.deletePost(id, post.version);
+      if (session.isActive()) onClose();
+    } catch (e) {
+      if (alive.current) setError(e instanceof Error ? e.message : '삭제하지 못했습니다.');
+    } finally {
+      locked.current = false;
+      if (alive.current) setBusy(false);
+    }
+  }
+  const close = () => {
+    if (!locked.current) onClose();
+  };
   return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={ui.page}>
-        <ScreenLayout
-          title="오운완"
-          onBack={onClose}
-          footer={<Button title="닫기" secondary onPress={onClose} />}
-        >
-          {!!error && (
-            <Text accessibilityRole="alert" style={ui.error}>
-              {error}
-            </Text>
-          )}
-          {!post && (
-            <Button title="게시물 다시 불러오기" disabled={busy} onPress={() => void load()} />
-          )}
-          {post && (
-            <>
-              <Text style={ui.heading}>{post.nickname}</Text>
-              <Text style={ui.muted}>
-                {post.date} · {post.summary}
+    <>
+      <Modal visible animationType="slide" onRequestClose={close}>
+        <SafeAreaView style={ui.page}>
+          <ScreenLayout
+            title="오운완"
+            onBack={close}
+            footer={<Button title="닫기" secondary disabled={busy} onPress={close} />}
+          >
+            {!!error && (
+              <Text accessibilityRole="alert" style={ui.error}>
+                {error}
               </Text>
-              <Text style={ui.muted}>
-                {post.visibility === 'FRIENDS' ? '친구 공개' : '나만 보기'}
-              </Text>
-              {post.photos.map((photo, index) => (
-                <Image
-                  key={index}
-                  accessibilityLabel={`오운완 사진 ${index + 1}`}
-                  source={{ uri: photo }}
-                  resizeMode="contain"
-                  style={{ width: '100%', aspectRatio: 1 }}
-                />
-              ))}
-              <Text style={ui.body}>{post.memo || '오늘도 운동 완료'}</Text>
-              <Text style={ui.body}>좋아요 {post.likes}개</Text>
-              {!post.mine && (
-                <Button
-                  title={post.liked ? '♥ 좋아요 취소' : '♡ 좋아요'}
-                  secondary
-                  disabled={busy}
-                  onPress={() => void change()}
-                />
-              )}
-              {post.mine && post.visibility === 'FRIENDS' && (
-                <Button
-                  title="나만 보기로 변경"
-                  secondary
-                  disabled={busy}
-                  onPress={() => void change(true)}
-                />
-              )}
-            </>
-          )}
-        </ScreenLayout>
-      </SafeAreaView>
-    </Modal>
+            )}
+            {!post && (
+              <Button title="게시물 다시 불러오기" disabled={busy} onPress={() => void load()} />
+            )}
+            {post && (
+              <>
+                <Text style={ui.heading}>{post.nickname}</Text>
+                <Text style={ui.muted}>
+                  {post.date} · {post.summary}
+                </Text>
+                <Text style={ui.muted}>
+                  {post.visibility === 'FRIENDS' ? '친구 공개' : '나만 보기'}
+                </Text>
+                {post.photos.map((photo, index) => (
+                  <Image
+                    key={index}
+                    accessibilityLabel={`오운완 사진 ${index + 1}`}
+                    source={{ uri: photo }}
+                    resizeMode="contain"
+                    style={{ width: '100%', aspectRatio: 1 }}
+                  />
+                ))}
+                <Text style={ui.body}>{post.memo || '오늘도 운동 완료'}</Text>
+                <Text style={ui.body}>좋아요 {post.likes}개</Text>
+                {!post.mine && (
+                  <Button
+                    title={post.liked ? '♥ 좋아요 취소' : '♡ 좋아요'}
+                    secondary
+                    disabled={busy}
+                    onPress={() => void change()}
+                  />
+                )}
+                {post.mine && (
+                  <>
+                    <Button
+                      title="게시물 편집"
+                      secondary
+                      disabled={busy}
+                      onPress={() => setEditing(true)}
+                    />
+                    <Button
+                      title="계정 게시물 삭제"
+                      secondary
+                      disabled={busy}
+                      onPress={() => setConfirmDelete(true)}
+                    />
+                    {confirmDelete && (
+                      <View style={ui.card}>
+                        <Text style={ui.body}>
+                          이 계정 게시물의 사진·글·좋아요가 삭제되며 복구할 수 없습니다. 운동 기록과
+                          기기 저장본은 유지됩니다.
+                        </Text>
+                        <Button
+                          title="삭제 취소"
+                          secondary
+                          disabled={busy}
+                          onPress={() => setConfirmDelete(false)}
+                        />
+                        <Button
+                          title="확인 후 게시물 삭제"
+                          disabled={busy}
+                          onPress={() => void remove()}
+                        />
+                        <Button
+                          title="최신 게시물 다시 확인"
+                          secondary
+                          disabled={busy}
+                          onPress={() => {
+                            setConfirmDelete(false);
+                            void load();
+                          }}
+                        />
+                      </View>
+                    )}
+                  </>
+                )}
+                {post.mine && post.visibility === 'FRIENDS' && (
+                  <Button
+                    title="나만 보기로 변경"
+                    secondary
+                    disabled={busy}
+                    onPress={() => void change(true)}
+                  />
+                )}
+              </>
+            )}
+          </ScreenLayout>
+        </SafeAreaView>
+      </Modal>
+      {editing && post && (
+        <ServerPostEditor
+          session={session}
+          post={post}
+          onSaved={(saved) => {
+            setPost(saved);
+            setEditing(false);
+          }}
+          onClose={() => {
+            setEditing(false);
+            void load();
+          }}
+        />
+      )}
+    </>
   );
 }

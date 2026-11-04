@@ -543,6 +543,8 @@ export function createRufitApi(options: Options) {
       request<void>('PUT', `/social/live/mine/${segment(id)}`, { active }),
     cheerWorkout: (memberId: string, workoutId: string) =>
       request<void>('POST', `/social/live/${segment(memberId)}/${segment(workoutId)}/cheer`),
+    deletePost: (id: string, version: number) =>
+      request<void>('DELETE', `/social/posts/${segment(id)}?version=${version}`),
     hidePost: (id: string) => request<void>('POST', `/social/posts/${segment(id)}/hide`),
     notifications: (before?: string) =>
       request<{ items: ServerNotification[]; unreadCount: number; hasNext: boolean }>(
