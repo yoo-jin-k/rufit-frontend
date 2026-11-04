@@ -1,0 +1,78 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 300,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 140.25,
+        "width": 640,
+        "height": 103.75,
+        "scrollTop": 218
+      },
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "secondSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    },
+    {
+      "width": 844,
+      "height": 260,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 140.25,
+        "width": 640,
+        "height": 103.75,
+        "scrollTop": 218
+      },
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "secondSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 140.25,
+        "width": 640,
+        "height": 103.75,
+        "scrollTop": 218
+      },
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "secondSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    }
+  ],
+  "nativeKeyboardTested": false,
+  "forceClickUsed": false
+}

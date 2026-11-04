@@ -1,0 +1,62 @@
+{
+  "primary": {
+    "background": "rgb(36, 107, 83)",
+    "radius": "14px",
+    "height": 48
+  },
+  "secondary": {
+    "height": 48,
+    "padding": "12px 16px",
+    "borderRadius": "14px",
+    "fontSize": "16px"
+  },
+  "rows": [
+    {
+      "width": 320,
+      "height": 568,
+      "scrollWidth": 320,
+      "buttonOverflow": []
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "scrollWidth": 375,
+      "buttonOverflow": []
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "buttonOverflow": []
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "scrollWidth": 430,
+      "buttonOverflow": []
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "scrollWidth": 768,
+      "buttonOverflow": []
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "scrollWidth": 1024,
+      "buttonOverflow": []
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "scrollWidth": 844,
+      "buttonOverflow": []
+    }
+  ],
+  "errors": [],
+  "statePreserved": true,
+  "reloadPreserved": true,
+  "nativeDeviceTested": false,
+  "fontScaleTested": false
+}
