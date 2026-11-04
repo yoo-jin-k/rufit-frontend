@@ -1,3 +1,9 @@
+export type LiveWorkouts = {
+  sharing: boolean;
+  workoutId: string | null;
+  items: { memberId: string; nickname: string; workoutId: string; sent: boolean }[];
+  received: { memberId: string; nickname: string }[];
+};
 export type ServerPost = {
   id: string;
   sourceId: string | null;
@@ -24,11 +30,12 @@ export type PostEdit = {
 };
 export type ServerNotification = {
   id: string;
-  type: 'FRIEND_REQUEST' | 'FRIEND_ACCEPTED' | 'POST_LIKED';
+  type: 'FRIEND_REQUEST' | 'FRIEND_ACCEPTED' | 'POST_LIKED' | 'WORKOUT_CHEER';
   actorId: string;
   actorNickname: string;
   requestId: string | null;
   postId?: string | null;
+  workoutId?: string | null;
   createdAt: string;
   read: boolean;
 };
@@ -529,6 +536,13 @@ export function createRufitApi(options: Options) {
       ),
     likePost: (id: string, liked: boolean) =>
       request<ServerPost>('PUT', `/social/posts/${segment(id)}/like`, { liked }),
+    liveWorkouts: () => request<LiveWorkouts>('GET', '/social/live'),
+    shareLiveWorkout: (enabled: boolean) =>
+      request<void>('PUT', '/social/live/sharing', { enabled }),
+    liveHeartbeat: (id: string, active: boolean) =>
+      request<void>('PUT', `/social/live/mine/${segment(id)}`, { active }),
+    cheerWorkout: (memberId: string, workoutId: string) =>
+      request<void>('POST', `/social/live/${segment(memberId)}/${segment(workoutId)}/cheer`),
     hidePost: (id: string) => request<void>('POST', `/social/posts/${segment(id)}/hide`),
     notifications: (before?: string) =>
       request<{ items: ServerNotification[]; unreadCount: number; hasNext: boolean }>(

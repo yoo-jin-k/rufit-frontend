@@ -132,11 +132,13 @@ export function ServerNotificationButton() {
                         {!item.read && <Text style={ui.muted}>새 알림</Text>}
                       </View>
                       <Text style={ui.body}>
-                        {item.type === 'POST_LIKED'
-                          ? '내 게시물에 좋아요를 눌렀어요.'
-                          : item.type === 'FRIEND_REQUEST'
-                            ? '친구 신청을 보냈어요.'
-                            : '친구 신청을 수락했어요.'}
+                        {item.type === 'WORKOUT_CHEER'
+                          ? '운동 중인 나에게 응원을 보냈어요.'
+                          : item.type === 'POST_LIKED'
+                            ? '내 게시물에 좋아요를 눌렀어요.'
+                            : item.type === 'FRIEND_REQUEST'
+                              ? '친구 신청을 보냈어요.'
+                              : '친구 신청을 수락했어요.'}
                       </Text>
                     </Pressable>
                     <ServerMemberActions

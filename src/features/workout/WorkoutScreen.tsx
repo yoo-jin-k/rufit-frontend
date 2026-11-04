@@ -1,3 +1,5 @@
+import { useServerLive } from '../cheers/useServerLive';
+import { ServerWorkoutFriends } from '../cheers/ServerWorkoutFriends';
 import { TodayWorkoutCard } from './TodayWorkoutCard';
 import { WorkoutFriends, useWorkoutPresence } from '../cheers/WorkoutFriends';
 import type { RufitSession } from '../../api/session';
@@ -106,6 +108,10 @@ export function WorkoutScreen({
   useWorkoutPresence(
     ready && workout && workout.finishedAt === undefined ? workout.id : null,
     __DEV__ && !session,
+  );
+  const live = useServerLive(
+    session,
+    ready && workout && workout.finishedAt === undefined ? workout.id : null,
   );
   const [serverHistory, setServerHistory] = useState(false);
   const [tab, setTab] = useState<MainTab>('workout');
@@ -266,12 +272,24 @@ export function WorkoutScreen({
                     now={now}
                     onAdd={setManualDate}
                   />
-                  <WorkoutFriends enabled={__DEV__ && !session} />
+                  <>
+                    {session ? (
+                      <ServerWorkoutFriends session={session} live={live} />
+                    ) : (
+                      <WorkoutFriends enabled={__DEV__} />
+                    )}
+                  </>
                   <Text style={s.heading}>오늘의 운동</Text>
                 </>
               )}
               {!!workout && !finished && (
-                <WorkoutFriends workout={workout.id} enabled={__DEV__ && !session} />
+                <>
+                  {session ? (
+                    <ServerWorkoutFriends session={session} live={live} workout={workout.id} />
+                  ) : (
+                    <WorkoutFriends workout={workout.id} enabled={__DEV__} />
+                  )}
+                </>
               )}
               <LocalSaveStatus
                 state={state}
