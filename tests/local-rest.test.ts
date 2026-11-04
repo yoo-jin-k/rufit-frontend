@@ -5,6 +5,7 @@ import { remember, emptyArchive, createWorkoutStorage, decodeArchive } from '../
 import { completeWithRest, setPersonalRest, exerciseRest, adjustLocalRest } from '../src/features/workout/localRest.ts';
 const squat='00000000-0000-4000-8000-000000000001';
 const curl='00000000-0000-4000-8000-000000000009';
+const incline='4e043528-5b74-5bd1-bb8f-e6dcceb15fbb';
 function archive() {
   const workout=updateSet(addExercise(startWorkout('w',0),'e','스쿼트',squat),'e','e-1',{weight:'1',reps:'2'});
   return remember(emptyArchive(),workout);
@@ -18,6 +19,14 @@ test('종목별 추천이 다르고 개인 0초를 우선하며 추천 사용으
   assert.equal(exerciseRest(setPersonalRest(off,e,null),e).seconds,180);
   assert.equal(exerciseRest(off,{...e,catalogId:curl}).seconds,90);
   assert.deepEqual(a.personalRest,{});
+});
+test('추천값이 null인 신규 종목은 공통 기본값을 쓰고 개인 설정을 우선한다',()=>{
+  const a=archive(),e={...a.current!.exercises[0],catalogId:incline,name:'바벨 인클라인 벤치 프레스'};
+  const initial=exerciseRest(a,e);
+  assert.deepEqual(initial,{seconds:90,source:'기본',recommended:undefined});
+  const personal=setPersonalRest(a,e,45);
+  assert.equal(exerciseRest(personal,e).seconds,45);
+  assert.deepEqual(exerciseRest(setPersonalRest(personal,e,null),e),initial);
 });
 test('완료와 휴식 대상은 한 번에 저장되고 앱 재시작 후 절대시각을 그대로 복구한다',async()=>{
   let raw:string|null=null;const disk={getItem:async()=>raw,setItem:async(_:string,v:string)=>{raw=v;}};
