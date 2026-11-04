@@ -5,17 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
 import type { RufitSession } from '../../api/session';
-import type { ServerPost } from '../../api/client';
+import { ApiError, type ServerPost } from '../../api/client';
 
 /** 목록에는 작은 미리보기만 받고 상세 사진은 게시물을 열 때 권한을 다시 확인합니다. */
 export function ServerPostList({
   session,
   memberId,
   onTotal,
+  onLoadStatus,
 }: {
   session: RufitSession;
   memberId?: string;
   onTotal?: (total: number) => void;
+  onLoadStatus?: (status: 'loading' | 'ready' | 'error') => void;
 }) {
   const [items, setItems] = useState<ServerPost[]>([]),
     [page, setPage] = useState(0),
@@ -29,6 +31,7 @@ export function ServerPostList({
     async (next = 0) => {
       const order = ++sequence.current;
       setBusy(true);
+      onLoadStatus?.('loading');
       try {
         const result = await session.api.posts(memberId, next);
         if (!alive.current || !session.isActive() || order !== sequence.current) return;
@@ -40,15 +43,25 @@ export function ServerPostList({
         setPage(next);
         setNext(result.hasNext);
         onTotal?.(result.total);
+        onLoadStatus?.('ready');
         setError('');
       } catch (e) {
-        if (alive.current && order === sequence.current)
-          setError(e instanceof Error ? e.message : '게시물을 불러오지 못했습니다.');
+        if (alive.current && session.isActive() && order === sequence.current) {
+          // 조회 실패를 계속 로딩 중이거나 게시물 0개인 상태로 표시하지 않습니다.
+          onLoadStatus?.('error');
+          setError(
+            e instanceof ApiError && e.status === 404 && !memberId
+              ? '프로필의 친구 화면에서 닉네임을 먼저 저장해 주세요. 그다음 계정 오운완을 이용할 수 있습니다.'
+              : e instanceof Error
+                ? e.message
+                : '게시물을 불러오지 못했습니다.',
+          );
+        }
       } finally {
         if (alive.current && order === sequence.current) setBusy(false);
       }
     },
-    [session, memberId, onTotal],
+    [session, memberId, onTotal, onLoadStatus],
   );
   useEffect(() => {
     alive.current = true;
@@ -179,6 +192,7 @@ export function ServerPostDetail({
       if (alive.current) setBusy(false);
     }
   }
+  // 삭제 확인은 화면에서 먼저 받고, 서버 응답을 잃은 경우 같은 버전으로 재시도합니다.
   async function remove() {
     if (!post || locked.current || !session.isActive()) return;
     locked.current = true;

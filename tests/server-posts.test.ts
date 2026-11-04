@@ -276,3 +276,149 @@ test('다른 기기 게시물 편집도 날짜와 요약을 보존하며 저장 
     dom.window.close();
   }
 });
+
+test('편집 충돌은 초안을 유지하고 반복 저장을 막으며 명시적으로 버릴 때만 닫습니다', async () => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  Object.assign(globalThis, {
+    window: dom.window,
+    document: dom.window.document,
+    HTMLElement: dom.window.HTMLElement,
+    ShadowRoot: dom.window.ShadowRoot,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  });
+  const { createRoot } = await import('react-dom/client');
+  const load = nativeWebLoader({
+    '../../components/ScreenLayout': {
+      ui: {},
+      ScreenLayout: ({ children, footer }: { children: ReactNode; footer: ReactNode }) =>
+        createElement('div', null, children, footer),
+    },
+  });
+  const { ServerPostEditor } = load('src/features/posts/ServerPostEditor.tsx') as {
+    ServerPostEditor: ComponentType<Record<string, unknown>>;
+  };
+  const { ApiError } = load('src/api/client.ts') as {
+    ApiError: new (status: number, code: string, message: string) => Error;
+  };
+  let attempts = 0,
+    closed = false;
+  const session = {
+    isActive: () => true,
+    api: {
+      savePost: async () => {
+        attempts++;
+        throw new ApiError(409, 'CONFLICT', '최신 게시물 충돌');
+      },
+    },
+  };
+  const root = createRoot(document.getElementById('root')!);
+  const click = async (label: string) => {
+    const el = document.querySelector(`[aria-label="${label}"]`);
+    assert.ok(el, label);
+    await act(async () => el.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+  };
+  try {
+    await act(async () =>
+      root.render(
+        createElement(ServerPostEditor, {
+          session,
+          post: {
+            sourceId: 'old',
+            version: 2,
+            date: '2026-11-04',
+            summary: '운동',
+            memo: '보존할 초안',
+            photos: [],
+            visibility: 'PRIVATE',
+          },
+          onSaved() {
+            assert.fail('충돌 저장 성공 처리 금지');
+          },
+          onClose() {
+            closed = true;
+          },
+        }),
+      ),
+    );
+    await click('친구 공개');
+    await click('변경 내용 저장');
+    assert.match(document.body.textContent!, /최신 게시물 충돌/);
+    assert.equal(
+      (document.querySelector('[aria-label="오운완 글"]') as HTMLTextAreaElement).value,
+      '보존할 초안',
+    );
+    assert.equal(
+      document.querySelector('[aria-label="변경 내용 저장"]')?.getAttribute('aria-disabled'),
+      'true',
+    );
+    assert.equal(attempts, 1);
+    await click('편집 닫기');
+    assert.equal(closed, false);
+    await click('계속 편집');
+    assert.equal(closed, false);
+    await click('편집 닫기');
+    await click('변경 내용 버리고 닫기');
+    assert.equal(closed, true);
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+  }
+});
+
+test('게시물 조회 실패는 로딩을 종료하고 등록 안내 후 재시도로 복구됩니다', async () => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  Object.assign(globalThis, {
+    window: dom.window,
+    document: dom.window.document,
+    HTMLElement: dom.window.HTMLElement,
+    ShadowRoot: dom.window.ShadowRoot,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  });
+  const { createRoot } = await import('react-dom/client');
+  const load = nativeWebLoader({ '../../components/ScreenLayout': { ui: {} } });
+  const { ServerPostList } = load('src/features/posts/ServerPosts.tsx') as {
+    ServerPostList: ComponentType<Record<string, unknown>>;
+  };
+  const { ApiError } = load('src/api/client.ts') as {
+    ApiError: new (status: number, code: string, message: string) => Error;
+  };
+  let attempts = 0;
+  const statuses: string[] = [],
+    totals: number[] = [];
+  const session = {
+    isActive: () => true,
+    api: {
+      posts: async () => {
+        if (++attempts === 1) throw new ApiError(404, 'NOT_FOUND', '찾을 수 없습니다.');
+        return { items: [], total: 0, hasNext: false };
+      },
+    },
+  };
+  const root = createRoot(document.getElementById('root')!);
+  try {
+    await act(async () =>
+      root.render(
+        createElement(ServerPostList, {
+          session,
+          onLoadStatus: (status: string) => statuses.push(status),
+          onTotal: (n: number) => totals.push(n),
+        }),
+      ),
+    );
+    assert.deepEqual(statuses, ['loading', 'error']);
+    assert.deepEqual(totals, []);
+    assert.match(document.body.textContent!, /닉네임을 먼저 저장/);
+    assert.doesNotMatch(document.body.textContent!, /불러오고 있습니다/);
+    const retry = document.querySelector('[aria-label="게시물 새로고침"]');
+    assert.ok(retry);
+    await act(async () =>
+      retry.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })),
+    );
+    assert.deepEqual(statuses, ['loading', 'error', 'loading', 'ready']);
+    assert.deepEqual(totals, [0]);
+    assert.doesNotMatch(document.body.textContent!, /닉네임을 먼저 저장/);
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+  }
+});

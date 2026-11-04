@@ -51,6 +51,7 @@ export function ServerPostEditor({
       setBusy(false);
     }
   }
+  // 서버 성공 전에는 초안을 닫지 않으며, 충돌 이후의 반복 덮어쓰기를 막습니다.
   async function save() {
     if (locked.current || !post.sourceId || !session.isActive() || conflict) return;
     locked.current = true;

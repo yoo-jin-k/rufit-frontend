@@ -46,6 +46,7 @@ export function ProfileScreen({
 }) {
   const [journalSource, setJournalSource] = useState<'account' | 'device'>(initialJournalSource);
   const [serverPostCount, setServerPostCount] = useState<number | null>(null);
+  const [postLoadStatus, setPostLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const social = useTestFriends();
   const [serverCount, setServerCount] = useState<number | null>(null);
   const friendCount = session
@@ -196,7 +197,9 @@ export function ProfileScreen({
             label: '오운완',
             value:
               session && journalSource === 'account'
-                ? (serverPostCount ?? '확인 중')
+                ? postLoadStatus === 'error'
+                  ? '확인 실패'
+                  : (serverPostCount ?? '확인 중')
                 : entries.length,
           },
           { label: '친구', value: friendCount },
@@ -270,7 +273,11 @@ export function ProfileScreen({
       ) : tab === '전체 기록' ? (
         <WorkoutHistory records={[...history].reverse()} journals={entries} onJournal={onJournal} />
       ) : session && journalSource === 'account' ? (
-        <ServerPostList session={session} onTotal={setServerPostCount} />
+        <ServerPostList
+          session={session}
+          onTotal={setServerPostCount}
+          onLoadStatus={setPostLoadStatus}
+        />
       ) : entries.length > 0 ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -20 }}>
           {[...entries]

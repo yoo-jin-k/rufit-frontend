@@ -1,3 +1,9 @@
+import { emptyArchive, decodeArchive } from '../src/features/workout/storage.ts';
+import {
+  setDefaultRest,
+  setPersonalRest,
+  exerciseRest,
+} from '../src/features/workout/localRest.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calendarDays } from '../src/features/calendar/model.ts';
@@ -71,12 +77,6 @@ test('손상된 저장 자료와 과도한 사진을 빈 프로필로 덮어쓰�
   );
 });
 
-import { emptyArchive, decodeArchive } from '../src/features/workout/storage.ts';
-import {
-  setDefaultRest,
-  setPersonalRest,
-  exerciseRest,
-} from '../src/features/workout/localRest.ts';
 test('공통 휴식값은 저장 후 복원되며 종목 개인값보다 우선하지 않습니다', () => {
   const exercise = { id: 'e', name: '검수 운동', sets: [] };
   let archive = setDefaultRest(emptyArchive(), 45);

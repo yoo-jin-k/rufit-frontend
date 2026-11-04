@@ -11,7 +11,6 @@ import { SortableSets } from './SortableSets';
 import { NotificationButton } from '../../components/NotificationButton';
 import { BottomNavigation, type MainTab } from '../../components/BottomNavigation';
 import { ui } from '../../components/ScreenLayout';
-import { AppIcon } from '../../components/AppIcon';
 import { AnalysisScreen } from '../analysis/AnalysisScreen';
 import { ProfileScreen } from '../profile/ProfileScreen';
 import { SettingsScreen } from '../settings/SettingsScreen';

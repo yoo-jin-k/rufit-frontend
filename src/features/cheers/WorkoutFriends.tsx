@@ -62,7 +62,10 @@ export function WorkoutFriends({
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
-  useEffect(() => { const timer = setTimeout(() => setNow(Date.now()), 0); return () => clearTimeout(timer); }, [cheers.data]);
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(Date.now()), 0);
+    return () => clearTimeout(timer);
+  }, [cheers.data]);
   const members = visibleFriends(cheers.data, social, testSelf, now);
   const received = receivedCheers(cheers.data, social, testSelf).filter(
     (c) => c.workout === workout,
