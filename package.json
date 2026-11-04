@@ -1,0 +1,55 @@
+{
+  "name": "rufit-frontend",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~57.0.22",
+    "expo-auth-session": "~57.0.16",
+    "expo-crypto": "~57.0.4",
+    "expo-linking": "~57.0.13",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-web-browser": "~57.0.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^24.13.4",
+    "@types/react": "~19.2.2",
+    "@types/react-dom": "~19.2.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "jsdom": "^30.0.1",
+    "sass": "^1.104.1",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.tools.json",
+    "lint": "eslint .",
+    "check": "npm run styles:check && npm run typecheck && npm run lint && npm test",
+    "export": "expo export --platform all",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:backend": "node --experimental-strip-types scripts/smoke-backend.mts",
+    "auth:mock": "node --experimental-strip-types scripts/mock-auth-server.mts",
+    "styles": "node --experimental-strip-types scripts/build-styles.mts",
+    "styles:check": "npm run styles -- --check",
+    "prestart": "npm run styles",
+    "preweb": "npm run styles",
+    "preios": "npm run styles",
+    "preandroid": "npm run styles",
+    "preexport": "npm run styles"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

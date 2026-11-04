@@ -1,0 +1,103 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 300,
+      "entry": {
+        "x": 243.65625,
+        "y": 22,
+        "width": 60.34375,
+        "height": 48
+      },
+      "logo": {
+        "x": 16,
+        "y": 84,
+        "width": 160,
+        "height": 57
+      },
+      "returnButton": {
+        "x": 16,
+        "y": 236,
+        "width": 288,
+        "height": 48
+      },
+      "providerActions": 0,
+      "workoutDomPreserved": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "entry": {
+        "x": 309.65625,
+        "y": 26,
+        "width": 60.34375,
+        "height": 48
+      },
+      "logo": {
+        "x": 20,
+        "y": 84,
+        "width": 160,
+        "height": 57
+      },
+      "returnButton": {
+        "x": 20,
+        "y": 301,
+        "width": 350,
+        "height": 48
+      },
+      "providerActions": 0,
+      "workoutDomPreserved": true
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "entry": {
+        "x": 349.65625,
+        "y": 26,
+        "width": 60.34375,
+        "height": 48
+      },
+      "logo": {
+        "x": 20,
+        "y": 84,
+        "width": 160,
+        "height": 57
+      },
+      "returnButton": {
+        "x": 20,
+        "y": 269,
+        "width": 390,
+        "height": 48
+      },
+      "providerActions": 0,
+      "workoutDomPreserved": true
+    },
+    {
+      "width": 768,
+      "height": 700,
+      "entry": {
+        "x": 619.65625,
+        "y": 30,
+        "width": 60.34375,
+        "height": 48
+      },
+      "logo": {
+        "x": 88,
+        "y": 84,
+        "width": 160,
+        "height": 57
+      },
+      "returnButton": {
+        "x": 88,
+        "y": 269,
+        "width": 592,
+        "height": 48
+      },
+      "providerActions": 0,
+      "workoutDomPreserved": true
+    }
+  ],
+  "authRequests": [],
+  "errors": [],
+  "originalWorkoutPreserved": true
+}
