@@ -1,0 +1,80 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 300,
+      "reached": [
+        {
+          "label": "input",
+          "x": 32,
+          "y": 158,
+          "width": 256,
+          "height": 50
+        },
+        {
+          "label": "save",
+          "x": 32,
+          "y": 252,
+          "width": 256,
+          "height": 48
+        },
+        {
+          "label": "cancel",
+          "x": 32,
+          "y": 126,
+          "width": 256,
+          "height": 48
+        },
+        {
+          "label": "reset",
+          "x": 32,
+          "y": 126,
+          "width": 256,
+          "height": 48
+        }
+      ],
+      "saved120": true,
+      "cancelPreserved120": true,
+      "resetApplied": true
+    },
+    {
+      "width": 844,
+      "height": 260,
+      "reached": [
+        {
+          "label": "input",
+          "x": 142,
+          "y": 138,
+          "width": 560,
+          "height": 50
+        },
+        {
+          "label": "save",
+          "x": 142,
+          "y": 212,
+          "width": 560,
+          "height": 48
+        },
+        {
+          "label": "cancel",
+          "x": 142,
+          "y": 106,
+          "width": 560,
+          "height": 48
+        },
+        {
+          "label": "reset",
+          "x": 142,
+          "y": 106,
+          "width": 560,
+          "height": 48
+        }
+      ],
+      "saved120": true,
+      "cancelPreserved120": true,
+      "resetApplied": true
+    }
+  ],
+  "method": "Chrome 가용 창 높이 감소 + 실제 스크롤/버튼 클릭",
+  "nativeKeyboardTested": false
+}
