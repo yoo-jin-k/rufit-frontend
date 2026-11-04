@@ -1,0 +1,127 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 568,
+      "scrollWidth": 320,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 256,
+          "height": 48
+        },
+        {
+          "width": 256,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "scrollWidth": 375,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 303,
+          "height": 48
+        },
+        {
+          "width": 303,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 318,
+          "height": 48
+        },
+        {
+          "width": 318,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "scrollWidth": 430,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 358,
+          "height": 48
+        },
+        {
+          "width": 358,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "scrollWidth": 768,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 560,
+          "height": 48
+        },
+        {
+          "width": 560,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "scrollWidth": 1024,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 560,
+          "height": 48
+        },
+        {
+          "width": 560,
+          "height": 48
+        }
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "scrollWidth": 844,
+      "overflow": [],
+      "buttons": [
+        {
+          "width": 560,
+          "height": 48
+        },
+        {
+          "width": 560,
+          "height": 48
+        }
+      ]
+    }
+  ],
+  "invalidInputPreserved": true,
+  "resizePreservesDraftCursorErrorAndRaw": true,
+  "cancelPreservesSetting": true,
+  "validZero120And3600": true,
+  "resetRemovesOverride": true,
+  "restAndPausedWorkoutPreserved": true,
+  "saveFailureUsesGlobalRetry": true,
+  "finishedReadOnly": true,
+  "fallback90": true,
+  "nativeDeviceTested": false,
+  "errors": []
+}
