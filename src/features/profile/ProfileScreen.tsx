@@ -221,7 +221,13 @@ export function ProfileScreen({
               justifyContent: 'center',
             }}
           >
-            <Text style={ui.heading}>{item.value}</Text>
+            {/* 숫자 대신 안내 문구가 표시되어도 작은 화면에서 통계 열이 밀리지 않도록 합니다. */}
+            <Text
+              numberOfLines={1}
+              style={[ui.heading, typeof item.value === 'string' && { fontSize: 12 }]}
+            >
+              {item.value}
+            </Text>
             <Text style={[ui.muted, { fontSize: 11 }]}>{item.label}</Text>
           </Pressable>
         ))}
