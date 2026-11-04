@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { RufitSession } from '../../api/session';
-import type { LiveWorkouts } from '../../api/client';
+import { ApiError, type LiveWorkouts } from '../../api/client';
 
 /** 계정이 바뀐 뒤 도착한 응답을 버리고, 상태 신호 실패가 운동 저장을 막지 않게 분리합니다. */
 export function useServerLive(session: RufitSession | null, workout: string | null) {
@@ -32,7 +32,13 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
       }
     } catch (cause) {
       if (current.current === session && request === sequence.current) {
-        setError(cause instanceof Error ? cause.message : '운동 중인 친구를 불러오지 못했습니다.');
+        setError(
+          cause instanceof ApiError && cause.status === 404
+            ? '프로필의 친구 화면에서 닉네임을 먼저 저장해 주세요. 그다음 운동 중인 친구와 응원 기능을 이용할 수 있습니다.'
+            : cause instanceof Error
+              ? cause.message
+              : '운동 중인 친구를 불러오지 못했습니다.',
+        );
         setSnapshot(null);
       }
     }
