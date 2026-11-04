@@ -1,0 +1,31 @@
+/* 자동 생성: npm run styles. 직접 수정 금지. */
+.button {
+  min-height: 48px;
+  padding: 14px;
+  border-radius: 14px;
+  background-color: #246B53;
+  justify-content: center;
+  align-items: center;
+}
+
+.secondary {
+  background-color: #E7F0EB;
+}
+
+.pressed {
+  opacity: 0.7;
+}
+
+.disabled {
+  opacity: 0.4;
+}
+
+.text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.secondaryText {
+  color: #246B53;
+}
