@@ -1,13 +1,67 @@
-export type ServerNotification = { id: string; type: 'FRIEND_REQUEST' | 'FRIEND_ACCEPTED'; actorId: string; actorNickname: string; requestId: string; createdAt: string; read: boolean };
+export type ServerPost = {
+  id: string;
+  sourceId: string | null;
+  memberId: string;
+  nickname: string;
+  memo: string;
+  date: string;
+  summary: string;
+  visibility: 'PRIVATE' | 'FRIENDS';
+  version: number;
+  photos: string[];
+  thumbnail: string | null;
+  likes: number;
+  liked: boolean;
+  mine: boolean;
+};
+export type PostEdit = {
+  version: number;
+  memo: string;
+  date: string;
+  summary: string;
+  visibility: 'PRIVATE' | 'FRIENDS';
+  photos: string[];
+};
+export type ServerNotification = {
+  id: string;
+  type: 'FRIEND_REQUEST' | 'FRIEND_ACCEPTED' | 'POST_LIKED';
+  actorId: string;
+  actorNickname: string;
+  requestId: string | null;
+  postId?: string | null;
+  createdAt: string;
+  read: boolean;
+};
 export type ReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE' | 'OTHER';
-export type MemberProfile = { memberId: string; nickname: string; relationship: 'SELF' | 'FRIEND' | 'INCOMING' | 'OUTGOING' | 'NONE' };
-export type FriendRequest = { id: string; requesterId: string; targetId: string; requesterNickname: string; targetNickname: string; state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' };
+export type MemberProfile = {
+  memberId: string;
+  nickname: string;
+  relationship: 'SELF' | 'FRIEND' | 'INCOMING' | 'OUTGOING' | 'NONE';
+};
+export type FriendRequest = {
+  id: string;
+  requesterId: string;
+  targetId: string;
+  requesterNickname: string;
+  targetNickname: string;
+  state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+};
 export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
 export type SocialMembers = { items: { memberId: string; nickname: string }[] };
 /** 검색 허용은 별도의 명시적 저장으로만 변경하며 기기 프로필을 자동 공개하지 않습니다. */
-export type DirectorySettings = { memberId: string | null; nickname: string | null; discoverable: boolean; version: number };
+export type DirectorySettings = {
+  memberId: string | null;
+  nickname: string | null;
+  discoverable: boolean;
+  version: number;
+};
 export type DirectoryEdit = { nickname: string; discoverable: boolean; version: number };
-export type DirectoryResults = { items: { memberId: string; nickname: string }[]; page: number; size: number; hasNext: boolean };
+export type DirectoryResults = {
+  items: { memberId: string; nickname: string }[];
+  page: number;
+  size: number;
+  hasNext: boolean;
+};
 export type SetInput = {
   exerciseId?: string | null;
   exerciseName: string;
@@ -15,9 +69,31 @@ export type SetInput = {
   reps: number;
 };
 export type MeasurementKind = 'weight' | 'strength';
-export type ServerMeasurement = { date: string; version: number; weight: number | null; bench: number | null; squat: number | null; deadlift: number | null };
-export type MeasurementEdit = { version: number; weight?: number; bench?: number; squat?: number; deadlift?: number };
-export type OfflineWorkoutImport = { startedAt: string; finishedAt: string; sets: {set: SetInput; completed: boolean}[]; note: string; confirmed: true; pausedDurationMs: number; recordDate?: string; entryMode?: 'manual' };
+export type ServerMeasurement = {
+  date: string;
+  version: number;
+  weight: number | null;
+  bench: number | null;
+  squat: number | null;
+  deadlift: number | null;
+};
+export type MeasurementEdit = {
+  version: number;
+  weight?: number;
+  bench?: number;
+  squat?: number;
+  deadlift?: number;
+};
+export type OfflineWorkoutImport = {
+  startedAt: string;
+  finishedAt: string;
+  sets: { set: SetInput; completed: boolean }[];
+  note: string;
+  confirmed: true;
+  pausedDurationMs: number;
+  recordDate?: string;
+  entryMode?: 'manual';
+};
 export type WorkoutSnapshot = {
   recordDate?: string | null;
   entryMode?: 'manual' | null;
@@ -350,7 +426,12 @@ export function createRufitApi(options: Options) {
     workoutSummary: (id: string) => request<WorkoutSummary>('GET', `${workoutPath(id)}/summary`),
     workout: (id: string) => request<WorkoutSnapshot>('GET', workoutPath(id)),
     importWorkout: (key: string, body: OfflineWorkoutImport) =>
-      request<{workout: WorkoutSnapshot; importedVersion: number; replayed: boolean}>('POST', '/workouts/import', body, {'Idempotency-Key': key}),
+      request<{ workout: WorkoutSnapshot; importedVersion: number; replayed: boolean }>(
+        'POST',
+        '/workouts/import',
+        body,
+        { 'Idempotency-Key': key },
+      ),
     measurements: (kind: MeasurementKind, page = 0) =>
       request<Page<ServerMeasurement>>('GET', `/measurements/${kind}?page=${page}&size=100`),
     saveMeasurement: (kind: MeasurementKind, date: string, body: MeasurementEdit) =>
@@ -430,17 +511,44 @@ export function createRufitApi(options: Options) {
       request<FriendRequest>('POST', `/social/requests/${segment(id)}/respond`, { action }),
     removeFriend: (id: string) => request<null>('DELETE', `/social/friends/${segment(id)}`),
     memberProfile: (id: string) => request<MemberProfile>('GET', `/social/members/${segment(id)}`),
-    reportMember: (requestId: string, targetId: string, reason: ReportReason) => request<{ id: string; status: 'RECEIVED' }>('POST', '/social/reports', { requestId, targetId, reason }),
-    notifications: (before?: string) => request<{ items: ServerNotification[]; unreadCount: number; hasNext: boolean }>('GET', `/social/notifications${before ? `?before=${encodeURIComponent(before)}` : ''}`),
-    readNotification: (id: string) => request<void>('POST', `/social/notifications/${segment(id)}/read`),
+    reportMember: (requestId: string, targetId: string, reason: ReportReason) =>
+      request<{ id: string; status: 'RECEIVED' }>('POST', '/social/reports', {
+        requestId,
+        targetId,
+        reason,
+      }),
+    savePost: (source: string, body: PostEdit) =>
+      request<ServerPost>('PUT', `/social/posts/mine/${segment(source)}`, body),
+    ownPost: (source: string) =>
+      request<ServerPost>('GET', `/social/posts/mine/${segment(source)}`),
+    post: (id: string) => request<ServerPost>('GET', `/social/posts/${segment(id)}`),
+    posts: (memberId?: string, page = 0) =>
+      request<{ items: ServerPost[]; hasNext: boolean; total: number }>(
+        'GET',
+        `/social/posts?page=${page}${memberId ? `&memberId=${segment(memberId)}` : ''}`,
+      ),
+    likePost: (id: string, liked: boolean) =>
+      request<ServerPost>('PUT', `/social/posts/${segment(id)}/like`, { liked }),
+    hidePost: (id: string) => request<void>('POST', `/social/posts/${segment(id)}/hide`),
+    notifications: (before?: string) =>
+      request<{ items: ServerNotification[]; unreadCount: number; hasNext: boolean }>(
+        'GET',
+        `/social/notifications${before ? `?before=${encodeURIComponent(before)}` : ''}`,
+      ),
+    readNotification: (id: string) =>
+      request<void>('POST', `/social/notifications/${segment(id)}/read`),
     friends: () => request<SocialMembers>('GET', '/social/friends'),
     blockedMembers: () => request<SocialMembers>('GET', '/social/blocks'),
     blockMember: (id: string) => request<null>('POST', `/social/blocks/${segment(id)}`),
     unblockMember: (id: string) => request<null>('DELETE', `/social/blocks/${segment(id)}`),
     directorySettings: () => request<DirectorySettings>('GET', '/social/directory/me'),
-    updateDirectory: (edit: DirectoryEdit) => request<DirectorySettings>('PUT', '/social/directory/me', edit),
+    updateDirectory: (edit: DirectoryEdit) =>
+      request<DirectorySettings>('PUT', '/social/directory/me', edit),
     searchDirectory: (query: string, page = 0, size = 20) =>
-      request<DirectoryResults>('GET', `/social/directory/search?q=${segment(query)}&page=${page}&size=${size}`),
+      request<DirectoryResults>(
+        'GET',
+        `/social/directory/search?q=${segment(query)}&page=${page}&size=${size}`,
+      ),
     routines: (page = 0) => request<Routine[]>('GET', `/routines?page=${page}`),
     routine: (id: string) => request<Routine>('GET', `/routines/${segment(id)}`),
     createRoutine: (title: string, sets: SetInput[], idempotencyKey?: string) =>

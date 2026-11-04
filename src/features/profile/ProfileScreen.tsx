@@ -1,8 +1,14 @@
+import { ServerPostList } from '../posts/ServerPosts';
 import { ProfileAvatar } from './ProfileAvatar';
 import { ProfilePhotoEditor } from './ProfilePhotoEditor';
 import { TestPhoto } from '../../components/TestPhoto';
 import { LikedPostScreen } from './LikedPostScreen';
-import { addOwnSamplePosts, updateProfileDetails, updateProfileAvatar, journalPhotos } from './journalModel';
+import {
+  addOwnSamplePosts,
+  updateProfileDetails,
+  updateProfileAvatar,
+  journalPhotos,
+} from './journalModel';
 import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
@@ -29,16 +35,22 @@ export function ProfileScreen({
   profile,
   onJournal,
   session = null,
+  initialJournalSource = 'account',
 }: {
   session?: RufitSession | null;
+  initialJournalSource?: 'account' | 'device';
   now: number;
   history: Workout[];
   profile: ReturnType<typeof useProfile>;
   onJournal: (workout: Workout) => void;
 }) {
+  const [journalSource, setJournalSource] = useState<'account' | 'device'>(initialJournalSource);
+  const [serverPostCount, setServerPostCount] = useState<number | null>(null);
   const social = useTestFriends();
   const [serverCount, setServerCount] = useState<number | null>(null);
-  const friendCount = session ? (serverCount ?? '확인 중') : countTestFriends(social.records, testSelf);
+  const friendCount = session
+    ? (serverCount ?? '확인 중')
+    : countTestFriends(social.records, testSelf);
   const [tab, setTab] = useState('오운완'),
     [editing, setEditing] = useState(false),
     [name, setName] = useState(profile.value.nickname),
@@ -48,11 +60,19 @@ export function ProfileScreen({
     [friends, setFriends] = useState(false);
   useEffect(() => {
     let current = true;
-    if (session) void session.api.directorySettings().then(async settings => {
-      const count = settings.memberId ? (await session.api.friends()).items.length : 0;
-      if (current && session.isActive()) setServerCount(count);
-    }).catch(() => { if (current) setError('친구 수를 불러오지 못했습니다. 친구 목록에서 다시 확인해 주세요.'); });
-    return () => { current = false; };
+    if (session)
+      void session.api
+        .directorySettings()
+        .then(async (settings) => {
+          const count = settings.memberId ? (await session.api.friends()).items.length : 0;
+          if (current && session.isActive()) setServerCount(count);
+        })
+        .catch(() => {
+          if (current) setError('친구 수를 불러오지 못했습니다. 친구 목록에서 다시 확인해 주세요.');
+        });
+    return () => {
+      current = false;
+    };
   }, [session, friends]);
   const [avatar, setAvatar] = useState(profile.value.avatar);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -68,11 +88,31 @@ export function ProfileScreen({
   const [post, setPost] = useState<string | null>(null);
   // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
   const entries = profile.value.journals;
-  if (friends) return session ? <ServerFriendsScreen key={session.scope.accountId} session={session} nickname={profile.value.nickname} onClose={() => setFriends(false)} /> : <FriendsScreen onClose={() => setFriends(false)} />;
+  if (friends)
+    return session ? (
+      <ServerFriendsScreen
+        key={session.scope.accountId}
+        session={session}
+        nickname={profile.value.nickname}
+        onClose={() => setFriends(false)}
+      />
+    ) : (
+      <FriendsScreen onClose={() => setFriends(false)} />
+    );
   if (editing)
     return (
-      <ScreenLayout title="프로필 편집" onBack={() => { if (!photoBusy && !profile.busy) setEditing(false); }}>
-        <ProfilePhotoEditor photo={avatar} disabled={profile.busy} onChange={setAvatar} onBusy={setPhotoBusy} />
+      <ScreenLayout
+        title="프로필 편집"
+        onBack={() => {
+          if (!photoBusy && !profile.busy) setEditing(false);
+        }}
+      >
+        <ProfilePhotoEditor
+          photo={avatar}
+          disabled={profile.busy}
+          onChange={setAvatar}
+          onBusy={setPhotoBusy}
+        />
         <Text style={ui.muted}>닉네임</Text>
         <TextInput
           accessibilityLabel="닉네임"
@@ -107,11 +147,16 @@ export function ProfileScreen({
           disabled={photoBusy}
           onPress={async () => {
             try {
-              const next = updateProfileAvatar(updateProfileDetails(profile.value, name, bio, gym), avatar);
+              const next = updateProfileAvatar(
+                updateProfileDetails(profile.value, name, bio, gym),
+                avatar,
+              );
               await profile.save(next);
               setEditing(false);
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.');
+              setError(
+                cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.',
+              );
             }
           }}
         />
@@ -137,12 +182,23 @@ export function ProfileScreen({
         </View>
       </View>
       <View style={ui.row}>
-        <Pressable accessibilityRole="button" accessibilityLabel="프로필 사진 수정" disabled={!profile.ready} onPress={openEditor}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="프로필 사진 수정"
+          disabled={!profile.ready}
+          onPress={openEditor}
+        >
           <ProfileAvatar photo={profile.value.avatar} />
         </Pressable>
         {[
           { label: '운동한 날', value: Object.keys(workoutsByDay(history)).length },
-          { label: '오운완', value: entries.length },
+          {
+            label: '오운완',
+            value:
+              session && journalSource === 'account'
+                ? (serverPostCount ?? '확인 중')
+                : entries.length,
+          },
           { label: '친구', value: friendCount },
         ].map((item) => (
           <Pressable
@@ -174,12 +230,7 @@ export function ProfileScreen({
           {!!profile.value.gym && <Text style={ui.muted}>헬스장 · {profile.value.gym}</Text>}
         </View>
       )}
-      <Button
-        title="프로필 편집"
-        secondary
-        disabled={!profile.ready}
-        onPress={openEditor}
-      />
+      <Button title="프로필 편집" secondary disabled={!profile.ready} onPress={openEditor} />
       <View style={ui.row}>
         {['오운완', '전체 기록', '달력'].map((t) => (
           <Pressable
@@ -208,10 +259,18 @@ export function ProfileScreen({
           {error || profile.error}
         </Text>
       )}
+      {tab === '오운완' && session && (
+        <View style={[ui.row, { flexWrap: 'wrap' }]}>
+          <Button title="내 계정" compact secondary onPress={() => setJournalSource('account')} />
+          <Button title="이 기기" compact secondary onPress={() => setJournalSource('device')} />
+        </View>
+      )}
       {tab === '달력' ? (
         <WorkoutCalendar monthly history={history} ready now={now} />
       ) : tab === '전체 기록' ? (
         <WorkoutHistory records={[...history].reverse()} journals={entries} onJournal={onJournal} />
+      ) : session && journalSource === 'account' ? (
+        <ServerPostList session={session} onTotal={setServerPostCount} />
       ) : entries.length > 0 ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -20 }}>
           {[...entries]
@@ -228,16 +287,44 @@ export function ProfileScreen({
                   {j.testPhotoTile !== undefined ? (
                     <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
                   ) : journalPhotos(j).length ? (
-                    <Image source={{ uri: journalPhotos(j)[0] }} style={{ width: '100%', aspectRatio: 1 }} />
+                    <Image
+                      source={{ uri: journalPhotos(j)[0] }}
+                      style={{ width: '100%', aspectRatio: 1 }}
+                    />
                   ) : (
-                    <View style={{ aspectRatio: 1, padding: 10, gap: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }}>
+                    <View
+                      style={{
+                        aspectRatio: 1,
+                        padding: 10,
+                        gap: 8,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.primarySoft,
+                      }}
+                    >
                       <AppIcon name="image" size={24} />
-                      <Text numberOfLines={3} style={[ui.muted, { textAlign: 'center' }]}>{j.memo || '사진 없는 오운완'}</Text>
+                      <Text numberOfLines={3} style={[ui.muted, { textAlign: 'center' }]}>
+                        {j.memo || '사진 없는 오운완'}
+                      </Text>
                     </View>
                   )}
-                  {journalPhotos(j).length > 1 && <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: colors.text, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 }}>
-                    <Text style={{ color: colors.onPrimary, fontSize: 12 }}>{journalPhotos(j).length}장</Text>
-                  </View>}
+                  {journalPhotos(j).length > 1 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        backgroundColor: colors.text,
+                        borderRadius: 8,
+                        paddingHorizontal: 7,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <Text style={{ color: colors.onPrimary, fontSize: 12 }}>
+                        {journalPhotos(j).length}장
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
                 <LikeButton post={`own:${j.workoutId}`} />
               </View>
@@ -270,20 +357,41 @@ export function ProfileScreen({
           />
         )}
       {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다. */}
-      <Modal visible={choosingWorkout} animationType="slide" onRequestClose={() => setChoosingWorkout(false)}>
+      <Modal
+        visible={choosingWorkout}
+        animationType="slide"
+        onRequestClose={() => setChoosingWorkout(false)}
+      >
         <SafeAreaView style={ui.page}>
           <ScreenLayout title="오운완을 남길 운동 선택" onBack={() => setChoosingWorkout(false)}>
-            <Text style={ui.muted}>사진과 글을 남길 운동 날짜를 선택해 주세요. 기존 오운완은 수정할 수 있습니다.</Text>
-            <WorkoutHistory records={history} onSelect={(workout) => { setChoosingWorkout(false); onJournal(workout); }} />
+            <Text style={ui.muted}>
+              사진과 글을 남길 운동 날짜를 선택해 주세요. 기존 오운완은 수정할 수 있습니다.
+            </Text>
+            <WorkoutHistory
+              records={history}
+              onSelect={(workout) => {
+                setChoosingWorkout(false);
+                onJournal(workout);
+              }}
+            />
           </ScreenLayout>
         </SafeAreaView>
       </Modal>
-      {post && <LikedPostScreen post={post} onClose={() => setPost(null)}
-        onEdit={history.some((workout) => `own:${workout.id}` === post) ? () => {
-          const workout = history.find((workout) => `own:${workout.id}` === post);
-          setPost(null);
-          if (workout) onJournal(workout);
-        } : undefined} /> }
+      {post && (
+        <LikedPostScreen
+          post={post}
+          onClose={() => setPost(null)}
+          onEdit={
+            history.some((workout) => `own:${workout.id}` === post)
+              ? () => {
+                  const workout = history.find((workout) => `own:${workout.id}` === post);
+                  setPost(null);
+                  if (workout) onJournal(workout);
+                }
+              : undefined
+          }
+        />
+      )}
     </ScreenLayout>
   );
 }
