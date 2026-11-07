@@ -128,8 +128,16 @@ export function BodyWeightScreen({
             <Text style={ui.muted}>측정 날짜</Text>
             <MeasurementDate value={date} onChange={selectDate} disabled={!ready || busy} />
             <Text style={ui.muted}>키 (cm · 선택)</Text>
-            <TextInput accessibilityLabel="키 cm" keyboardType="decimal-pad" placeholder="예: 170.5"
-              value={height} editable={ready && !busy} onChangeText={setHeight} style={ui.input} maxLength={6} />
+            <TextInput
+              accessibilityLabel="키 cm"
+              keyboardType="decimal-pad"
+              placeholder="예: 170.5"
+              value={height}
+              editable={ready && !busy}
+              onChangeText={setHeight}
+              style={[ui.input, valueInput]}
+              maxLength={6}
+            />
             <Text style={ui.muted}>체중 (kg)</Text>
             <TextInput
               accessibilityLabel="체중 kg"
@@ -138,7 +146,8 @@ export function BodyWeightScreen({
               value={weight}
               editable={ready && !busy}
               onChangeText={setWeight}
-              style={[ui.input, { fontSize: 28, fontWeight: '700', minHeight: 72 }]}
+              style={[ui.input, valueInput]}
+              maxLength={6}
             />
             <Text style={ui.muted}>
               {existing
@@ -219,3 +228,5 @@ export function BodyWeightScreen({
     </SafeAreaView>
   );
 }
+// 키와 체중 입력칸을 같은 높이·글자 크기로 맞춥니다.
+const valueInput = { fontSize: 28, fontWeight: '700', minHeight: 72 } as const;

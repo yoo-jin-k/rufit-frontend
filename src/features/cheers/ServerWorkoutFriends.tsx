@@ -23,16 +23,18 @@ export function ServerWorkoutFriends({
   const members = live.data?.items ?? [];
   return (
     <View style={s.card}>
-      <View style={s.row}>
+      {/* 44pt 터치 영역은 유지하되 위아래 여백을 줄여 아래 안내 문구가 제목에 붙도록 합니다. */}
+      <View style={[s.row, { flexWrap: 'nowrap', marginVertical: -10 }]}>
+        {/* 새로고침 아이콘이 제목 오른쪽 끝에 붙도록 줄바꿈 없이 배치합니다. */}
         <Text style={[ui.heading, { flex: 1 }]}>지금 운동 중 {live.data ? `${members.length}명` : ''}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="지금 운동 중 새로고침"
           accessibilityState={{ disabled: live.busy }} disabled={live.busy}
-          style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          hitSlop={8}
+          style={{ minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' }}
           onPress={() => void live.refresh()}>
-          <AppIcon name="refresh" size={18} color={live.busy ? colors.muted : colors.text} />
+          <AppIcon name="refresh" size={22} color={live.busy ? colors.muted : colors.text} />
         </Pressable>
       </View>
-      <Text style={ui.muted}>상태를 공개한 친구만 보여요. 앱을 켜둔 동안 갱신됩니다.</Text>
       {!!live.error && (
         <Text accessibilityRole="alert" style={ui.error}>
           {live.error}

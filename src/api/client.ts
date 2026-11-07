@@ -56,6 +56,8 @@ export type FriendRequest = {
 export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
 export type SocialMembers = { items: { memberId: string; nickname: string }[] };
 /** 검색 허용은 별도의 명시적 저장으로만 변경하며 기기 프로필을 자동 공개하지 않습니다. */
+/** 닉네임 사용 가능 여부 확인 결과입니다. nickname은 앞뒤 공백을 제거한 값입니다. */
+export type NicknameAvailability = { nickname: string; available: boolean };
 export type DirectorySettings = {
   memberId: string | null;
   nickname: string | null;
@@ -560,6 +562,12 @@ export function createRufitApi(options: Options) {
     directorySettings: () => request<DirectorySettings>('GET', '/social/directory/me'),
     updateDirectory: (edit: DirectoryEdit) =>
       request<DirectorySettings>('PUT', '/social/directory/me', edit),
+    /** 대소문자와 앞뒤 공백을 무시하고 다른 회원이 같은 닉네임을 쓰는지 확인합니다. */
+    nicknameAvailability: (nickname: string) =>
+      request<NicknameAvailability>(
+        'GET',
+        `/social/directory/nickname-availability?nickname=${segment(nickname)}`,
+      ),
     searchDirectory: (query: string, page = 0, size = 20) =>
       request<DirectoryResults>(
         'GET',

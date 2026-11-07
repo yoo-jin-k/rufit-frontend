@@ -27,7 +27,8 @@ export function LocalSaveStatus({
   return (
     <View>
       <View style={[s.status, view.warning && s.warning]}>
-        <Text style={view.warning ? s.title : s.normal}>{view.title}</Text>
+        {/* 정상 저장 완료는 화면에 표시하지 않고, 진행 중·실패 상태만 보여 줍니다. */}
+        {!view.saved && <Text style={view.warning ? s.title : s.normal}>{view.title}</Text>}
         {view.warning && (
           <>
             <Text style={s.description}>{view.description}</Text>

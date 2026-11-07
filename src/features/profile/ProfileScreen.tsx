@@ -22,6 +22,7 @@ import { Platform, Image, Pressable, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
+import { nicknameMessage, useNicknameAvailability } from './useNicknameAvailability';
 import { Button } from '../../components/Button';
 import { colors } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
@@ -77,6 +78,7 @@ export function ProfileScreen({
       current = false;
     };
   }, [session, friends]);
+  const nicknameStatus = useNicknameAvailability(session, name, profile.value.nickname);
   const [avatar, setAvatar] = useState(profile.value.avatar);
   const [photoBusy, setPhotoBusy] = useState(false);
   function openEditor() {
@@ -130,6 +132,20 @@ export function ProfileScreen({
           maxLength={24}
           style={ui.input}
         />
+        {/* 입력이 멈추면 자동으로 중복 여부를 확인해 입력칸 바로 아래에 작게 안내합니다. */}
+        {!!nicknameMessage(nicknameStatus) && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[
+              ui.muted,
+              { fontSize: 12, marginTop: -4 },
+              nicknameStatus === 'available' && { color: colors.text },
+              (nicknameStatus === 'taken' || nicknameStatus === 'short') && { color: colors.danger },
+            ]}
+          >
+            {nicknameMessage(nicknameStatus)}
+          </Text>
+        )}
         <Text style={ui.muted}>한 줄 소개 (선택 · 80자 이내)</Text>
         <TextInput
           accessibilityLabel="한 줄 소개"
@@ -153,7 +169,7 @@ export function ProfileScreen({
         <Button
           title="저장"
           loading={profile.busy}
-          disabled={photoBusy}
+          disabled={photoBusy || nicknameStatus === 'taken' || nicknameStatus === 'short'}
           onPress={async () => {
             try {
               const next = updateProfileAvatar(
@@ -181,7 +197,8 @@ export function ProfileScreen({
     <ScreenLayout>
       <View style={ui.between}>
         <Text numberOfLines={1} style={[ui.heading, { flex: 1, minWidth: 0 }]}>{profile.value.nickname}</Text>
-        <View style={ui.row}>
+        {/* 추가·알림·편집 아이콘을 간격 없이 붙여 한 묶음으로 보이게 합니다. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="오운완 기록 추가"
@@ -189,16 +206,16 @@ export function ProfileScreen({
               if (history.length) setChoosingWorkout(true);
               else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
             }}
-            style={{ padding: 10 }}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
           >
-            <AppIcon name="plus" />
+            <AppIcon name="plus" color={colors.text} />
           </Pressable>
           <NotificationButton />
           {/* 편집 기능은 추가·알림과 같은 상단 도구 모음에서 제공합니다. */}
           <Pressable accessibilityRole="button" accessibilityLabel="프로필 편집"
             disabled={!profile.ready} onPress={openEditor}
             style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <AppIcon name="edit" size={20} />
+            <AppIcon name="edit" size={20} color={colors.text} />
           </Pressable>
         </View>
       </View>

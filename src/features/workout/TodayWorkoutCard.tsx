@@ -7,9 +7,9 @@ import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import type { Journal } from '../profile/journalModel';
 import type { Workout } from './model';
 import { completedWorkoutsOnDay, dailyWorkoutSummary } from './completedWorkoutSummary';
-import { WorkoutHistory } from './WorkoutHistory';
+import { WorkoutRecordCard } from './WorkoutRecordCard';
 
-/** 오늘의 모든 완료 기록은 카드 하나로 보여주고 상세에서 저장된 원본 기록을 확인합니다. */
+/** 오늘의 모든 완료 기록은 카드 하나로 요약하고, 누르면 기록별 전체 내용을 한 화면에서 보여줍니다. */
 export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }: {
   onDelete?: (id: string) => void;
   history: Workout[]; now: number; journals: Journal[]; onJournal: (workout: Workout) => void;
@@ -33,7 +33,13 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
     <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} onDismiss={afterClose}>
       <SafeAreaView style={ui.page}>
         <ScreenLayout title="오늘의 전체 운동 기록" onBack={() => setOpen(false)}>
-          <WorkoutHistory records={records} journals={journals} onDelete={onDelete} onJournal={workout => { pending.current = workout; setOpen(false); if (Platform.OS !== 'ios') afterClose(); }} />
+          {/* 상세 화면을 한 번 더 열지 않도록 기록별 세트와 메모를 이 화면에 모두 표시합니다. */}
+          {records.map(workout => (
+            <WorkoutRecordCard key={workout.id} workout={workout}
+              journal={journals.find(j => j.workoutId === workout.id)}
+              onDelete={onDelete && (id => { onDelete(id); if (records.length === 1) setOpen(false); })}
+              onJournal={target => { pending.current = target; setOpen(false); if (Platform.OS !== 'ios') afterClose(); }} />
+          ))}
         </ScreenLayout>
       </SafeAreaView>
     </Modal>

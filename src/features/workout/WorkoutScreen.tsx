@@ -119,6 +119,13 @@ export function WorkoutScreen({
   );
   const [serverHistory, setServerHistory] = useState(false);
   const [tab, setTab] = useState<MainTab>('workout');
+  const accountKey = session ? `${session.scope.server}:${session.scope.accountId}` : null;
+  // 로그인이 완료되어 계정이 바뀌면 설정 등 다른 메뉴에 있었더라도 메인 홈으로 이동합니다.
+  const [seenAccount, setSeenAccount] = useState(accountKey);
+  if (seenAccount !== accountKey) {
+    setSeenAccount(accountKey);
+    if (accountKey) setTab('workout');
+  }
   const profile = useProfile();
   const [journalRevision, setJournalRevision] = useState(0);
   const [journalDestination, setJournalDestination] = useState<'account' | 'device'>('account');
@@ -286,7 +293,10 @@ export function WorkoutScreen({
                     </Text>
                     <View style={ui.between}>
                       <Text style={s.title}>오늘</Text>
-                      <NotificationButton /><ReceivedCheersButton live={live} workout={workout?.id} />
+                      {/* 알림 아이콘을 하트 바로 왼쪽에 붙여 한 묶음으로 둡니다. */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <NotificationButton /><ReceivedCheersButton live={live} workout={workout?.id} />
+                      </View>
                     </View>
                   </View>
                   <WorkoutCalendar
