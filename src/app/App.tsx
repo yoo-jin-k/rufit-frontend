@@ -7,6 +7,7 @@ import { WelcomeScreen } from '../features/auth/WelcomeScreen';
  */
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthModal } from '../features/auth/AuthModal';
 import { createNativeAuthCoordinator, nativeAuthAvailable } from '../features/auth/nativeAuth';
@@ -27,6 +28,14 @@ export default function App() {
     [baseUrl],
   );
   useEffect(() => { void coordinator?.restore(); }, [coordinator]);
+  // 앱이 다시 활성화되면 일시 장애로 실패한 로그인 복원을 재시도하고, 만료가 가까운 접근 토큰을 갱신합니다.
+  useEffect(() => {
+    if (!coordinator) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void coordinator.resume();
+    });
+    return () => subscription.remove();
+  }, [coordinator]);
   const status = useSyncExternalStore(
     coordinator?.subscribe ?? subscribeWithoutAuth,
     coordinator?.getState ?? getSignedOutSnapshot,

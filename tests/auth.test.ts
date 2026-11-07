@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import test from 'node:test';
 import { ApiError } from '../src/api/client.ts';
 import { createAuthApi, type AuthApi } from '../src/features/auth/authApi.ts';
-import { AuthCoordinator, parseHandoffUrl } from '../src/features/auth/authCoordinator.ts';
+import { AuthCoordinator, isTransientAuthFailure, parseHandoffUrl } from '../src/features/auth/authCoordinator.ts';
 import type { SessionStore } from '../src/features/auth/secureSessionStore.ts';
 import type { SessionTokens, StoredSession } from '../src/features/auth/types.ts';
 
@@ -749,4 +749,182 @@ test('기존 계정 통합은 명시적 확인과 현재 인증으로만 별도 
   assert.equal(calls[0].url,'https://api.rufit.test/api/v1/account/social-merge-exchanges');
   assert.equal(calls[0].authorization,'Bearer test-access');
   assert.deepEqual(calls[0].body,{attemptId,handoffCode:handoff,codeVerifier:verifier,confirmMerge:true});
+});
+
+// 로그인 유지 회귀 테스트입니다. 서버는 쓴 갱신 토큰이 다시 오면 세션 전체를 폐기하고,
+// 만료·폐기는 401 SESSION_EXPIRED로 알려 줍니다. 이 동작을 가짜 API로 재현합니다.
+const rotated: SessionTokens = { ...tokens, accessToken: 'rotated-access', refreshToken: 'N'.repeat(43) };
+const rotatedAgain: SessionTokens = { ...tokens, accessToken: 'rotated-again', refreshToken: 'M'.repeat(43) };
+const offline = () => new ApiError(0, 'NETWORK_ERROR', '인증 서버 연결을 확인해 주세요.', true);
+const expired = () => new ApiError(401, 'SESSION_EXPIRED', '로그인 시간이 만료되었습니다.');
+const meOk = async () => new Response(JSON.stringify({ id: tokens.account.id }), { status: 200 });
+const meOffline = async (): Promise<Response> => { throw new TypeError('Network request failed'); };
+
+function persistenceSetup() {
+  const store = memoryStore();
+  store.value = { schemaVersion: 1, server: 'https://api.example.com', provider: 'KAKAO',
+    account: tokens.account, sessionId: tokens.sessionId, accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+    refreshToken: tokens.refreshToken, refreshTokenExpiresAt: tokens.refreshTokenExpiresAt };
+  const used: string[] = [];
+  const server = {
+    refresh: async (_token: string): Promise<SessionTokens> => rotated,
+    me: meOk as () => Promise<Response>,
+  };
+  const api: AuthApi = {
+    server: 'https://api.example.com',
+    refresh: (token) => { used.push(token); return server.refresh(token); },
+    startLogin: async () => { throw new Error('호출하면 안 됩니다.'); },
+    exchange: async () => { throw new Error('호출하면 안 됩니다.'); },
+    logout: async () => {},
+  };
+  const coordinator = new AuthCoordinator({ api, store, createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) }, fetch: () => server.me(), refreshRetryMs: 60_000 });
+  return { store, used, server, coordinator };
+}
+
+test('일시 장애만 저장된 로그인을 유지하는 오류로 분류합니다', () => {
+  for (const error of [offline(), new ApiError(0, 'TIMEOUT', 't'), new ApiError(429, 'RATE_LIMITED', 'r'),
+    new ApiError(500, 'HTTP_ERROR', 's'), new ApiError(503, 'HTTP_ERROR', 's'), new ApiError(200, 'INVALID_RESPONSE', 'i')])
+    assert.equal(isTransientAuthFailure(error), true, error.code);
+  for (const error of [expired(), new ApiError(401, 'AUTHENTICATION_REQUIRED', 'a'), new ApiError(400, 'INVALID_INPUT', 'i'),
+    new ApiError(200, 'ACCOUNT_CHANGED', 'c'), new Error('로그인 정보가 만료되었습니다.')])
+    assert.equal(isTransientAuthFailure(error), false, error.message);
+});
+
+test('재실행 중 네트워크가 끊겨도 저장된 갱신 토큰을 지우지 않고 다음 복원에서 다시 시도합니다', async () => {
+  const setup = persistenceSetup();
+  setup.server.refresh = async () => { throw offline(); };
+  await setup.coordinator.restore();
+  assert.equal(setup.coordinator.getSession(), null);
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
+  assert.equal(setup.store.clears, 0);
+  assert.equal(setup.store.value?.refreshToken, tokens.refreshToken);
+  setup.server.refresh = async () => rotated;
+  await setup.coordinator.restore();
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.equal(setup.store.value?.refreshToken, rotated.refreshToken);
+});
+
+test('서버 요청 제한·5xx도 일시 장애로 보고 저장된 로그인을 유지합니다', async () => {
+  for (const status of [429, 500, 502, 503]) {
+    const setup = persistenceSetup();
+    setup.server.refresh = async () => { throw new ApiError(status, 'HTTP_ERROR', '일시 오류'); };
+    await setup.coordinator.restore();
+    assert.equal(setup.store.clears, 0, String(status));
+    assert.equal(setup.store.value?.refreshToken, tokens.refreshToken, String(status));
+  }
+});
+
+test('서버가 세션 만료를 명시하면 저장된 로그인을 지우고 다시 로그인을 안내합니다', async () => {
+  const setup = persistenceSetup();
+  setup.server.refresh = async () => { throw expired(); };
+  await setup.coordinator.restore();
+  assert.equal(setup.store.value, null);
+  assert.equal(setup.coordinator.getSession(), null);
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
+});
+
+test('보안 저장소를 일시적으로 읽지 못해도 로그인 정보를 지우지 않습니다', async () => {
+  const setup = persistenceSetup();
+  setup.store.load = async () => { throw new Error('기기가 잠겨 있습니다.'); };
+  await setup.coordinator.restore();
+  assert.equal(setup.store.clears, 0);
+  assert.equal(setup.used.length, 0);
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
+});
+
+test('재실행 중 토큰 교체 직후 /me가 실패해도 새 토큰을 먼저 저장해 재사용 폐기를 피합니다', async () => {
+  const setup = persistenceSetup();
+  // 서버처럼 이미 교체된 이전 토큰이 다시 오면 세션을 폐기합니다.
+  setup.server.refresh = async (token) => {
+    if (token === tokens.refreshToken) return rotated;
+    if (token === rotated.refreshToken) return rotatedAgain;
+    throw expired();
+  };
+  setup.server.me = meOffline;
+  await setup.coordinator.restore();
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
+  assert.equal(setup.store.value?.refreshToken, rotated.refreshToken);
+  setup.server.me = meOk;
+  setup.server.refresh = async (token) => {
+    if (token === rotated.refreshToken) return rotatedAgain;
+    throw expired();
+  };
+  await setup.coordinator.restore();
+  assert.deepEqual(setup.used, [tokens.refreshToken, rotated.refreshToken]);
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.equal(setup.store.value?.refreshToken, rotatedAgain.refreshToken);
+});
+
+test('실행 중 갱신이 일시 장애로 실패하면 세션과 저장된 로그인을 유지합니다', async () => {
+  const setup = persistenceSetup();
+  await setup.coordinator.restore();
+  setup.server.refresh = async () => { throw offline(); };
+  await setup.coordinator.refresh();
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.notEqual(setup.coordinator.getSession(), null);
+  assert.equal(setup.store.value?.refreshToken, rotated.refreshToken);
+});
+
+test('실행 중 토큰 교체 후 /me가 실패하면 다음 갱신은 새 갱신 토큰을 사용합니다', async () => {
+  const setup = persistenceSetup();
+  await setup.coordinator.restore();
+  setup.server.refresh = async (token) => {
+    if (token === rotated.refreshToken) return rotatedAgain;
+    if (token === rotatedAgain.refreshToken) return { ...rotatedAgain, refreshToken: 'K'.repeat(43) };
+    throw expired();
+  };
+  setup.server.me = meOffline;
+  await setup.coordinator.refresh();
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.equal(setup.store.value?.refreshToken, rotatedAgain.refreshToken);
+  setup.server.me = meOk;
+  await setup.coordinator.refresh();
+  assert.equal(setup.used.at(-1), rotatedAgain.refreshToken);
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  assert.equal(setup.store.value?.refreshToken, 'K'.repeat(43));
+});
+
+test('실행 중 갱신에서 서버가 만료를 명시하면 다시 로그인을 요구합니다', async () => {
+  const setup = persistenceSetup();
+  await setup.coordinator.restore();
+  setup.server.refresh = async () => { throw expired(); };
+  await setup.coordinator.refresh();
+  const state = setup.coordinator.getState();
+  assert.equal(state.kind === 'error' && state.reason, 'reauth-required');
+  assert.equal(setup.store.value, null);
+  assert.equal(setup.coordinator.getSession(), null);
+});
+
+test('갱신 응답을 기다리는 중 로그아웃하면 늦게 도착한 새 토큰을 저장하지 않습니다', async () => {
+  const setup = persistenceSetup();
+  await setup.coordinator.restore();
+  let complete!: (value: SessionTokens) => void;
+  setup.server.refresh = () => new Promise((resolve) => { complete = resolve; });
+  const pending = setup.coordinator.refresh();
+  await setup.coordinator.logout();
+  complete(rotatedAgain);
+  await pending;
+  assert.equal(setup.store.value, null);
+  assert.equal(setup.coordinator.getSession(), null);
+  assert.equal(setup.coordinator.getState().kind, 'signed-out');
+});
+
+test('앱이 다시 활성화되면 실패한 복원을 재시도하고 만료가 가까운 접근 토큰만 갱신합니다', async () => {
+  const setup = persistenceSetup();
+  setup.server.refresh = async () => { throw offline(); };
+  await setup.coordinator.restore();
+  setup.server.refresh = async () => rotated;
+  await setup.coordinator.resume();
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
+  const calls = setup.used.length;
+  await setup.coordinator.resume();
+  assert.equal(setup.used.length, calls);
+  const soon = new Date(Date.now() + 30_000).toISOString();
+  setup.server.refresh = async () => ({ ...rotatedAgain, accessTokenExpiresAt: soon });
+  await setup.coordinator.refresh();
+  setup.server.refresh = async () => rotated;
+  await setup.coordinator.resume();
+  assert.equal(setup.used.length, calls + 2);
+  assert.equal(setup.coordinator.getState().kind, 'signed-in');
 });
