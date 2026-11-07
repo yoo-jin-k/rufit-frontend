@@ -1,6 +1,6 @@
 import { AppModal as Modal } from '../../components/AppModal';
 import { useState } from 'react';
-import {  Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RufitSession } from '../../api/session';
 import { Button } from '../../components/Button';
@@ -14,39 +14,25 @@ import type { useServerLive } from './useServerLive';
 export function ServerWorkoutFriends({
   live,
   session,
-  workout,
 }: {
   live: ReturnType<typeof useServerLive>;
   session: RufitSession;
-  workout?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
-  const received = live.data && live.data.workoutId === workout ? live.data.received : [];
   const members = live.data?.items ?? [];
   return (
     <View style={s.card}>
       <View style={s.row}>
-        <Text style={ui.heading}>지금 운동 중 {live.data ? `${members.length}명` : ''}</Text>
-        <Button
-          compact
-          secondary
-          title="새로고침"
-          disabled={live.busy}
-          onPress={() => void live.refresh()}
-        />
+        <Text style={[ui.heading, { flex: 1 }]}>지금 운동 중 {live.data ? `${members.length}명` : ''}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="지금 운동 중 새로고침"
+          accessibilityState={{ disabled: live.busy }} disabled={live.busy}
+          style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          onPress={() => void live.refresh()}>
+          <AppIcon name="refresh" size={18} color={live.busy ? colors.muted : colors.text} />
+        </Pressable>
       </View>
       <Text style={ui.muted}>상태를 공개한 친구만 보여요. 앱을 켜둔 동안 갱신됩니다.</Text>
-      <View style={s.row}>
-        <Text style={[ui.body, s.flex]}>친구에게 내 운동 중 상태 공개</Text>
-        <Switch
-          accessibilityLabel="친구에게 내 운동 중 상태 공개"
-          value={live.data?.sharing ?? false}
-          disabled={live.busy || !live.data}
-          trackColor={{ false: colors.border, true: colors.text }}
-          onValueChange={(enabled) => void live.share(enabled)}
-        />
-      </View>
       {!!live.error && (
         <Text accessibilityRole="alert" style={ui.error}>
           {live.error}
@@ -81,16 +67,6 @@ export function ServerWorkoutFriends({
           title={expanded ? '접기' : '모두 보기'}
           onPress={() => setExpanded(!expanded)}
         />
-      )}
-      {!!workout && live.data && (
-        <View style={{ gap: 6 }}>
-          <Text style={ui.heading}>이번 운동에 받은 응원 {received.length}개</Text>
-          {received.map((member) => (
-            <Text key={member.memberId} style={ui.body}>
-              {member.nickname}님이 응원했어요.
-            </Text>
-          ))}
-        </View>
       )}
       <Modal visible={!!target} onRequestClose={() => setTarget(null)} animationType="slide">
         <SafeAreaView style={ui.page}>

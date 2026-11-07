@@ -3,7 +3,7 @@ import type { StoredSession } from './types.ts';
 export function decodeStoredSession(raw: string | null): StoredSession | null {
   if (raw === null) return null;
   const value = JSON.parse(raw);
-  if (value?.schemaVersion !== 1 || !['KAKAO', 'GOOGLE'].includes(value.provider)
+  if (value?.schemaVersion !== 1 || !['KAKAO', 'GOOGLE', 'EMAIL'].includes(value.provider)
     || typeof value.server !== 'string' || typeof value.account?.id !== 'string' || !value.account.id.trim()
     || typeof value.sessionId !== 'string' || !value.sessionId
     || typeof value.refreshToken !== 'string' || !/^[\x21-\x7E]{1,4096}$/.test(value.refreshToken)

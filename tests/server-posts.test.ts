@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { act, createElement, type ComponentType, type ReactNode } from 'react';
@@ -365,7 +366,7 @@ test('편집 충돌은 초안을 유지하고 반복 저장을 막으며 명시�
   }
 });
 
-test('게시물 조회 실패는 로딩을 종료하고 등록 안내 후 재시도로 복구됩니다', async () => {
+test('게시물 조회 실패는 로딩을 종료하고 안내 후 앱 복귀 시 자동으로 복구됩니다', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   Object.assign(globalThis, {
     window: dom.window,
@@ -375,7 +376,14 @@ test('게시물 조회 실패는 로딩을 종료하고 등록 안내 후 재시
     IS_REACT_ACT_ENVIRONMENT: true,
   });
   const { createRoot } = await import('react-dom/client');
-  const load = nativeWebLoader({ '../../components/ScreenLayout': { ui: {} } });
+  let foreground: ((state: string) => void) | undefined;
+  const native = createRequire(`${process.cwd()}/package.json`)('react-native-web');
+  const load = nativeWebLoader({
+    '../../components/ScreenLayout': { ui: {} },
+    'react-native': { ...native, AppState: { currentState: 'active', addEventListener: (_: string, listener: (state: string) => void) => {
+      foreground = listener; return { remove() { foreground = undefined; } };
+    } } },
+  });
   const { ServerPostList } = load('src/features/posts/ServerPosts.tsx') as {
     ServerPostList: ComponentType<Record<string, unknown>>;
   };
@@ -388,6 +396,7 @@ test('게시물 조회 실패는 로딩을 종료하고 등록 안내 후 재시
   const session = {
     isActive: () => true,
     api: {
+      directorySettings: async () => ({ memberId: "me" }),
       posts: async () => {
         if (++attempts === 1) throw new ApiError(404, 'NOT_FOUND', '찾을 수 없습니다.');
         return { items: [], total: 0, hasNext: false };
@@ -407,16 +416,14 @@ test('게시물 조회 실패는 로딩을 종료하고 등록 안내 후 재시
     );
     assert.deepEqual(statuses, ['loading', 'error']);
     assert.deepEqual(totals, []);
-    assert.match(document.body.textContent!, /닉네임을 먼저 저장/);
+    assert.match(document.body.textContent!, /프로필 편집에서 다시 저장/);
     assert.doesNotMatch(document.body.textContent!, /불러오고 있습니다/);
-    const retry = document.querySelector('[aria-label="게시물 새로고침"]');
-    assert.ok(retry);
-    await act(async () =>
-      retry.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })),
-    );
+    assert.equal(document.querySelector('[aria-label="게시물 새로고침"]'), null);
+    assert.ok(foreground);
+    await act(async () => foreground?.('active'));
     assert.deepEqual(statuses, ['loading', 'error', 'loading', 'ready']);
     assert.deepEqual(totals, [0]);
-    assert.doesNotMatch(document.body.textContent!, /닉네임을 먼저 저장/);
+    assert.doesNotMatch(document.body.textContent!, /프로필 편집에서 다시 저장/);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

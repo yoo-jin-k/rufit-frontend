@@ -204,3 +204,13 @@ export function removeExercise(workout: Workout, exerciseId: string): Workout {
   if (!workout.exercises.some((exercise) => exercise.id === exerciseId)) throw new Error('종목을 찾을 수 없습니다.');
   return { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) };
 }
+
+/** 완료 세트가 없는 날도 사용자가 선택하면 시간 기록과 오운완을 남길 수 있습니다. */
+export function finishTimeOnlyWorkout(workout: Workout, now: number): Workout {
+  editable(workout);
+  if (workout.exercises.some(e => e.sets.some(s => s.completed)))
+    throw new Error('완료한 세트가 있는 운동은 일반 종료를 사용해 주세요.');
+  if (!Number.isSafeInteger(now) || now < (workout.pausedAt ?? workout.startedAt))
+    throw new Error('종료 시각을 확인해 주세요.');
+  return { ...resumeWorkout(workout, now), finishedAt: now, exercises: [] };
+}

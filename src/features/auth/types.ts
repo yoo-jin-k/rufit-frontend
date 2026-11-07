@@ -1,4 +1,5 @@
 export type SocialProvider = 'KAKAO' | 'GOOGLE';
+export type LoginProvider = SocialProvider | 'EMAIL';
 export type AuthClient = 'IOS' | 'ANDROID' | 'WEB';
 
 export type LoginAttempt = {
@@ -20,7 +21,7 @@ export type SessionTokens = {
 export type StoredSession = Omit<SessionTokens, 'accessToken' | 'tokenType'> & {
   schemaVersion: 1;
   server: string;
-  provider: SocialProvider;
+  provider: LoginProvider;
 };
 
 export type AuthErrorReason =
@@ -34,16 +35,16 @@ export type AuthStatus =
   | { kind: 'signed-out'; notice?: string }
   | {
       kind: 'signing-in';
-      provider: SocialProvider;
+      provider: LoginProvider;
       stage: 'opening' | 'browser-pending' | 'verifying';
     }
-  | { kind: 'signed-in'; accountId: string; provider: SocialProvider }
-  | { kind: 'refreshing'; accountId: string; provider: SocialProvider }
+  | { kind: 'signed-in'; accountId: string; provider: LoginProvider }
+  | { kind: 'refreshing'; accountId: string; provider: LoginProvider }
   | { kind: 'signing-out'; accountId: string }
   | {
       kind: 'error';
       message: string;
       reason: AuthErrorReason;
       action: 'retry-login' | 'retry-logout';
-      provider?: SocialProvider;
+      provider?: LoginProvider;
     };

@@ -5,6 +5,9 @@ import {
   emptyArchive,
   remember,
   decodeArchive,
+  finishArchivedWorkout,
+  removeArchivedWorkout,
+  pauseRestoredWorkout,
 } from '../src/features/workout/storage.ts';
 import {
   startWorkout,
@@ -12,6 +15,8 @@ import {
   updateSet,
   finishWorkout,
   IncompleteSetsError,
+  elapsedWorkoutMs,
+  resumeWorkout,
 } from '../src/features/workout/model.ts';
 test('입력 중인 빈 값과 완료 이력을 저장하고 다시 읽는다', async () => {
   let raw: string | null = null;
@@ -99,4 +104,27 @@ test('종료 시 미완료 세트 제외는 확인이 필요하다', () => {
   assert.equal(finishWorkout(partial, 100, true).exercises.length, 1);
   assert.equal(partial.exercises.length, 2);
   assert.throws(() => updateSet(partial, 'other', 'other-1', { completed: true }));
+});
+
+
+test('시간만 기록한 운동도 저장·복구하고 선택한 기록만 삭제한다', () => {
+  const draft = addExercise(startWorkout('time-only', 1000), 'e', '스쿼트');
+  const saved = finishArchivedWorkout(remember(emptyArchive(), draft), draft.id, 61000, false, true);
+  assert.equal(saved.history.length, 1);
+  assert.equal(saved.history[0].exercises.length, 0);
+  assert.equal(elapsedWorkoutMs(saved.history[0], 90000), 60000);
+  assert.deepEqual(decodeArchive(JSON.stringify(saved)), saved);
+  const ongoing = startWorkout('next', 62000);
+  const removed = removeArchivedWorkout(remember(saved, ongoing), draft.id);
+  assert.equal(removed.history.length, 0);
+  assert.equal(removed.current?.id, ongoing.id);
+  assert.equal(saved.history.length, 1);
+});
+
+test('복구한 운동은 저장 시점에 멈추고 시작 버튼 이후에만 시간이 증가한다', () => {
+  const saved = remember(emptyArchive(), startWorkout('w', 1000));
+  const restored = pauseRestoredWorkout(saved, 31000);
+  assert.equal(elapsedWorkoutMs(restored.current!, 999999), 30000);
+  assert.equal(elapsedWorkoutMs(resumeWorkout(restored.current!, 100000), 101000), 31000);
+  assert.equal(pauseRestoredWorkout(restored, 200000), restored);
 });

@@ -1,6 +1,6 @@
 import type { AuthStatus, SocialProvider } from './types';
 
-const providerName = { KAKAO: '카카오', GOOGLE: 'Google' } as const;
+const providerName = { KAKAO: '카카오', GOOGLE: 'Google', EMAIL: '이메일' } as const;
 
 export function authStatusCopy(status: AuthStatus) {
   if (status.kind === 'signing-in')
@@ -42,7 +42,7 @@ export function loginRecovery(
   if (status.kind !== 'error' || status.action !== 'retry-login') return null;
   return {
     label: status.provider ? '다시 시도' : '다시 로그인',
-    provider: status.provider ?? null,
+    provider: status.provider === 'EMAIL' ? null : status.provider ?? null,
   };
 }
 

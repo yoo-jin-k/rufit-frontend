@@ -2,7 +2,7 @@ import { useReadRecovery } from '../../hooks/useReadRecovery';
 import { AppModal as Modal } from '../../components/AppModal';
 import { ServerPostEditor } from './ServerPostEditor';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { AppState, Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
@@ -35,7 +35,11 @@ export function ServerPostList({
       setBusy(true);
       onLoadStatus?.('loading');
       try {
-        const result = await session.api.posts(memberId, next);
+        // 신규 계정은 아직 소셜 프로필이 없을 수 있습니다. 게시물이 없는 정상 상태로 표시합니다.
+        const directory = !memberId ? await session.api.directorySettings() : null;
+        const result = !memberId && !directory?.memberId
+          ? { items: [], total: 0, hasNext: false }
+          : await session.api.posts(memberId, next);
         if (!alive.current || !session.isActive() || order !== sequence.current) return;
         setItems((old) =>
           next
@@ -53,7 +57,7 @@ export function ServerPostList({
           onLoadStatus?.('error');
           setError(
             e instanceof ApiError && e.status === 404 && !memberId
-              ? '프로필의 친구 화면에서 닉네임을 먼저 저장해 주세요. 그다음 계정 오운완을 이용할 수 있습니다.'
+              ? '프로필 정보를 확인하지 못했습니다. 프로필 편집에서 다시 저장해 주세요.'
               : e instanceof Error
                 ? e.message
                 : '게시물을 불러오지 못했습니다.',
@@ -74,25 +78,25 @@ export function ServerPostList({
       alive.current = false;
     };
   }, [load]);
+  // 앱 복귀 시 최신 게시물을 조회하며 화면을 닫으면 구독도 해제합니다.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active' && !selected) void load();
+    });
+    return () => subscription.remove();
+  }, [load, selected]);
   useReadRecovery(/연결|네트워크|시간 초과|network|fetch/i.test(error), () => load());
   return (
     <View style={{ gap: 12 }}>
-      <Text style={ui.heading}>{memberId ? '친구 공개 오운완' : '내 계정 오운완'}</Text>
+      <Text style={ui.heading}>{memberId ? '친구 공개 오운완' : '오운완'}</Text>
       {!!error && (
         <Text accessibilityRole="alert" style={ui.error}>
           {error}
         </Text>
       )}
-      <Button
-        title="게시물 새로고침"
-        compact
-        secondary
-        disabled={busy}
-        onPress={() => void load()}
-      />
       {busy && <Text style={ui.muted}>게시물을 불러오고 있습니다.</Text>}
       {!busy && !error && !items.length && (
-        <Text style={ui.muted}>표시할 계정 게시물이 없습니다.</Text>
+        <Text style={ui.muted}>아직 오운완이 없습니다. 운동을 마친 뒤 첫 기록을 남겨보세요.</Text>
       )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {items.map((post) => (

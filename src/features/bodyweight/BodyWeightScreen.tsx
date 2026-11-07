@@ -31,6 +31,7 @@ export function BodyWeightScreen({
   const [records, setRecords] = useState<WeightRecord[]>([]);
   const [date, setDate] = useState(today);
   const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +46,10 @@ export function BodyWeightScreen({
           setRecords(value);
           setReady(true);
           const current = value.find((r) => r.date === today());
-          if (current) setWeight(String(current.weight));
+          if (current) {
+            setWeight(String(current.weight));
+            setHeight(current.height === undefined ? '' : String(current.height));
+          }
         }
       })
       .catch(() => {
@@ -62,13 +66,14 @@ export function BodyWeightScreen({
     setDate(value);
     const current = records.find((r) => r.date === value);
     setWeight(current ? String(current.weight) : '');
+    setHeight(current?.height === undefined ? '' : String(current.height));
     setNotice('');
     setError('');
   }
   async function save() {
     if (!ready || lock.current) return;
     try {
-      const next = saveWeight(records, weightRecord(date, weight));
+      const next = saveWeight(records, weightRecord(date, weight, today(), height));
       lock.current = true;
       setBusy(true);
       setError('');
@@ -122,6 +127,9 @@ export function BodyWeightScreen({
           <>
             <Text style={ui.muted}>측정 날짜</Text>
             <MeasurementDate value={date} onChange={selectDate} disabled={!ready || busy} />
+            <Text style={ui.muted}>키 (cm · 선택)</Text>
+            <TextInput accessibilityLabel="키 cm" keyboardType="decimal-pad" placeholder="예: 170.5"
+              value={height} editable={ready && !busy} onChangeText={setHeight} style={ui.input} maxLength={6} />
             <Text style={ui.muted}>체중 (kg)</Text>
             <TextInput
               accessibilityLabel="체중 kg"
@@ -144,6 +152,7 @@ export function BodyWeightScreen({
               <View style={{ gap: 8 }}>
                 <Text style={ui.muted}>최근 기록 · {latest.date}</Text>
                 <Text style={{ fontSize: 36, fontWeight: '700' }}>{latest.weight} kg</Text>
+                {latest.height !== undefined && <Text style={ui.body}>키 {latest.height} cm</Text>}
               </View>
             )}
             <View style={[ui.row, { backgroundColor: '#F5F5F7', borderRadius: 10, padding: 3 }]}>
@@ -182,7 +191,7 @@ export function BodyWeightScreen({
               {[...records].reverse().map((record) => (
                 <Button
                   key={record.date}
-                  title={`${record.date}　${record.weight} kg`}
+                  title={`${record.date}　${record.weight} kg${record.height === undefined ? '' : ` · ${record.height} cm`}`}
                   secondary
                   onPress={() => {
                     selectDate(record.date);

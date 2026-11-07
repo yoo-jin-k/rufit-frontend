@@ -1,3 +1,6 @@
+import { journalDraftStorage, type JournalDraft } from '../profile/journalDraftStorage';
+import { AppIcon } from '../../components/AppIcon';
+import { ReceivedCheersButton } from '../cheers/ReceivedCheersButton';
 import { AppModal as Modal } from '../../components/AppModal';
 import { useServerLive } from '../cheers/useServerLive';
 import { ServerWorkoutFriends } from '../cheers/ServerWorkoutFriends';
@@ -87,6 +90,7 @@ export function WorkoutScreen({
     setWorkout,
     addManualWorkout,
     finishCurrentWorkout,
+    deleteWorkout,
     history,
     rest,
     restFor,
@@ -118,6 +122,8 @@ export function WorkoutScreen({
   const profile = useProfile();
   const [journalRevision, setJournalRevision] = useState(0);
   const [journalDestination, setJournalDestination] = useState<'account' | 'device'>('account');
+  const [restoredDraft, setRestoredDraft] = useState<JournalDraft | null>(null);
+  const draftScope = session ? `${session.scope.server}:${session.scope.accountId}` : 'guest';
   const [journalWorkout, setJournalWorkout] = useState<Workout | null>(null);
   const [completionMonth, setCompletionMonth] = useState<string | null>(null);
   const [manualDate, setManualDate] = useState<string | null>(null);
@@ -132,6 +138,13 @@ export function WorkoutScreen({
   const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    void journalDraftStorage.load(draftScope).then(draft => {
+      if (active && draft) { setRestoredDraft(draft); setJournalWorkout(draft.workout); }
+    }).catch(() => { if (active) setError('작성 중인 오운완을 불러오지 못했습니다. 기존 자료는 보존했습니다.'); });
+    return () => { active = false; };
+  }, [draftScope]);
   const [now, setNow] = useState(Date.now);
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -150,12 +163,13 @@ export function WorkoutScreen({
     };
   }, []);
   // 저장 성공 상태에서만 팝업을 표시하며 실패 시 기존 재시도 안내를 유지합니다.
-  function completeWorkout(discardIncomplete = false) {
+  function completeWorkout(discardIncomplete = false, timeOnly = false) {
     if (!workout || workout.finishedAt !== undefined) return;
-    finishCurrentWorkout(workout.id, discardIncomplete);
+    finishCurrentWorkout(workout.id, discardIncomplete, timeOnly);
     setCompletionMonth(completionMonthFor(workout));
     setNow(Date.now());
     setConfirmFinish(false);
+    setConfirmEmpty(false);
     setError('');
   }
   function change(fn: (current: Workout) => Workout) {
@@ -236,11 +250,11 @@ export function WorkoutScreen({
                     }
                   >
                     <Text style={s.headerHint}>
-                      {workout.pausedAt !== undefined ? '운동 재개' : '일시정지'}
+                      {workout.pausedAt !== undefined ? '운동 시작' : '일시정지'}
                     </Text>
                   </Pressable>
-                  <View style={{ backgroundColor: colors.surface, borderRadius: 24 }}>
-                    <NotificationButton />
+                  <View style={{ backgroundColor: colors.surface, borderRadius: 24, flexDirection: 'row', alignItems: 'center' }}>
+                    <NotificationButton /><ReceivedCheersButton live={live} workout={workout?.id} />
                   </View>
                 </View>
                 {!!error && (
@@ -256,6 +270,7 @@ export function WorkoutScreen({
               contentContainerStyle={[
                 timerStyles.content,
                 { paddingHorizontal: viewport.contentPadding, paddingTop: viewport.contentPadding },
+                workout && !finished ? { paddingBottom: 80 } : undefined,
               ]}
             >
               {(!workout || finished) && (
@@ -271,7 +286,7 @@ export function WorkoutScreen({
                     </Text>
                     <View style={ui.between}>
                       <Text style={s.title}>오늘</Text>
-                      <NotificationButton />
+                      <NotificationButton /><ReceivedCheersButton live={live} workout={workout?.id} />
                     </View>
                   </View>
                   <WorkoutCalendar
@@ -293,7 +308,7 @@ export function WorkoutScreen({
               {!!workout && !finished && (
                 <>
                   {session ? (
-                    <ServerWorkoutFriends session={session} live={live} workout={workout.id} />
+                    <ServerWorkoutFriends session={session} live={live} />
                   ) : (
                     <WorkoutFriends workout={workout.id} enabled={__DEV__} />
                   )}
@@ -313,6 +328,7 @@ export function WorkoutScreen({
                     now={now}
                     journals={profile.value.journals}
                     onJournal={setJournalWorkout}
+                    onDelete={deleteWorkout}
                   />
                   <View style={ui.between}>
                     <Text style={s.heading}>최근 운동</Text>
@@ -440,7 +456,8 @@ export function WorkoutScreen({
             </ScrollView>
             {/* 하단 조작부는 목록 밖에 있어 스크롤해도 같은 위치를 유지합니다. */}
             {workout && !finished ? (
-              <View style={s.activeDock}>
+              <View style={s.activeDock} pointerEvents="box-none">
+                {/* 버튼 주변의 투명 영역은 스크롤 터치를 가로채지 않습니다. */}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="종목 추가"
@@ -501,6 +518,7 @@ export function WorkoutScreen({
           />
         ) : (
           <SettingsScreen
+            live={session ? live : undefined}
             onServerHistory={session?.isActive() ? () => setServerHistory(true) : undefined}
             defaultRest={defaultRest}
             onRest={saveDefaultRest}
@@ -508,7 +526,10 @@ export function WorkoutScreen({
             history={history}
             onProfile={() => setTab('profile')}
             authLabel={authLabel}
-            onAuth={onOpenAuth}
+            onAuth={() => {
+              if (workout && !finished) act(w => pauseWorkout(w, Date.now()));
+              onOpenAuth?.();
+            }}
           />
         )}
         {tab !== 'workout' && state !== 'saved' && (
@@ -524,9 +545,12 @@ export function WorkoutScreen({
         )}
         <Modal visible={confirmEmpty} transparent animationType="fade" onRequestClose={() => setConfirmEmpty(false)}>
           <View style={s.confirmBackdrop}><View style={s.card}>
-            <Text style={s.heading}>기록 없이 운동을 종료할까요?</Text>
-            <Text style={s.muted}>완료한 세트가 없습니다. 입력 중인 내용은 삭제되며 운동일 수에는 포함되지 않습니다.</Text>
+            <Text style={s.heading}>운동을 종료할까요?</Text>
+            <Text style={s.muted}>완료한 세트가 없습니다. 시간만 저장해 오운완을 남기거나, 기록 없이 종료할 수 있습니다. 미완료 세트는 저장하지 않습니다.</Text>
             <Button title="계속 운동하기" onPress={() => setConfirmEmpty(false)} />
+            <Button title="시간 기록 저장하고 종료" onPress={() => {
+              try { completeWorkout(false, true); } catch (cause) { setError(cause instanceof Error ? cause.message : '종료하지 못했습니다.'); }
+            }} />
             <Button title="기록 없이 종료" secondary onPress={() => {
               setWorkout(null); setConfirmEmpty(false); setError('');
             }} />
@@ -612,8 +636,10 @@ export function WorkoutScreen({
             key={session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}
             session={session}
             workout={journalWorkout}
+            nickname={profile.value.nickname}
+            restoredDraft={restoredDraft?.workout.id === journalWorkout.id ? restoredDraft : null}
             initial={profile.value.journals.find((j) => j.workoutId === journalWorkout.id)}
-            onClose={() => setJournalWorkout(null)}
+            onClose={() => { setJournalWorkout(null); setRestoredDraft(null); }}
             onSave={async (j, accountSaved) => {
               if (!accountSaved) await profile.save(upsertJournal(profile.value, j));
               // 프로필에서 저장해도 목록을 다시 조회하고 선택한 저장 위치를 표시합니다.
@@ -725,7 +751,7 @@ function WorkoutExerciseHeader({
         onPress={onRemove}
         style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}
       >
-        <Text style={s.muted}>제거</Text>
+        <AppIcon name="close" size={18} color={colors.textSecondary} />
       </Pressable>
     </View>
   );
@@ -746,10 +772,15 @@ const s = StyleSheet.create({
     maxWidth: 720,
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    gap: 8,
+    position: 'relative',
+    zIndex: 2,
   },
   addExercise: {
+    position: 'absolute',
+    right: 16,
+    top: -64,
+    zIndex: 3,
+    elevation: 4,
     width: 52,
     height: 52,
     borderRadius: 26,

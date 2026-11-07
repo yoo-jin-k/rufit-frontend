@@ -1,16 +1,17 @@
+import { journalDraftStorage, type JournalDraft } from './journalDraftStorage';
 import { AppModal as Modal } from '../../components/AppModal';
 import type { RufitSession } from '../../api/session';
 import { ApiError } from '../../api/client';
 /** 사진은 선택이며 카메라 권한은 촬영 버튼을 눌렀을 때만 요청합니다. 임시 URI 대신 사진 내용을 저장합니다. */
-import { useState } from 'react';
-import { Image, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Image, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
-import { pickJournalPhotos } from './pickJournalPhotos';
+import { CameraPermissionError, pickJournalPhotos } from './pickJournalPhotos';
 import { journalPhotos, journalDraftChanged, type Journal } from './journalModel';
 export function JournalComposer({
   workout,
@@ -18,32 +19,48 @@ export function JournalComposer({
   onSave,
   onClose,
   session,
+  nickname,
+  restoredDraft,
 }: {
+  restoredDraft?: JournalDraft | null;
+  nickname: string;
   session?: RufitSession | null;
   workout: Workout;
   initial?: Journal;
   onSave: (j: Journal, accountSaved?: boolean) => Promise<void>;
   onClose: () => void;
 }) {
-  const [memo, setMemo] = useState(initial?.memo ?? ''),
-    [photos, setPhotos] = useState(() => journalPhotos(initial)),
+  const [memo, setMemo] = useState(restoredDraft?.memo ?? initial?.memo ?? ''),
+    [photos, setPhotos] = useState(() => restoredDraft?.photos ?? journalPhotos(initial)),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [picking, setPicking] = useState(false),
     [photoError, setPhotoError] = useState(false);
-  const [destination, setDestination] = useState<'device' | 'account'>('device');
-  const [visibility, setVisibility] = useState<'private' | 'friends'>('private');
+  const destination = session ? 'account' : 'device';
+  const [visibility, setVisibility] = useState<'private' | 'friends'>(restoredDraft?.visibility ?? initial?.visibility ?? 'private');
+  const draftScope = session ? `${session.scope.server}:${session.scope.accountId}` : 'guest';
+  const closing = useRef(false);
+  useEffect(() => {
+    if (!closing.current) void journalDraftStorage.save(draftScope, { workout, memo, photos, visibility })
+      .catch(() => setError('임시 저장에 실패했습니다. 앱을 닫기 전에 오운완을 저장해 주세요.'));
+  }, [draftScope, workout, memo, photos, visibility]);
+  async function closeDraft() {
+    closing.current = true;
+    try { await journalDraftStorage.save(draftScope, null); onClose(); }
+    catch { closing.current = false; setError('작성본 정리를 완료하지 못했습니다. 다시 시도해 주세요.'); }
+  }
   const [cloudVersion, setCloudVersion] = useState<number | null>(null);
   async function selectAccount() {
     if (!session?.isActive() || busy) return;
-    setDestination('account');
     setBusy(true);
     setCloudVersion(null);
     setError('');
     try {
       const directory = await session.api.directorySettings();
-      if (!directory.memberId)
-        throw new Error('친구 화면에서 닉네임을 먼저 저장한 뒤 계정 저장을 이용해 주세요.');
+      if (!directory.memberId) {
+        // 최초 게시물 작성 시 현재 닉네임으로 비공개 프로필을 준비합니다.
+        await session.api.updateDirectory({ nickname, discoverable: false, version: directory.version });
+      }
       try {
         const saved = await session.api.ownPost(workout.id);
         setCloudVersion(saved.version);
@@ -57,13 +74,20 @@ export function JournalComposer({
       setBusy(false);
     }
   }
+  useEffect(() => {
+    // 최초 진입 시 저장 준비 상태를 표시하고 비동기로 서버 버전을 확인합니다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (session) void selectAccount();
+    // 작성 화면의 계정·운동은 부모의 key로 고정됩니다. 입력 변경으로 다시 초기화하지 않습니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [confirmClose, setConfirmClose] = useState(false);
   // 작성 중인 글과 사진은 명시적으로 버리기 전까지 유지합니다.
   function requestClose() {
     if (busy || picking) return;
-    if (destination === 'account' || journalDraftChanged(initial, memo, photos))
+    if (journalDraftChanged(initial, memo, photos))
       setConfirmClose(true);
-    else onClose();
+    else void closeDraft();
   }
   async function pick(camera: boolean) {
     if (picking || busy || photos.length >= 5) return;
@@ -77,8 +101,15 @@ export function JournalComposer({
       }
     } catch (e) {
       // 선택 실패는 안내만 표시합니다. 기존 글과 사진 저장은 계속 허용합니다.
-      setPhotoError(true);
+      setPhotoError(!(e instanceof CameraPermissionError));
       setError(e instanceof Error ? e.message : '사진을 불러오지 못했습니다.');
+      if (e instanceof CameraPermissionError) Alert.alert('카메라 권한을 켜 주세요', e.message, [
+        { text: '계속 작성', style: 'cancel' },
+        { text: '설정 열기', onPress: () => {
+          void journalDraftStorage.save(draftScope, { workout, memo, photos, visibility })
+            .then(() => Linking.openSettings()).catch(() => setError('작성본을 보존하지 못했습니다. 글을 저장한 뒤 설정을 열어 주세요.'));
+        } },
+      ]);
     } finally {
       setPicking(false);
     }
@@ -109,7 +140,7 @@ export function JournalComposer({
         setCloudVersion(saved.version);
       }
       await onSave(entry, destination === 'account');
-      onClose();
+      await closeDraft();
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : '저장하지 못했습니다. 작성 내용은 유지됩니다.',
@@ -127,9 +158,7 @@ export function JournalComposer({
           footer={
             <>
               <Button
-                title={
-                  destination === 'account' ? '내 계정에 오운완 저장' : '이 기기에 오운완 저장'
-                }
+                title="오운완 저장"
                 loading={busy}
                 disabled={
                   picking || (destination === 'account' && cloudVersion === null)
@@ -145,10 +174,9 @@ export function JournalComposer({
             </>
           }
         >
-          {!!error && (
-            <Text accessibilityRole="alert" style={ui.error}>
-              {error}
-            </Text>
+          {!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}
+          {destination === 'account' && cloudVersion === null && !busy && (
+            <Button title="저장 준비 다시 시도" secondary onPress={() => void selectAccount()} />
           )}
           {photoError && (
             <Button
@@ -271,26 +299,6 @@ export function JournalComposer({
             </View>
             <Text style={ui.muted}>최대 5장 · 첫 사진이 프로필 대표 사진으로 표시됩니다.</Text>
           </View>
-          <Text style={ui.heading}>저장 위치</Text>
-          <View style={[ui.row, { flexWrap: 'wrap' }]}>
-            <Button
-              title={destination === 'device' ? '✓ 이 기기' : '이 기기'}
-              secondary
-              disabled={busy}
-              onPress={() => {
-                setDestination('device');
-                setError('');
-              }}
-            />
-            {session && (
-              <Button
-                title={destination === 'account' ? '✓ 내 계정' : '내 계정'}
-                secondary
-                disabled={busy}
-                onPress={() => void selectAccount()}
-              />
-            )}
-          </View>
           {destination === 'account' ? (
             <>
               <Text style={ui.heading}>공개 범위</Text>
@@ -319,7 +327,7 @@ export function JournalComposer({
               )}
             </>
           ) : (
-            <Text style={ui.muted}>사진과 글을 이 기기에만 저장합니다.</Text>
+            null
           )}
         </ScreenLayout>
         <Modal
@@ -337,7 +345,7 @@ export function JournalComposer({
                 저장한 운동 기록은 유지되며, 이번에 바꾼 글과 사진만 취소합니다.
               </Text>
               <Button title="계속 작성하기" onPress={() => setConfirmClose(false)} />
-              <Button title="변경 내용 버리기" secondary onPress={onClose} />
+              <Button title="변경 내용 버리기" secondary onPress={() => void closeDraft()} />
             </View>
           </View>
         </Modal>

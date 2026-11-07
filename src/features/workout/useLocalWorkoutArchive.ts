@@ -5,7 +5,7 @@ import {
   type ArchivePersistence,
 } from './archiveState.ts';
 import { appendManualWorkout } from './manualWorkout.ts';
-import { finishArchivedWorkout, remember } from './storage.ts';
+import { finishArchivedWorkout, removeArchivedWorkout, remember } from './storage.ts';
 import type { Exercise, Workout } from './model.ts';
 import {
   setDefaultRest,
@@ -40,8 +40,9 @@ export function useLocalWorkoutArchive(storage: ArchivePersistence, now = Date.n
     rest: archive.rest,
     restFor: (exercise: Exercise) => exerciseRest(archive, exercise),
     setWorkout,
-    finishCurrentWorkout: (workoutId: string, discardIncomplete = false) =>
-      controller.change((current) => finishArchivedWorkout(current, workoutId, now(), discardIncomplete)),
+    finishCurrentWorkout: (workoutId: string, discardIncomplete = false, timeOnly = false) =>
+      controller.change((current) => finishArchivedWorkout(current, workoutId, now(), discardIncomplete, timeOnly)),
+    deleteWorkout: (id: string) => controller.change(current => removeArchivedWorkout(current, id)),
     addManualWorkout: (workout: Workout) =>
       controller.change((current) => appendManualWorkout(current, workout)),
     completeSet: (exerciseId: string, setId: string, completed: boolean) =>

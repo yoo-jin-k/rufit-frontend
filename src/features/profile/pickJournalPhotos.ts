@@ -2,13 +2,19 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { prepareJournalPhoto } from './prepareJournalPhoto';
 
+export class CameraPermissionError extends Error {
+  constructor() {
+    super('카메라 권한이 꺼져 있습니다. 아이폰 설정에서 루핏의 카메라 권한을 켜 주세요. 앨범에서 사진을 선택하거나 사진 없이도 저장할 수 있습니다.');
+  }
+}
+
 /** 작성과 편집이 같은 사진 개수·권한·변환 규칙을 사용합니다. 취소 시 빈 배열을 반환합니다. */
 export async function pickJournalPhotos(camera: boolean, remaining: number): Promise<string[]> {
   if (remaining <= 0) return [];
   if (camera && Platform.OS !== 'web') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted)
-      throw new Error('카메라 권한이 필요합니다. 앨범을 선택하거나 사진 없이 기록할 수 있습니다.');
+      throw new CameraPermissionError();
   }
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],

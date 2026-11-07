@@ -128,8 +128,8 @@ test('사진 읽기 실패 후에도 기존 사진과 메모를 바로 저장할
     );
     await click('앨범에서 선택');
     assert.match(document.body.textContent!, /사진을 읽을 수 없습니다/);
-    assert.notEqual(button('이 기기에 오운완 저장').getAttribute('aria-disabled'), 'true');
-    await click('이 기기에 오운완 저장');
+    assert.notEqual(button('오운완 저장').getAttribute('aria-disabled'), 'true');
+    await click('오운완 저장');
     assert.equal(saved?.memo, '보존할 글');
     assert.deepEqual(saved?.photos, ['data:image/jpeg;base64,existing']);
   } finally {
@@ -138,7 +138,7 @@ test('사진 읽기 실패 후에도 기존 사진과 메모를 바로 저장할
   }
 });
 
-test('계정 저장은 명시적으로 선택하며 전송 실패에도 글을 유지하고 같은 버전으로 재시도합니다', async () => {
+test('로그인 계정으로 저장하며 전송 실패에도 글을 유지하고 같은 버전으로 재시도합니다', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   Object.assign(globalThis, {
     window: dom.window,
@@ -164,6 +164,7 @@ test('계정 저장은 명시적으로 선택하며 전송 실패에도 글을 �
   let saved = false,
     closed = 0;
   const session = {
+    scope: { server: "test", accountId: "me" },
     isActive: () => true,
     api: {
       directorySettings: async () => ({ memberId: 'me' }),
@@ -206,14 +207,13 @@ test('계정 저장은 명시적으로 선택하며 전송 실패에도 글을 �
       ),
     );
     assert.equal(writes.length, 0);
-    await click('내 계정');
     assert.equal(writes.length, 0);
     await click('친구 공개');
-    await click('내 계정에 오운완 저장');
+    await click('오운완 저장');
     assert.match(document.body.textContent!, /연결 오류/);
     assert.equal(closed, 0);
     assert.equal(saved, false);
-    await click('내 계정에 오운완 저장');
+    await click('오운완 저장');
     assert.deepEqual(writes[0], writes[1]);
     assert.equal(writes[0].visibility, 'FRIENDS');
     assert.equal(writes[0].memo, '오늘 기록');

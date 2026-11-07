@@ -15,7 +15,10 @@ export type IconName =
   | 'calendar'
   | 'bell'
   | 'more'
-  | 'heart';
+  | 'heart'
+  | 'close'
+  | 'edit'
+  | 'refresh';
 export function AppIcon({
   name,
   size = 22,
@@ -28,6 +31,9 @@ export function AppIcon({
   filled?: boolean;
 }) {
   const paths: Partial<Record<IconName, string>> = {
+    edit: 'M4 16L16 4l4 4L8 20H4z M14 6l4 4',
+    refresh: 'M20 7v5h-5 M4 17v-5h5 M5 8a8 8 0 0114-2l1 6 M4 12l1 6a8 8 0 0014-2',
+    close: 'M6 6l12 12 M18 6L6 18',
     heart: 'M12 21L3 12C-2 5 7-1 12 6C17-1 26 5 21 12Z',
     workout: 'M7 12h10 M3 9v6 M6 7v10 M18 7v10 M21 9v6',
     analysis: 'M5 20V11 M12 20V4 M19 20V8',

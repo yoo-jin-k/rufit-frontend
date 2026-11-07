@@ -1,6 +1,7 @@
 import { AppModal as Modal } from '../../components/AppModal';
 /** 운동 저장 성공 이후에만 표시합니다. 오운완 작성은 별도 흐름이며 건너뛰어도 운동을 삭제하지 않습니다. */
-import {  StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
@@ -19,16 +20,18 @@ export function MonthlyCompletion({
   onClose: () => void;
   onJournal?: () => void;
 }) {
+  const [openingJournal, setOpeningJournal] = useState(false);
   if (!progress) return null;
   const sets =
     workout?.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0) ?? 0;
   return (
-    <Modal visible animationType="fade" onRequestClose={onClose}>
+    <Modal visible={!openingJournal} animationType="fade" onRequestClose={onClose}
+      onDismiss={() => { if (openingJournal) { setOpeningJournal(false); onJournal?.(); } }}>
       <SafeAreaView style={ui.page}>
         <ScreenLayout
           footer={
             <>
-              {onJournal && <Button title="◎ 오운완 기록하기" onPress={onJournal} />}
+              {onJournal && <Button title="◎ 오운완 기록하기" onPress={() => { if (Platform.OS === 'ios') setOpeningJournal(true); else onJournal(); }} />}
               <Button title="다음에 할게요" secondary onPress={onClose} />
             </>
           }

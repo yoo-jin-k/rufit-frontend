@@ -155,6 +155,9 @@ export function transferMeasurement(
     } else {
       if (!row.remote) throw new Error('가져올 서버 측정값이 없습니다.');
       const selected = localMeasurement(row.kind, row.remote);
+      // 서버에 아직 없는 키 항목은 체중을 가져올 때 기기의 값을 보존합니다.
+      if ('weight' in selected && current && 'weight' in current && current.height !== undefined)
+        selected.height = current.height;
       const next = [...records.filter((r) => r.date !== row.date), selected].sort((a, b) =>
         a.date.localeCompare(b.date),
       );

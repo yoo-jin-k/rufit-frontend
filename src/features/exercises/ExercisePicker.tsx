@@ -363,7 +363,7 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
             renderItem={({ item }) => (
               <ExerciseListItem
                 item={item}
-                selected={pending.some((entry) => entry.id === item.id)}
+                selectionOrder={pending.findIndex((entry) => entry.id === item.id) + 1}
                 alreadyAdded={selectedIdSet.has(item.id)}
                 onDetail={(exercise) => { stopSearchFocusRecovery(); setDetail(exercise); }}
                 onChoose={choose}
@@ -425,7 +425,7 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
             }
           />
           <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.sm, gap: spacing.sm }}>
-            <Text style={s.muted}>종목을 눌러 선택 · 이미지를 눌러 상세 보기</Text>
+            <Text style={s.muted}>선택한 순서대로 추가됩니다 · 이미지를 눌러 상세 보기</Text>
             <Button title={`선택한 운동 ${pending.length}개 추가`} disabled={!pending.length} onPress={confirmSelection} />
           </View>
           </>}
@@ -441,17 +441,19 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
 
 function ExerciseListItem({
   item,
-  selected,
+  selectionOrder,
   alreadyAdded,
   onDetail,
   onChoose,
 }: {
   item: CatalogExercise;
-  selected: boolean;
+  selectionOrder: number;
   alreadyAdded: boolean;
   onDetail(exercise: CatalogExercise): void;
   onChoose(exercise: CatalogExercise): void;
 }) {
+  // 임시 선택 배열의 순서를 사용하므로 해제 시 번호가 당겨지고 다시 선택하면 마지막에 추가됩니다.
+  const selected = selectionOrder > 0;
   const window = useWindowDimensions();
   const stacked = stackedExerciseItem(window.width - 40, window.fontScale);
   const [mediaMissing, setMediaMissing] = useState(() => !hasExerciseImage(item.id));
@@ -465,7 +467,7 @@ function ExerciseListItem({
       </Pressable>
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityLabel={`${item.name}${alreadyAdded ? ', 추가됨' : ', 운동 선택'}`}
+        accessibilityLabel={`${item.name}${alreadyAdded ? ', 추가됨' : selected ? `, ${selectionOrder}번째 선택됨` : ', 운동 선택'}`}
         accessibilityState={{ checked: selected || alreadyAdded, disabled: alreadyAdded }}
         aria-checked={selected || alreadyAdded}
         disabled={alreadyAdded}
@@ -473,16 +475,16 @@ function ExerciseListItem({
         style={s.exerciseBody}
       >
 
+        <View style={s.action} accessible={false}>
+          <Text style={s.actionText}>{alreadyAdded ? '✓' : selected ? selectionOrder : '+'}</Text>
+        </View>
         <View style={s.exerciseInfo}>
           <Text style={s.exerciseName}>{item.name}</Text>
           <Text style={s.muted}>
             {bodyParts[item.bodyPart]} · {equipmentLabels[item.equipment]}
           </Text>
           {mediaMissing && <Text style={s.muted}>동작 사진 없음</Text>}
-          {(selected || alreadyAdded) && <Text style={s.selectedText}>{alreadyAdded ? '추가됨' : '선택됨'}</Text>}
-        </View>
-        <View style={s.action} accessible={false}>
-          <Text style={s.actionText}>{selected || alreadyAdded ? '✓' : '+'}</Text>
+          {(selected || alreadyAdded) && <Text style={s.selectedText}>{alreadyAdded ? '추가됨' : `${selectionOrder}번째 선택됨`}</Text>}
         </View>
       </Pressable>
     </View>

@@ -3,7 +3,7 @@
  * 읽기에 실패한 기록을 빈 기록으로 대체하지 않으며, 기존 저장 자료를 보존합니다.
  */
 import { validDate } from '../strength/model.ts';
-import { finishWorkout, type Workout } from './model.ts';
+import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, type Workout } from './model.ts';
 export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number; pausedAt?: number };
 export type WorkoutArchive = {
   schemaVersion: 3;
@@ -146,15 +146,19 @@ export function remember(archive: WorkoutArchive, workout: Workout | null): Work
   };
 }
 // 저장을 순서대로 실행해 느린 이전 저장이 최신 입력을 덮어쓰지 않게 합니다.
-export function createWorkoutStorage(storage: Storage) {
+export function createWorkoutStorage(storage: Storage, pauseOnLoad = false) {
   let tail: Promise<void> = Promise.resolve();
   return {
     async load() {
       await tail.catch(() => {});
-      return decodeArchive(await storage.getItem(key));
+      const raw = await storage.getItem(key);
+      const archive = decodeArchive(raw);
+      if (!pauseOnLoad || !raw) return archive;
+      const savedAt: unknown = JSON.parse(raw).savedAt;
+      return pauseRestoredWorkout(archive, typeof savedAt === 'number' ? savedAt : Date.now());
     },
     save(value: WorkoutArchive) {
-      const snapshot = JSON.stringify(value);
+      const snapshot = JSON.stringify({ ...value, savedAt: Date.now() });
       const pending = tail.catch(() => {}).then(() => storage.setItem(key, snapshot));
       tail = pending;
       return pending;
@@ -164,9 +168,24 @@ export function createWorkoutStorage(storage: Storage) {
 
 /** 같은 종료 요청의 재전달은 무시하고, 현재 운동과 이력·휴식을 한 저장본으로 갱신합니다. */
 export function finishArchivedWorkout(
-  archive: WorkoutArchive, workoutId: string, now: number, discardIncomplete = false,
+  archive: WorkoutArchive, workoutId: string, now: number, discardIncomplete = false, timeOnly = false,
 ): WorkoutArchive {
   const current = archive.current;
   if (!current || current.id !== workoutId || current.finishedAt !== undefined) return archive;
-  return remember(archive, finishWorkout(current, now, discardIncomplete));
+  return remember(archive, timeOnly ? finishTimeOnlyWorkout(current, now) : finishWorkout(current, now, discardIncomplete));
+}
+
+/** 선택한 완료 기록만 제거하고 진행 중 운동과 별도 오운완 게시물은 유지합니다. */
+export function removeArchivedWorkout(archive: WorkoutArchive, id: string): WorkoutArchive {
+  if (!archive.history.some(w => w.id === id)) return archive;
+  return { ...archive, history: archive.history.filter(w => w.id !== id),
+    current: archive.current?.id === id && archive.current.finishedAt !== undefined ? null : archive.current };
+}
+
+/** 재로그인·앱 재실행으로 복구한 운동은 마지막 저장 시점에 멈추고 명시적으로 재개합니다. */
+export function pauseRestoredWorkout(archive: WorkoutArchive, savedAt: number): WorkoutArchive {
+  const workout = archive.current;
+  if (!workout || workout.finishedAt !== undefined || workout.pausedAt !== undefined) return archive;
+  const safeTime = Math.max(workout.startedAt + (workout.pausedDurationMs ?? 0), savedAt);
+  return { ...archive, current: pauseWorkout(workout, safeTime), rest: null };
 }

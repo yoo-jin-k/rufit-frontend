@@ -15,10 +15,10 @@ import { countTestFriends, testSelf } from './friendTestModel';
 import { LikeButton } from '../../components/LikeButton';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RufitSession } from '../../api/session';
 import { ServerFriendsScreen } from './ServerFriendsScreen';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Image, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
@@ -45,7 +45,8 @@ export function ProfileScreen({
   profile: ReturnType<typeof useProfile>;
   onJournal: (workout: Workout) => void;
 }) {
-  const [journalSource, setJournalSource] = useState<'account' | 'device'>(initialJournalSource);
+  // 저장 직후에는 해당 기록을 보여주되 저장 위치를 사용자 선택 메뉴로 노출하지 않습니다.
+  const journalSource = initialJournalSource;
   const [serverPostCount, setServerPostCount] = useState<number | null>(null);
   const [postLoadStatus, setPostLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const social = useTestFriends();
@@ -85,6 +86,12 @@ export function ProfileScreen({
     setAvatar(profile.value.avatar);
     setError('');
     setEditing(true);
+  }
+  const pendingJournal = useRef<Workout | null>(null);
+  function openPendingJournal() {
+    const target = pendingJournal.current;
+    pendingJournal.current = null;
+    if (target) onJournal(target);
   }
   const [choosingWorkout, setChoosingWorkout] = useState(false);
   const [post, setPost] = useState<string | null>(null);
@@ -153,6 +160,12 @@ export function ProfileScreen({
                 updateProfileDetails(profile.value, name, bio, gym),
                 avatar,
               );
+              if (session?.isActive()) {
+                // 친구 검색 공개 여부는 유지하고 닉네임만 같은 계정의 서버 프로필에 반영합니다.
+                const directory = await session.api.directorySettings();
+                await session.api.updateDirectory({ nickname: next.nickname,
+                  discoverable: directory.discoverable, version: directory.version });
+              }
               await profile.save(next);
               setEditing(false);
             } catch (cause) {
@@ -167,7 +180,7 @@ export function ProfileScreen({
   return (
     <ScreenLayout>
       <View style={ui.between}>
-        <Text style={ui.heading}>{profile.value.nickname}</Text>
+        <Text numberOfLines={1} style={[ui.heading, { flex: 1, minWidth: 0 }]}>{profile.value.nickname}</Text>
         <View style={ui.row}>
           <Pressable
             accessibilityRole="button"
@@ -181,6 +194,12 @@ export function ProfileScreen({
             <AppIcon name="plus" />
           </Pressable>
           <NotificationButton />
+          {/* 편집 기능은 추가·알림과 같은 상단 도구 모음에서 제공합니다. */}
+          <Pressable accessibilityRole="button" accessibilityLabel="프로필 편집"
+            disabled={!profile.ready} onPress={openEditor}
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <AppIcon name="edit" size={20} />
+          </Pressable>
         </View>
       </View>
       <View style={ui.row}>
@@ -240,7 +259,6 @@ export function ProfileScreen({
           {!!profile.value.gym && <Text style={ui.muted}>헬스장 · {profile.value.gym}</Text>}
         </View>
       )}
-      <Button title="프로필 편집" secondary disabled={!profile.ready} onPress={openEditor} />
       <View style={ui.row}>
         {['오운완', '전체 기록', '달력'].map((t) => (
           <Pressable
@@ -268,12 +286,6 @@ export function ProfileScreen({
         <Text accessibilityRole="alert" style={ui.error}>
           {error || profile.error}
         </Text>
-      )}
-      {tab === '오운완' && session && (
-        <View style={[ui.row, { flexWrap: 'wrap' }]}>
-          <Button title="내 계정" compact secondary onPress={() => setJournalSource('account')} />
-          <Button title="이 기기" compact secondary onPress={() => setJournalSource('device')} />
-        </View>
       )}
       {tab === '달력' ? (
         <WorkoutCalendar monthly history={history} ready now={now} />
@@ -373,6 +385,7 @@ export function ProfileScreen({
       {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다. */}
       <Modal
         visible={choosingWorkout}
+        onDismiss={openPendingJournal}
         animationType="slide"
         onRequestClose={() => setChoosingWorkout(false)}
       >
@@ -384,8 +397,9 @@ export function ProfileScreen({
             <WorkoutHistory
               records={history}
               onSelect={(workout) => {
+                pendingJournal.current = workout;
                 setChoosingWorkout(false);
-                onJournal(workout);
+                if (Platform.OS !== 'ios') openPendingJournal();
               }}
             />
           </ScreenLayout>

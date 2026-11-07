@@ -672,3 +672,81 @@ test('로그인 복원을 취소한 뒤 도착한 응답은 세션을 되살리�
   assert.equal(setup.coordinator.getSession(), null);
   assert.equal(setup.coordinator.getState().kind, 'signed-out');
 });
+
+// 이메일 로그인도 기존 보안 저장과 /me 검증을 거치며 암호를 저장하지 않습니다.
+test('이메일 로그인과 연결 요청은 인증 경계를 지키고 같은 회원을 유지한다', async () => {
+  const seen: { path: string; auth: string | null }[] = [];
+  const transport: typeof fetch = async (url, init) => {
+    const path = new URL(String(url)).pathname;
+    const headers = new Headers(init?.headers);
+    seen.push({ path, auth: headers.get('Authorization') });
+    const value = path === '/api/v1/auth/email/login' ? tokens
+      : path === '/api/v1/me' ? { id: tokens.account.id }
+      : path === '/api/v1/account/login-methods' ? { email: 'test@example.test', providers: ['KAKAO'] }
+      : path === '/api/v1/account/email-link-requests' ? { requestId: attemptId, expiresAt: '2099-01-01T00:10:00Z' }
+      : null;
+    return new Response(value === null ? null : JSON.stringify(value), { status: value === null ? 204 : 200 });
+  };
+  const store = memoryStore();
+  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
+    fetch: transport, store, createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  await coordinator.emailLogin('test@example.test', 'test password only');
+  assert.equal(coordinator.getState().kind, 'signed-in');
+  assert.equal(store.value?.provider, 'EMAIL');
+  assert.equal(JSON.stringify(store.value).includes('test password only'), false);
+  assert.deepEqual(await coordinator.loginMethods(), { email: 'test@example.test', providers: ['KAKAO'] });
+  await coordinator.emailRequest('another@example.test', 'LINK');
+  assert.equal(seen.find(r => r.path.endsWith('/email/login'))?.auth, null);
+  assert.equal(seen.find(r => r.path.endsWith('/email-link-requests'))?.auth, `Bearer ${tokens.accessToken}`);
+});
+
+test('이메일 로그인 중 취소하면 늦은 응답으로 계정을 되살리지 않는다', async () => {
+  let resolve!: (response: Response) => void;
+  const transport: typeof fetch = () => new Promise<Response>(done => { resolve = done; });
+  const store = memoryStore();
+  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
+    fetch: transport, store, createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  const pending = coordinator.emailLogin('test@example.test', 'test password only');
+  coordinator.cancelLogin();
+  resolve(new Response(JSON.stringify(tokens), { status: 200 }));
+  await pending;
+  assert.equal(coordinator.getState().kind, 'signed-out');
+  assert.equal(store.value, null);
+});
+
+
+test('로그아웃 상태의 연결 방법 조회는 동기 예외로 화면을 중단하지 않는다', async () => {
+  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test' }),
+    store: memoryStore(), createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  let pending!: Promise<unknown>;
+  assert.doesNotThrow(() => { pending = coordinator.loginMethods(); });
+  await assert.rejects(pending, /로그인이 필요/);
+});
+
+test('연결 인증 충돌에서만 카카오 이메일을 표시하고 미제공 상태를 구분합니다', async () => {
+  for (const [fields, expected] of [
+    [{ verifiedKakaoEmail: 'member@example.test' }, /방금 인증한 카카오계정 이메일: member@example.test/],
+    [{ verifiedKakaoEmail: '123456789' }, /이미 가입되었거나/],
+    [{ kakaoEmailUnavailable: true }, /이메일이 제공되지 않아/],
+    [{ verifiedKakaoMemberId: '123456789' }, /이미 가입되었거나/],
+  ] as const) {
+    const api = createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: async () =>
+      new Response(JSON.stringify({ code: 'LOGIN_METHOD_CONFLICT', ...fields }),
+        { status: 409, headers: { 'Content-Type': 'application/problem+json' } }) });
+    await assert.rejects(api.account.finishLink(attemptId, handoff, verifier, 'test-access'), expected);
+    await assert.rejects(api.account.login('member@example.test', 'unused-password'),
+      error => error instanceof Error && !error.message.includes('member@example.test'));
+  }
+});
+
+test('기존 계정 통합은 명시적 확인과 현재 인증으로만 별도 경로에 요청합니다', async () => {
+  const calls: { url: string; authorization: string | null; body: unknown }[] = [];
+  const api=createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: async (url, options) => {
+    calls.push({ url: String(url), authorization: new Headers(options?.headers).get('Authorization'), body: JSON.parse(String(options?.body)) });
+    return new Response(null,{status:204});
+  }});
+  await api.account.finishMerge(attemptId,handoff,verifier,'test-access');
+  assert.equal(calls[0].url,'https://api.rufit.test/api/v1/account/social-merge-exchanges');
+  assert.equal(calls[0].authorization,'Bearer test-access');
+  assert.deepEqual(calls[0].body,{attemptId,handoffCode:handoff,codeVerifier:verifier,confirmMerge:true});
+});

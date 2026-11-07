@@ -1,12 +1,12 @@
 import { AppModal as Modal } from '../../components/AppModal';
 import { useRef, useState } from 'react';
-import { Image, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
 import { ApiError, type ServerPost } from '../../api/client';
 import type { RufitSession } from '../../api/session';
-import { pickJournalPhotos } from '../profile/pickJournalPhotos';
+import { CameraPermissionError, pickJournalPhotos } from '../profile/pickJournalPhotos';
 
 /** 기기 운동 원본 없이도 계정 저장본을 편집합니다. 충돌·실패 시 입력 초안을 그대로 보존합니다. */
 export function ServerPostEditor({
@@ -47,6 +47,8 @@ export function ServerPostEditor({
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : '사진을 불러오지 못했습니다.');
+      // 권한 거부가 게시물 편집 자체를 막지 않도록 촬영 안내만 표시합니다.
+      if (e instanceof CameraPermissionError) Alert.alert('카메라 권한을 확인해 주세요', e.message);
     } finally {
       locked.current = false;
       setBusy(false);

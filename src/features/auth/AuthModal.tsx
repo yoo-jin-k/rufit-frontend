@@ -1,3 +1,4 @@
+import { EmailAccountPanel } from './EmailAccountPanel';
 import { AppModal as Modal } from '../../components/AppModal';
 import { useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import {
@@ -35,7 +36,7 @@ const googleButton =
   Platform.OS === 'ios'
     ? require('../../../assets/brand/google-signin-ios-light.png')
     : require('../../../assets/brand/google-signin-android-web-light.png');
-const providerName = { KAKAO: '카카오', GOOGLE: 'Google' } as const;
+const providerName = { KAKAO: '카카오', GOOGLE: 'Google', EMAIL: '이메일' } as const;
 
 function ProviderButton({
   provider,
@@ -191,6 +192,7 @@ export function AuthModal({
                   <Text style={s.body}>{copy.body}</Text>
                 </View>
               )}
+              {coordinator && <EmailAccountPanel key={sessionKey} coordinator={coordinator} signedIn enabled={enabled} />}
               <Text style={s.localNotice}>{signedInLocalNotice}</Text>
               <Text style={s.localNotice}>{Platform.OS === 'web' ? '로컬 웹 시험용 로그인입니다. 새로고침하면 복원하며, 탭을 닫으면 종료됩니다.' : restartLoginNotice}</Text>
               {confirmLogout ? (
@@ -224,6 +226,7 @@ export function AuthModal({
             <>
               <Text style={s.title}>루핏에 로그인</Text>
               <Text style={s.body}>사용할 계정을 선택해 주세요.</Text>
+              {coordinator && <EmailAccountPanel coordinator={coordinator} signedIn={false} enabled={enabled} />}
               {copy && (
                 <View
                   accessibilityRole={status.kind === 'error' ? 'alert' : undefined}
@@ -273,7 +276,7 @@ export function AuthModal({
               )}
               <Text style={s.caption}>로그인은 시스템 브라우저에서 진행돼요.</Text>
               <Text style={s.caption}>
-                처음 로그인하면 루핏 계정이 만들어져요. 로그인 방법이 다르면 별도 계정으로 처리돼요.
+                처음 로그인하면 루핏 계정이 만들어져요. 같은 기록으로 이용하려면 로그인 후 계정 관리에서 다른 로그인 방법을 연결해 주세요.
               </Text>
               {busy && status.kind === 'signing-in' && (
                 <Button title="로그인 취소" secondary onPress={() => coordinator?.cancelLogin()} />

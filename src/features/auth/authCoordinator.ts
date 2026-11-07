@@ -9,6 +9,7 @@ import type { AuthApi } from './authApi.ts';
 import type { SessionStore } from './secureSessionStore.ts';
 import type {
   AuthClient,
+  LoginProvider,
   AuthErrorReason,
   AuthStatus,
   SessionTokens,
@@ -34,7 +35,7 @@ type Options = {
   fetch?: typeof fetch;
   logoutWaitMs?: number;
 };
-type Runtime = { tokens: SessionTokens; provider: SocialProvider; session: RufitSession };
+type Runtime = { tokens: SessionTokens; provider: LoginProvider; session: RufitSession };
 
 class AuthFlowError extends Error {
   readonly reason: AuthErrorReason;
@@ -198,6 +199,71 @@ export class AuthCoordinator {
     }
   }
 
+  private accountApi() {
+    if (!this.options.api.account) throw new Error('이메일 로그인을 사용할 수 없습니다.');
+    return this.options.api.account;
+  }
+
+  /** 이메일도 소셜 로그인과 같은 검증·보안 저장·계정 격리 경로로 공개합니다. */
+  async emailLogin(email: string, password: string) {
+    return this.emailSignIn(() => this.accountApi().login(email, password));
+  }
+  private async emailSignIn(work: () => Promise<SessionTokens | null>) {
+    if (this.activeOperation !== null || this.runtime || this.pendingLocalLogout) throw new Error('현재 로그인 작업을 먼저 마쳐 주세요.');
+    const operation = ++this.epoch;
+    this.activeOperation = operation;
+    this.publish({ kind: 'signing-in', provider: 'EMAIL', stage: 'verifying' });
+    try {
+      const tokens = await work();
+      if (tokens && operation === this.epoch) await this.accept(tokens, 'EMAIL', operation);
+    } catch (error) {
+      if (operation === this.epoch) this.publish({ kind: 'error', reason: 'login-failed', action: 'retry-login', provider: 'EMAIL',
+        message: error instanceof Error ? error.message : '로그인을 완료하지 못했습니다.' });
+      throw error;
+    } finally { if (this.activeOperation === operation) this.activeOperation = null; }
+  }
+  emailRequest(email: string, purpose: 'REGISTER' | 'RESET' | 'LINK') {
+    if (purpose === 'LINK' && !this.runtime) throw new Error('로그인이 필요합니다.');
+    return this.accountApi().request(email, purpose, this.runtime?.tokens.accessToken);
+  }
+  async emailConfirm(purpose: 'REGISTER' | 'RESET' | 'LINK', requestId: string, verificationToken: string, password: string) {
+    if (purpose === 'REGISTER') return this.emailSignIn(() => this.accountApi().confirm(purpose, requestId, verificationToken, password));
+    const current = this.runtime;
+    if (purpose === 'LINK' && !current) throw new Error('로그인이 필요합니다.');
+    await this.accountApi().confirm(purpose, requestId, verificationToken, password, current?.tokens.accessToken);
+    if (purpose === 'LINK' && current !== this.runtime) throw new Error('계정이 바뀌었습니다. 다시 확인해 주세요.');
+  }
+  // 로그아웃과 겹친 조회도 Promise 거절로 전달하여 화면 렌더를 중단하지 않습니다.
+  async loginMethods() {
+    if (!this.runtime) throw new Error('로그인이 필요합니다.');
+    return this.accountApi().methods(this.runtime.tokens.accessToken);
+  }
+  async linkSocial(provider: SocialProvider, client: AuthClient, returnUrl: string, merge = false) {
+    if (this.activeOperation !== null || this.refreshPromise || !this.runtime) throw new Error('다른 로그인 작업이 끝난 후 다시 시도해 주세요.');
+    const current = this.runtime;
+    const operation = ++this.epoch;
+    this.activeOperation = operation;
+    try {
+      this.options.browser.prepare?.();
+      const pkce = await this.options.createPkce();
+      if (operation !== this.epoch) return;
+      const attempt = await this.accountApi().startLink(provider, client, pkce.challenge, current.tokens.accessToken);
+      if (operation !== this.epoch) return;
+      const result = await this.options.browser.open(attempt.authorizationUrl, returnUrl);
+      if (operation !== this.epoch) return;
+      if (result.type !== 'success') throw new Error('계정 연결을 취소했습니다.');
+      const handoff = parseHandoffUrl(result.url, returnUrl, attempt.attemptId);
+      if (handoff.kind === 'cancelled') throw new Error('계정 연결을 취소했습니다.');
+      // 통합은 화면에서 명시적으로 선택한 경우에만 별도 API로 요청합니다.
+      const api = this.accountApi();
+      if (merge) await api.finishMerge(attempt.attemptId, handoff.handoffCode, pkce.verifier, current.tokens.accessToken);
+      else await api.finishLink(attempt.attemptId, handoff.handoffCode, pkce.verifier, current.tokens.accessToken);
+      if (current !== this.runtime || operation !== this.epoch) throw new Error('계정이 바뀌었습니다. 연결 상태를 다시 확인해 주세요.');
+    } finally {
+      if (this.activeOperation === operation) { this.activeOperation = null; await this.options.browser.close?.(); }
+    }
+  }
+
   cancelLogin() {
     if (this.activeOperation === null) return;
     ++this.epoch;
@@ -213,7 +279,7 @@ export class AuthCoordinator {
 
   private async accept(
     tokens: SessionTokens,
-    provider: SocialProvider,
+    provider: LoginProvider,
     operation: number,
     previous?: Runtime,
   ) {

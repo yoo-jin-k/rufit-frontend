@@ -1,12 +1,14 @@
+import type { useServerLive } from '../cheers/useServerLive';
 import { NotificationButton } from '../../components/NotificationButton';
 /** 설정 항목은 실제 지원 범위를 명시합니다. 미연결 기능을 켜짐이나 로그인 완료로 표시하지 않습니다. */
 import { useState } from 'react';
-import { Platform, Pressable, Share, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import type { Workout } from '../workout/model';
 export function SettingsScreen({
+  live,
   onServerHistory,
   defaultRest,
   onRest,
@@ -16,6 +18,7 @@ export function SettingsScreen({
   onAuth,
   authLabel,
 }: {
+  live?: ReturnType<typeof useServerLive>;
   onServerHistory?: () => void;
   defaultRest?: number;
   onRest: (value: number | null) => void;
@@ -94,6 +97,17 @@ export function SettingsScreen({
         <AppIcon name="chevron" size={16} />
       </Pressable>
       {onServerHistory && <Button title="계정 기록 동기화" secondary onPress={onServerHistory} />}
+      {live && <View style={ui.card}>
+        <View style={ui.between}>
+          <Text style={[ui.body, { flex: 1 }]}>친구에게 내 운동 상태 공개</Text>
+          <Switch accessibilityLabel="친구에게 내 운동 상태 공개"
+            value={live.data?.sharing ?? false} disabled={live.busy || !live.data}
+            onValueChange={value => void live.share(value)} />
+        </View>
+        <Text style={ui.muted}>켜면 운동 중인 상태가 친구에게 보이고 응원을 받을 수 있어요.</Text>
+        {!!live.error && <Text accessibilityRole="alert" style={ui.error}>{live.error}</Text>}
+        {!live.data && <Button title="설정 다시 불러오기" secondary onPress={() => void live.refresh()} />}
+      </View>}
       {groups.map((group) => (
         <View key={group.title} style={{ gap: 10 }}>
           <Text style={ui.muted}>{group.title}</Text>
