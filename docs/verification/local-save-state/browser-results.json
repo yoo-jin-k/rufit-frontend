@@ -1,0 +1,11 @@
+{
+  "saveFailurePreservedDisk": true,
+  "newWorkoutAllowedWithHistory": true,
+  "retrySavedFullArchive": true,
+  "reloadRecoveredHistory": true,
+  "loadFailureBlockedStart": true,
+  "corruptDataPreserved": true,
+  "errors": [],
+  "nativeDeviceTested": false,
+  "screenReaderTested": false
+}

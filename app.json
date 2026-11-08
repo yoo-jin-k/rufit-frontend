@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "루핏",
+    "slug": "rufit",
+    "version": "0.1.0",
+    "scheme": "rufit",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rufit.app"
+    },
+    "android": {
+      "package": "com.rufit.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "오운완 기록에 선택한 사진을 첨부합니다.",
+          "cameraPermission": "오운완 사진을 촬영합니다.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}

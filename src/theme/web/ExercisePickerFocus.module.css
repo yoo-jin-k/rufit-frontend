@@ -1,0 +1,5 @@
+/* 자동 생성: npm run styles. 직접 수정 금지. */
+.field:focus-within {
+  border-color: #111113;
+  border-width: 2px;
+}

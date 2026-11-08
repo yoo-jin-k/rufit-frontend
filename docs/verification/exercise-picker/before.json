@@ -1,0 +1,187 @@
+{
+  "error": "locator.click: Timeout 4000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '스쿼트, 하체, 바벨, 추가', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button tabindex=\"0\" role=\"button\" type=\"button\" aria-label=\"스쿼트, 하체, 바벨, 추가\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-1awozwy r-qklmqi r-1d66ma6 r-18u37iz r-1i71y14 r-1ml3abn\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not stable\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not stable\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"css-g5y9jx r-1kihuf0 r-14lw9ot r-1uv9fpa r-92sni r-1658zo6 r-1cmskyw r-1udh08x r-13qz1uu\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <button tabindex=\"0\" role=\"button\" type=\"button\" class=\"css-g5y9jx r-1loqt21 r-1otgn73 r-1fuqb1j r-1777fci r-peo1c r-284m6k r-1s0iis3\">…</button> from <div class=\"css-g5y9jx r-150rngu r-18u37iz r-lltvgl r-buy8e9 r-agouwx r-18kxxzh r-1q142lx r-5oul0u r-2eszeu\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"css-g5y9jx r-1awozwy r-18u37iz r-1wtj0ep r-peo1c r-u9wvl5\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"css-g5y9jx r-1kihuf0 r-14lw9ot r-1uv9fpa r-92sni r-1658zo6 r-1cmskyw r-1udh08x r-13qz1uu\">…</div> intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 500ms\u001b[22m\n",
+  "geometry": [
+    {
+      "tag": "BUTTON",
+      "role": "button",
+      "rect": {
+        "x": 20,
+        "y": 283.84375,
+        "width": 280,
+        "height": 117
+      },
+      "overflow": "visible",
+      "flex": "0 0 auto",
+      "scrollHeight": 116,
+      "clientHeight": 116
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 20,
+        "y": 283.84375,
+        "width": 280,
+        "height": 117
+      },
+      "overflow": "visible",
+      "flex": "0 0 auto",
+      "scrollHeight": 117,
+      "clientHeight": 117
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 283.84375,
+        "width": 320,
+        "height": 1343
+      },
+      "overflow": "visible",
+      "flex": "0 0 auto",
+      "scrollHeight": 1343,
+      "clientHeight": 1343
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 283.84375,
+        "width": 320,
+        "height": 0
+      },
+      "overflow": "hidden auto",
+      "flex": "1 1 auto",
+      "scrollHeight": 1343,
+      "clientHeight": 0
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 48.84375,
+        "width": 320,
+        "height": 251.15625
+      },
+      "overflow": "hidden",
+      "flex": "0 0 auto",
+      "scrollHeight": 277,
+      "clientHeight": 251
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "visible",
+      "flex": "1 1 0%",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "visible",
+      "flex": "1 1 0%",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    },
+    {
+      "tag": "DIV",
+      "role": "dialog",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "visible",
+      "flex": "0 0 auto",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 0
+      },
+      "overflow": "visible",
+      "flex": "0 0 auto",
+      "scrollHeight": 0,
+      "clientHeight": 0
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "visible",
+      "flex": "0 1 auto",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    },
+    {
+      "tag": "DIV",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 300,
+        "width": 320,
+        "height": 0
+      },
+      "overflow": "visible",
+      "flex": "0 1 auto",
+      "scrollHeight": 0,
+      "clientHeight": 0
+    },
+    {
+      "tag": "BODY",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "hidden",
+      "flex": "0 1 auto",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    },
+    {
+      "tag": "HTML",
+      "role": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 300
+      },
+      "overflow": "visible",
+      "flex": "0 1 auto",
+      "scrollHeight": 300,
+      "clientHeight": 300
+    }
+  ]
+}
