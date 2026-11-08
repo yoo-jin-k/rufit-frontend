@@ -17,7 +17,7 @@ import { ExerciseMedia } from '../exercises/ExerciseMedia';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { PreviousSets } from './PreviousSets';
 import { importPreviousSets, previousExercises } from './previousSetModel';
-import { SetHeader, SetRow } from './SetRow';
+import { SetCountControl, SetHeader, SetRow } from './SetRow';
 import { SortableSets } from './SortableSets';
 import { addExercise, addSet, removeSet, moveSet, startWorkout, updateSet, type Workout } from './model';
 import { completeManualWorkout } from './manualWorkout';
@@ -118,9 +118,16 @@ export function ManualWorkoutScreen({
                   onDelete={() => change((w) => removeSet(w, exercise.id, set.id))}
                   onDuplicate={() => change((w) => addSet(w, exercise.id, id(), set.id))} />}
               </SortableSets>
-              <Button title="세트 추가" variant="secondary" size="md" icon={<AppIcon name="plus" />}
-                accessibilityLabel={`${exercise.name} 세트 추가`}
-                onPress={() => change((w) => addSet(w, exercise.id, id(), exercise.sets.at(-1)?.id))} />
+              <SetCountControl
+                name={exercise.name}
+                count={exercise.sets.length}
+                onAdd={() => change((w) => addSet(w, exercise.id, id(), exercise.sets.at(-1)?.id))}
+                onRemove={() => {
+                  const last = exercise.sets.at(-1);
+                  if (last) change((w) => removeSet(w, exercise.id, last.id));
+                }}
+                onLoad={() => setLoadExerciseId(exercise.id)}
+              />
             </View>
           );
         })}
@@ -141,8 +148,6 @@ export function ManualWorkoutScreen({
       <BottomSheet visible={!!menuExercise} title={menuExercise?.name ?? ''} onClose={() => setMenuId(null)}>
         {menuExercise && (
           <ListGroup>
-            <ListRow icon="refresh" label="이전 기록 불러오기"
-              onPress={() => { setMenuId(null); setLoadExerciseId(menuExercise.id); }} />
             <ListRow icon="trash" label="종목 삭제" accessibilityLabel={`${menuExercise.name} 종목 삭제`} danger trailing="none"
               onPress={() => {
                 setMenuId(null);
