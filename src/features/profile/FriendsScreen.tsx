@@ -9,6 +9,7 @@ export function FriendsScreen({ onClose }: { onClose: () => void }) {
     [query, setQuery] = useState('');
   return (
     <ScreenLayout
+      safeTop
       title={search ? '친구 찾기' : '친구'}
       onBack={() => (search ? setSearch(false) : onClose())}
     >

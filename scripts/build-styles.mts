@@ -15,19 +15,18 @@ function variables(value: Record<string, unknown>, prefix = ''): string[] {
 }
 const generated = `// 자동 생성: src/theme/tokens.ts 수정 후 npm run styles\n${variables({ colors, spacing, radius, typography, size }).join('\n')}\n`;
 const tokensUrl = new URL('tokens.generated.scss', root);
-const mixins = await readFile(new URL('_mixins.scss', root), 'utf8');
 const outputs: [URL, string][] = [[tokensUrl, generated]];
-for (const name of ['Button', 'ExercisePickerFocus', 'MeasurementDate', 'Calendar', 'AppSurface', 'SetDrag']) {
+for (const name of ['ExercisePickerFocus', 'AppSurface', 'SetDrag']) {
   const source = await readFile(new URL(`${name}.module.scss`, root), 'utf8');
   // 메모리에서 토큰을 제공하여 --check도 파일 변경 없이 빌드 결과를 비교합니다.
   const css = compileString(source, {
     importers: [
       {
         canonicalize: (url) =>
-          ['tokens.generated', 'mixins'].includes(url) ? new URL(`styles:${url}`) : null,
+          url === 'tokens.generated' ? new URL(`styles:${url}`) : null,
         load: (url) =>
           url.protocol === 'styles:'
-            ? { contents: url.pathname === 'tokens.generated' ? generated : mixins, syntax: 'scss' }
+            ? { contents: generated, syntax: 'scss' }
             : null,
       },
     ],

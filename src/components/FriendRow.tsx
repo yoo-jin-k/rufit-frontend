@@ -4,11 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FriendActions } from './FriendActions';
 import { SocialButton } from './SocialButton';
 import { TestPhoto } from './TestPhoto';
-import { AppIcon } from './AppIcon';
 import { getTestProfile } from '../features/profile/testSocialData';
 import { TestUserProfile } from '../features/profile/TestUserProfile';
 import { useTestFriends } from '../features/profile/useTestFriends';
-import { colors } from '../theme/tokens';
+import { text, tokens } from '../theme/tokens';
+import { Avatar } from './kit/Surfaces';
 export function FriendRow({
   actor,
   other,
@@ -39,9 +39,9 @@ export function FriendRow({
           style={s.identity}
         >
           {profile ? (
-            <TestPhoto tile={profile.avatar} size={34} round label={`${name} 가상 프로필 사진`} />
+            <TestPhoto tile={profile.avatar} size={44} round label={`${name} 가상 프로필 사진`} />
           ) : (
-            <AppIcon name="profile" size={24} />
+            <Avatar size="s" />
           )}
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <Text style={s.name}>{name}</Text>
@@ -65,22 +65,22 @@ export function FriendRow({
             {incoming ? (
               <>
                 <SocialButton
-                  title="수락"
-                  label={`${name} 신청 수락`}
-                  disabled={!ready || busy}
-                  onPress={() => void act(actor, other, 'accept')}
-                />
-                <SocialButton
                   title="거절"
                   label={`${name} 신청 거절`}
                   secondary
                   disabled={!ready || busy}
                   onPress={() => void act(actor, other, 'reject')}
                 />
+                <SocialButton
+                  title="수락"
+                  label={`${name} 신청 수락`}
+                  disabled={!ready || busy}
+                  onPress={() => void act(actor, other, 'accept')}
+                />
               </>
             ) : (
               <SocialButton
-                title={relation ? '취소' : '친구 신청'}
+                title={relation ? '신청 취소' : '친구 신청'}
                 label={`${name} ${relation ? '신청 취소' : '친구 신청'}`}
                 secondary={!!relation}
                 disabled={!ready || busy}
@@ -96,23 +96,16 @@ export function FriendRow({
   );
 }
 const s = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], minHeight: 64 },
   identity: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: tokens.space[12],
     minHeight: 44,
   },
-  name: { fontSize: 12, lineHeight: 18, color: colors.text, fontWeight: '600' },
-  status: { fontSize: 10, lineHeight: 16, color: colors.muted },
-  buttons: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 },
+  name: { ...text.bodyBold, color: tokens.color.text.primary },
+  status: { ...text.label, color: tokens.color.text.secondary },
+  buttons: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], flexShrink: 0 },
 });

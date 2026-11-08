@@ -9,30 +9,37 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Linking,
-
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { BodyPart, Equipment } from '../../api/client';
+import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
-import { colors, radius, size, spacing, typography } from '../../theme/tokens';
+import { CheckMark, Chip, ChipRow, TextField } from '../../components/kit/Controls';
+import { IconButton, NavBar } from '../../components/kit/Screen';
+import { BottomSheet, EmptyCard } from '../../components/kit/Surfaces';
+import { size, text, tokens } from '../../theme/tokens';
+import type { Workout } from '../workout/model';
+import { previousExercises } from '../workout/previousSetModel';
 import { bodyParts, equipmentLabels, searchExercises, type CatalogExercise } from './catalog';
 import { ExerciseDetail } from './ExerciseDetail';
 import { ExerciseMedia } from './ExerciseMedia';
 import { exercisePickerFocusStyles } from './ExercisePickerFocus.styles';
-import { stackedExerciseItem } from './exercisePickerView';
 import { hasExerciseImage } from './images';
 import { useExerciseResultAnnouncement } from './useExerciseResultAnnouncement';
 
 type Props = {
   visible: boolean;
+  /** 상단 제목입니다. 지난 운동 입력에서는 '11월 5일 · 종목 선택'처럼 날짜를 넣습니다. */
+  title?: string;
+  /** 종목마다 '지난번 65kg × 8회'를 보여 주고 상세의 내 기록을 계산할 때 씁니다. */
+  history?: Workout[];
   selectedIds: string[];
   onClose(): void;
   onSelect(exercises: (Pick<CatalogExercise, 'name'> & { id?: string })[]): void;
@@ -54,8 +61,7 @@ function ExerciseResultAnnouncement({ signature, count }: { signature: string; c
   ) : null;
 }
 
-export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Props) {
-  const insets = useSafeAreaInsets();
+export function ExercisePicker({ visible, title = '종목 추가', history = [], selectedIds, onClose, onSelect }: Props) {
   const viewport = useWindowDimensions();
   const [pending, setPending] = useState<(Pick<CatalogExercise, 'name'> & { id?: string })[]>([]);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
@@ -79,6 +85,11 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
     [bodyPart, equipment, query],
   );
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  // 같은 종목의 가장 최근 완료 기록에서 마지막 세트를 '65kg × 8회'로 보여 줍니다.
+  const lastRecord = (item: CatalogExercise) => {
+    const set = previousExercises(history, { id: item.id, name: item.name, catalogId: item.id, sets: [] })[0]?.exercise.sets.at(-1);
+    return set ? `${set.weight}kg × ${set.reps}회` : undefined;
+  };
   const hasConditions = !!(query || bodyPart || equipment);
   const conditionLabel = [
     bodyPart ? bodyParts[bodyPart] : '',
@@ -186,267 +197,239 @@ export function ExercisePicker({ visible, selectedIds, onClose, onSelect }: Prop
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType={Platform.OS === 'web' ? 'none' : 'slide'}
-      onRequestClose={close}
-    >
-      <KeyboardAvoidingView
-        style={[s.backdrop, { paddingTop: Math.max(insets.top, spacing.xxl) }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable
-          style={s.dismissArea}
-          accessibilityLabel="종목 선택 닫기"
-          accessibilityRole="button"
-          onPress={close}
-        />
-        <View
-          style={[s.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}
-          accessibilityViewIsModal
-        >
-          <View style={s.handle} />
-          <View style={s.header}>
-            <Text style={s.title}>종목 추가</Text>
-            <Pressable
-              style={s.close}
-              accessibilityRole="button"
-              accessibilityLabel="닫기"
-              onPress={close}
-            >
-              <Text style={s.closeText}>×</Text>
-            </Pressable>
-          </View>
+    <Modal visible={visible} animationType={Platform.OS === 'web' ? 'none' : 'slide'} onRequestClose={close}>
+      <SafeAreaView style={s.page} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {detail ? (
-            <ExerciseDetail exercise={detail} onClose={() => setDetail(null)} />
-          ) : <>
-          {/* 저높이 창에서도 검색부터 직접 입력까지 하나의 세로 목록으로 탐색합니다. */}
-          <FlatList
-            ref={listRef}
-            data={results}
-            extraData={{ selectedIds, pending }}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
-            disableVirtualization={Platform.OS === 'web'}
-            initialNumToRender={8}
-            maxToRenderPerBatch={10}
-            windowSize={7}
-            style={s.scroll}
-            contentContainerStyle={s.list}
-            ListHeaderComponent={
-              <View>
-                <View style={[s.searchField, exercisePickerFocusStyles.field]}>
-                  <TextInput
-                    ref={searchRef}
-                    style={s.searchInput}
-                    accessibilityLabel="종목 이름 검색"
-                    placeholder="이름이나 별칭 검색"
-                    placeholderTextColor={colors.textSecondary}
-                    value={query}
-                    onChangeText={setQuery}
-                    maxLength={80}
-                    autoCorrect={false}
-                    returnKeyType="search"
-                    onFocus={() => {
-                      if (blurTimer.current) clearTimeout(blurTimer.current);
-                      searchWasActive.current = true;
+            <ExerciseDetail
+              exercise={detail}
+              history={history}
+              alreadyAdded={selectedIdSet.has(detail.id)}
+              onClose={() => setDetail(null)}
+              onAdd={() => {
+                if (!pending.some((item) => item.id === detail.id)) choose(detail);
+                setDetail(null);
+              }}
+            />
+          ) : (
+            <>
+              <View style={s.head}>
+                <NavBar
+                  title={title}
+                  leading="close"
+                  onLeading={close}
+                  trailing={
+                    <IconButton
+                      icon="filter"
+                      label={`장비 필터, ${equipment ? equipmentLabels[equipment] : '전체'}, 펼치기`}
+                      badge={!!equipment}
+                      onPress={() => setShowEquipment(true)}
+                    />
+                  }
+                />
+              </View>
+              {/* 낮은 창에서도 검색부터 직접 입력까지 하나의 세로 목록으로 탐색합니다. */}
+              <FlatList
+                ref={listRef}
+                data={results}
+                extraData={{ selectedIds, pending }}
+                keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
+                disableVirtualization={Platform.OS === 'web'}
+                initialNumToRender={8}
+                maxToRenderPerBatch={10}
+                windowSize={7}
+                style={s.scroll}
+                contentContainerStyle={s.list}
+                ListHeaderComponent={
+                  <View style={s.listHead}>
+                    <View style={[s.search, exercisePickerFocusStyles.field]}>
+                      <AppIcon name="search" color={tokens.color.text.muted} />
+                      <TextInput
+                        ref={searchRef}
+                        style={s.searchInput}
+                        accessibilityLabel="종목 이름 검색"
+                        placeholder="종목 이름 검색"
+                        placeholderTextColor={tokens.color.text.muted}
+                        value={query}
+                        onChangeText={setQuery}
+                        maxLength={80}
+                        autoCorrect={false}
+                        returnKeyType="search"
+                        onFocus={() => {
+                          if (blurTimer.current) clearTimeout(blurTimer.current);
+                          searchWasActive.current = true;
+                        }}
+                        onBlur={(event) =>
+                          handleSearchBlur(
+                            (event.nativeEvent as typeof event.nativeEvent & { relatedTarget?: unknown }).relatedTarget,
+                          )
+                        }
+                      />
+                      {!!query && (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="검색어 지우기"
+                          hitSlop={10}
+                          onPress={() => {
+                            setQuery('');
+                            searchRef.current?.focus();
+                          }}
+                        >
+                          <AppIcon name="close" color={tokens.color.text.muted} />
+                        </Pressable>
+                      )}
+                    </View>
+                    <ChipRow>
+                      <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
+                      {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => (
+                        <Chip key={value} label={label} selected={bodyPart === value} onPress={() => setBodyPart(value)} />
+                      ))}
+                    </ChipRow>
+                    <View style={s.resultHeader}>
+                      <Text testID="exercise-result-count" style={[text.captionBold, s.secondary, { flex: 1 }]}>
+                        {conditionLabel ? `${conditionLabel} · ` : ''}검색 결과 {results.length}개
+                      </Text>
+                      {hasConditions && (
+                        <Pressable accessibilityRole="button" hitSlop={8} onPress={resetConditions}>
+                          <Text style={[text.label, s.link]}>조건 초기화</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                    {error && (
+                      <View
+                        accessibilityRole="alert"
+                        style={s.errorNotice}
+                        onLayout={(event) => {
+                          errorOffset.current = event.nativeEvent.layout.y;
+                          revealError();
+                        }}
+                      >
+                        <Text style={[text.captionBold, { color: tokens.color.danger.default }]}>{error.title}</Text>
+                        <Text style={[text.label, { color: tokens.color.danger.default }]}>{error.body}</Text>
+                      </View>
+                    )}
+                  </View>
+                }
+                renderItem={({ item }) => (
+                  <ExerciseListItem
+                    item={item}
+                    last={lastRecord(item)}
+                    selectionOrder={pending.findIndex((entry) => entry.id === item.id) + 1}
+                    alreadyAdded={selectedIdSet.has(item.id)}
+                    onDetail={(exercise) => {
+                      stopSearchFocusRecovery();
+                      setDetail(exercise);
                     }}
-                    onBlur={(event) =>
-                      handleSearchBlur(
-                        (
-                          event.nativeEvent as typeof event.nativeEvent & {
-                            relatedTarget?: unknown;
-                          }
-                        ).relatedTarget,
-                      )
-                    }
+                    onChoose={choose}
                   />
-                  {!!query && (
+                )}
+                ListEmptyComponent={
+                  <View style={s.empty}>
+                    <EmptyCard icon="search" title="일치하는 종목이 없어요" body="검색어나 조건을 바꾸거나 직접 입력해 주세요." />
+                    {hasConditions && <Button title="조건 초기화" variant="soft" size="md" onPress={resetConditions} />}
+                  </View>
+                }
+                ListFooterComponent={
+                  <View style={s.footer}>
+                    {custom ? (
+                      <View style={s.custom}>
+                        <TextField
+                          label="내 종목 직접 입력"
+                          accessibilityLabel="직접 입력할 운동 이름"
+                          placeholder="운동 이름"
+                          maxLength={80}
+                          value={customName}
+                          onChangeText={setCustomName}
+                          inputProps={{ onFocus: stopSearchFocusRecovery }}
+                        />
+                        <Button
+                          title="이 이름으로 선택"
+                          size="md"
+                          disabled={!customName.trim()}
+                          onPress={() => {
+                            choose({ name: customName });
+                            setCustom(false);
+                            setCustomName('');
+                          }}
+                        />
+                        <Button title="직접 입력 취소" size="md" variant="soft" onPress={() => setCustom(false)} />
+                      </View>
+                    ) : (
+                      <Button
+                        title="목록에 없는 종목 직접 입력"
+                        size="md"
+                        variant="soft"
+                        icon={<AppIcon name="plus" />}
+                        onPress={() => {
+                          setCustomName(query);
+                          setCustom(true);
+                        }}
+                      />
+                    )}
+                    {pending.filter((item) => !item.id).map((item) => (
+                      <Text key={item.name} style={[text.label, s.secondary]}>
+                        직접 입력: {item.name}
+                      </Text>
+                    ))}
                     <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="검색어 지우기"
-                      style={s.clear}
+                      accessibilityRole="link"
+                      style={s.sourceLink}
                       onPress={() => {
-                        setQuery('');
-                        searchRef.current?.focus();
+                        void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() =>
+                          reportError('출처 링크를 열지 못했어요', '잠시 후 다시 시도해 주세요.'),
+                        );
                       }}
                     >
-                      <Text style={s.clearText}>×</Text>
+                      <Text style={[text.label, s.muted]}>동작 사진 · Free Exercise DB · Unlicense · 사진 출처 보기</Text>
                     </Pressable>
-                  )}
-                </View>
-                <Text style={s.filterLabel}>부위</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={s.chips}
-                  style={s.filterRow}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
-                  {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => (
-                    <Chip
-                      key={value}
-                      label={label}
-                      selected={bodyPart === value}
-                      onPress={() => setBodyPart(value)}
-                    />
-                  ))}
-                </ScrollView>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`장비 필터, ${equipment ? equipmentLabels[equipment] : '전체'}, ${showEquipment ? '접기' : '펼치기'}`}
-                  accessibilityState={{ expanded: showEquipment }}
-                  style={s.equipmentButton}
-                  onPress={() => setShowEquipment((value) => !value)}
-                >
-                  <Text style={s.equipmentButtonText}>
-                    장비: {equipment ? equipmentLabels[equipment] : '전체'}
-                  </Text>
-                  <Text style={s.equipmentButtonText}>{showEquipment ? '⌃' : '⌄'}</Text>
-                </Pressable>
-                {showEquipment && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={s.chips}
-                    style={s.filterRow}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    <Chip
-                      label="전체"
-                      selected={!equipment}
-                      onPress={() => setEquipment(undefined)}
-                    />
-                    {(Object.entries(equipmentLabels) as [Equipment, string][]).map(
-                      ([value, label]) => (
-                        <Chip
-                          key={value}
-                          label={label}
-                          selected={equipment === value}
-                          onPress={() => setEquipment(value)}
-                        />
-                      ),
-                    )}
-                  </ScrollView>
-                )}
-                <View style={s.resultHeader}>
-                  <View style={s.resultCopy}>
-                    <Text testID="exercise-result-count" style={s.resultCount}>
-                      검색 결과 {results.length}개
-                    </Text>
-                    {!!conditionLabel && <Text style={s.muted}>{conditionLabel}</Text>}
                   </View>
-                  {hasConditions && (
-                    <Pressable accessibilityRole="button" style={s.reset} onPress={resetConditions}>
-                      <Text style={s.link}>조건 초기화</Text>
-                    </Pressable>
-                  )}
-                </View>
-                {error && (
-                  <View
-                    accessibilityRole="alert"
-                    style={s.errorNotice}
-                    onLayout={(event) => {
-                      errorOffset.current = event.nativeEvent.layout.y;
-                      revealError();
-                    }}
-                  >
-                    <Text style={s.noticeTitle}>{error.title}</Text>
-                    <Text style={s.errorText}>{error.body}</Text>
-                  </View>
-                )}
-              </View>
-            }
-            renderItem={({ item }) => (
-              <ExerciseListItem
-                item={item}
-                selectionOrder={pending.findIndex((entry) => entry.id === item.id) + 1}
-                alreadyAdded={selectedIdSet.has(item.id)}
-                onDetail={(exercise) => { stopSearchFocusRecovery(); setDetail(exercise); }}
-                onChoose={choose}
+                }
               />
-            )}
-            ListEmptyComponent={
-              <View style={s.empty}>
-                <Text style={s.noticeTitle}>일치하는 종목이 없어요</Text>
-                <Text style={s.muted}>검색어나 조건을 바꾸거나 직접 입력해 주세요.</Text>
-                {hasConditions && (
-                  <Button title="조건 초기화" secondary onPress={resetConditions} />
-                )}
-              </View>
-            }
-            ListFooterComponent={
-              <View style={s.footer}>
-                {custom ? (
-                  <View style={s.custom}>
-                    <Text style={s.noticeTitle}>내 종목 직접 입력</Text>
-                    <TextInput
-                      style={s.customInput}
-                      accessibilityLabel="직접 입력할 운동 이름"
-                      placeholder="운동 이름"
-                      maxLength={80}
-                      value={customName}
-                      onChangeText={setCustomName}
-                      onFocus={stopSearchFocusRecovery}
-                    />
-                    <Button
-                      title="이 이름으로 선택"
-                      disabled={!customName.trim()}
-                      onPress={() => { choose({ name: customName }); setCustom(false); setCustomName(''); }}
-                    />
-                    <Button title="직접 입력 취소" secondary onPress={() => setCustom(false)} />
-                  </View>
-                ) : (
-                  <Button
-                    title="목록에 없는 종목 직접 입력"
-                    secondary
-                    onPress={() => {
-                      setCustomName(query);
-                      setCustom(true);
-                    }}
-                  />
-                )}
-                <Text style={s.credit}>동작 사진 · Free Exercise DB · Unlicense</Text>
-                <Pressable
-                  accessibilityRole="link"
-                  style={s.sourceLink}
-                  onPress={() => {
-                    void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() =>
-                      reportError('출처 링크를 열지 못했어요', '잠시 후 다시 시도해 주세요.'),
-                    );
-                  }}
-                >
-                  <Text style={s.link}>사진 출처 보기</Text>
-                </Pressable>
-              </View>
-            }
-          />
-          <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.sm, gap: spacing.sm }}>
-            <Text style={s.muted}>선택한 순서대로 추가됩니다 · 이미지를 눌러 상세 보기</Text>
-            <Button title={`선택한 운동 ${pending.length}개 추가`} disabled={!pending.length} onPress={confirmSelection} />
-          </View>
-          </>}
+              {!!pending.length && (
+                <View style={s.dock}>
+                  <Button title={`${pending.length}개 종목 추가`} onPress={confirmSelection} />
+                </View>
+              )}
+            </>
+          )}
           {/* 항상 mount되는 Picker와 분리해 닫을 때 예약을 취소하고 재개방 때 알림 서명을 초기화합니다. */}
-          {visible && (
-            <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />
+          {visible && <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+      <BottomSheet visible={showEquipment} title="장비로 고르기" onClose={() => setShowEquipment(false)}>
+        <ChipRow wrap>
+          <Chip label="전체" selected={!equipment} onPress={() => setEquipment(undefined)} />
+          {(Object.entries(equipmentLabels) as [Equipment, string][]).map(([value, label]) => (
+            <Chip key={value} label={label} selected={equipment === value} onPress={() => setEquipment(value)} />
+          ))}
+        </ChipRow>
+        <View style={s.sheetFoot}>
+          <Text style={[text.label, s.secondary, { flex: 1 }]}>{equipment ? `${equipmentLabels[equipment]} 선택됨` : '전체 장비'}</Text>
+          {!!equipment && (
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setEquipment(undefined)}>
+              <Text style={[text.label, s.link]}>초기화</Text>
+            </Pressable>
           )}
         </View>
-      </KeyboardAvoidingView>
+        <Button title={`결과 보기 · ${results.length}개`} onPress={() => setShowEquipment(false)} />
+      </BottomSheet>
     </Modal>
   );
 }
 
+/** Figma ExerciseRow: 사진 44, 이름, '부위 · 장비 · 지난번 기록', 오른쪽 동그란 선택 표시입니다. */
 function ExerciseListItem({
   item,
+  last,
   selectionOrder,
   alreadyAdded,
   onDetail,
   onChoose,
 }: {
   item: CatalogExercise;
+  last?: string;
   selectionOrder: number;
   alreadyAdded: boolean;
   onDetail(exercise: CatalogExercise): void;
@@ -454,16 +437,13 @@ function ExerciseListItem({
 }) {
   // 임시 선택 배열의 순서를 사용하므로 해제 시 번호가 당겨지고 다시 선택하면 마지막에 추가됩니다.
   const selected = selectionOrder > 0;
-  const window = useWindowDimensions();
-  const stacked = stackedExerciseItem(window.width - 40, window.fontScale);
   const [mediaMissing, setMediaMissing] = useState(() => !hasExerciseImage(item.id));
   const updateMissing = useCallback((missing: boolean) => setMediaMissing(missing), []);
-
   return (
-    <View style={[s.exercise, stacked && s.exerciseStacked, selected && s.exercisePressed]}>
+    <View style={s.exercise}>
       {/* 상세 보기와 선택을 형제 버튼으로 분리하여 이미지 터치가 선택으로 전파되지 않도록 합니다. */}
       <Pressable accessibilityRole="button" accessibilityLabel={`${item.name} 이미지와 상세 설명`} onPress={() => onDetail(item)}>
-        <ExerciseMedia exercise={item} onMissingChange={updateMissing} />
+        <ExerciseMedia exercise={item} size={44} onMissingChange={updateMissing} />
       </Pressable>
       <Pressable
         accessibilityRole="checkbox"
@@ -474,211 +454,75 @@ function ExerciseListItem({
         onPress={() => onChoose(item)}
         style={s.exerciseBody}
       >
-
-        <View style={s.action} accessible={false}>
-          <Text style={s.actionText}>{alreadyAdded ? '✓' : selected ? selectionOrder : '+'}</Text>
-        </View>
         <View style={s.exerciseInfo}>
-          <Text style={s.exerciseName}>{item.name}</Text>
-          <Text style={s.muted}>
-            {bodyParts[item.bodyPart]} · {equipmentLabels[item.equipment]}
+          <Text style={[text.bodyBold, { color: tokens.color.text.primary }]}>{item.name}</Text>
+          <Text style={[text.label, s.secondary]}>
+            {[bodyParts[item.bodyPart], equipmentLabels[item.equipment], last && `지난번 ${last}`, mediaMissing && '동작 사진 없음', alreadyAdded && '추가됨']
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
-          {mediaMissing && <Text style={s.muted}>동작 사진 없음</Text>}
-          {(selected || alreadyAdded) && <Text style={s.selectedText}>{alreadyAdded ? '추가됨' : `${selectionOrder}번째 선택됨`}</Text>}
         </View>
+        <CheckMark checked={selected || alreadyAdded} />
       </Pressable>
     </View>
   );
 }
 
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress(): void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[s.chip, selected && s.chipSelected]}
-    >
-      <Text style={[s.chipLabel, selected && s.chipLabelSelected]}>
-        {selected ? `✓ ${label}` : label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const s = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: '#13221C70', justifyContent: 'flex-end' },
-  dismissArea: { flex: 1, minHeight: 12 },
-  sheet: {
-    height: '91%',
+  page: { flex: 1, backgroundColor: tokens.color.bg.default },
+  head: { paddingHorizontal: tokens.size.screenPadding, width: '100%', maxWidth: size.contentMax, alignSelf: 'center' },
+  scroll: { flex: 1, minHeight: 0 },
+  list: {
+    paddingHorizontal: tokens.size.screenPadding,
+    paddingBottom: tokens.space[16],
     width: '100%',
     maxWidth: size.contentMax,
     alignSelf: 'center',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    alignSelf: 'center',
-    marginTop: 10,
-  },
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: { ...typography.title, color: colors.text },
-  close: {
-    width: size.controlMin,
-    height: size.controlMin,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 24,
-    backgroundColor: colors.background,
-  },
-  closeText: { fontSize: 30, color: colors.textSecondary },
-  scroll: { flex: 1, minHeight: 0 },
-  list: { paddingBottom: spacing.md },
-  searchField: {
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
-    minHeight: size.controlMin,
-    borderRadius: radius.input,
-    borderWidth: size.borderWidth,
-    borderColor: colors.inputBorder,
-    backgroundColor: colors.surface,
+  listHead: { gap: tokens.space[12], paddingTop: tokens.space[8], paddingBottom: tokens.space[4] },
+  search: {
+    minHeight: 48,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.bg.surface,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: tokens.space[8],
+    paddingHorizontal: tokens.space[16],
   },
   searchInput: {
-    ...typography.body,
-    color: colors.text,
+    ...text.bodyMedium,
+    color: tokens.color.text.primary,
     flex: 1,
     minWidth: 0,
-    minHeight: size.controlMin,
-    paddingHorizontal: spacing.lg,
+    minHeight: 48,
     outlineWidth: 0,
     outlineStyle: 'solid',
   },
-  clear: {
-    width: size.controlMin,
-    height: size.controlMin,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearText: { fontSize: 24, color: colors.textSecondary },
-  filterLabel: {
-    ...typography.caption,
-    color: colors.text,
-    fontWeight: '700',
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  filterRow: { flexGrow: 0, flexShrink: 0, marginBottom: spacing.md },
-  chips: { gap: spacing.sm, paddingHorizontal: spacing.xl },
-  chip: {
-    minHeight: size.controlMin,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.button,
-    backgroundColor: colors.background,
-  },
-  chipSelected: { backgroundColor: colors.primary },
-  chipLabel: { ...typography.body, fontWeight: '600', color: colors.textSecondary },
-  chipLabelSelected: { color: colors.onPrimary },
-  equipmentButton: {
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    minHeight: size.controlMin,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.button,
-    backgroundColor: colors.primarySoft,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  equipmentButtonText: { ...typography.button, color: colors.primary },
-  resultHeader: {
-    paddingHorizontal: spacing.xl,
-    minHeight: size.controlMin,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  resultCopy: { flex: 1, minWidth: 180 },
-  resultCount: { ...typography.caption, color: colors.text, fontWeight: '700' },
-  reset: { minHeight: size.controlMin, justifyContent: 'center' },
-  link: { ...typography.caption, color: colors.primary, fontWeight: '700' },
-  exercise: {
-    marginHorizontal: spacing.xl,
-    minHeight: 96,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-    borderBottomWidth: size.borderWidth,
-    borderColor: colors.border,
-  },
-  exerciseStacked: { alignItems: 'flex-start', flexDirection: 'column' },
-  exercisePressed: { backgroundColor: colors.primarySoft },
-  exerciseBody: {
-    flex: 1,
-    minWidth: 0,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  exerciseInfo: { flex: 1, minWidth: 0, gap: spacing.xs },
-  exerciseName: { ...typography.button, color: colors.text },
-  muted: { ...typography.caption, color: colors.textSecondary },
-  selectedText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
-  action: {
-    width: size.controlMin,
-    minHeight: size.controlMin,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionText: { fontSize: 26, color: colors.primary, fontWeight: '700' },
-  empty: {
-    margin: spacing.xl,
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderRadius: radius.status,
-    backgroundColor: colors.primarySoft,
-  },
-  noticeTitle: { ...typography.heading, color: colors.text },
+  resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  secondary: { color: tokens.color.text.secondary },
+  muted: { color: tokens.color.text.muted },
+  link: { color: tokens.color.text.secondary, textDecorationLine: 'underline' },
   errorNotice: {
-    marginHorizontal: spacing.xl,
-    marginVertical: spacing.sm,
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderRadius: radius.status,
-    backgroundColor: colors.dangerSurface,
+    backgroundColor: tokens.color.danger.surface,
+    borderRadius: tokens.radius.md,
+    padding: tokens.space[12],
+    gap: 2,
   },
-  errorText: { ...typography.caption, color: colors.danger },
-  footer: { marginHorizontal: spacing.xl, paddingTop: spacing.xxl, gap: spacing.sm },
-  custom: { gap: spacing.md },
-  customInput: {
-    ...typography.body,
-    color: colors.text,
-    borderWidth: size.borderWidth,
-    borderColor: colors.inputBorder,
-    padding: spacing.lg,
-    borderRadius: radius.input,
-    minHeight: size.controlMin,
+  exercise: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
+  exerciseBody: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
+  exerciseInfo: { flex: 1, minWidth: 0, gap: 2 },
+  empty: { gap: tokens.space[12], paddingTop: tokens.space[8] },
+  footer: { gap: tokens.space[12], paddingTop: tokens.space[16] },
+  custom: { gap: tokens.space[8] },
+  sourceLink: { minHeight: 32, justifyContent: 'center' },
+  dock: {
+    paddingHorizontal: tokens.size.screenPadding,
+    paddingTop: tokens.space[8],
+    paddingBottom: tokens.space[8],
+    width: '100%',
+    maxWidth: size.contentMax,
+    alignSelf: 'center',
   },
-  credit: { color: colors.textSecondary, textAlign: 'center', fontSize: 11, marginTop: spacing.md },
-  sourceLink: { minHeight: size.controlMin, alignItems: 'center', justifyContent: 'center' },
+  sheetFoot: { flexDirection: 'row', alignItems: 'center' },
   announcement: { position: 'absolute', width: 1, height: 1, overflow: 'hidden' },
 });

@@ -23,7 +23,8 @@ test('불러오기 실패 시 선택 창과 오류를 유지하고 성공할 때
       target: exercise, history: [{ id: 'w', startedAt: 0, finishedAt: 1000, exercises: [exercise] }],
       onClose: () => { closes++; }, onLoad: () => { if (fails) throw new Error('300세트 한도'); },
     })));
-    await click('이 기록 선택'); await click('기존 세트 뒤에 추가');
+    // Figma 03-10: 가장 최근 기록이 미리 선택되어 있어 바로 불러올 수 있습니다.
+    await click('기존 세트 뒤에 추가');
     assert.equal(closes, 0); assert.match(document.body.textContent!, /300세트 한도/);
     fails = false; await click('기존 세트 뒤에 추가'); assert.equal(closes, 1);
   } finally { await act(async () => root.unmount()); dom.window.close(); }

@@ -1,43 +1,92 @@
-import { SetCheckIcon } from './SetCheckIcon';
+/**
+ * Figma SetHeader·SetRow 세트 표입니다. 한 줄은 세트 번호 · 지난 기록 · kg · 회 · 완료 칸 순서이고 높이 46입니다.
+ * 지금 입력할 세트(current)는 회색 바탕에 흰 입력칸, 나머지는 흰 바탕에 회색 입력칸입니다.
+ * 번호를 위아래로 끌면 순서를 바꾸고, 줄을 길게 누르면 복제·삭제를 고릅니다.
+ * 직접 입력(manual)에서는 완료 칸 대신 휴지통을 둡니다.
+ */
 import { useRef, useState, type ReactNode } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
-import { Button } from '../../components/Button';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AppIcon } from '../../components/AppIcon';
+import { BottomSheet, ListGroup, ListRow } from '../../components/kit/Surfaces';
+import { text, tokens } from '../../theme/tokens';
 import type { WorkoutSet } from './model';
-import { setFieldErrors, stackedSetRow } from './setRowView';
-import { setRowStyles as s } from './SetRow.styles';
-import { setInputStyles as fieldStyles } from './SetInput.styles';
+import { setFieldErrors } from './setRowView';
 
-// 배치만 바꾸고 입력 문자열·커서·ID는 같은 노드에서 유지합니다.
+const c = tokens.color;
+
+/** 세트 표 머리입니다. onCompleteAll이 있으면 오른쪽에 '전체 세트 완료' 버튼을 둡니다. */
+export function SetHeader({
+  name,
+  allCompleted,
+  onCompleteAll,
+  manual = false,
+}: {
+  name: string;
+  allCompleted?: boolean;
+  onCompleteAll?: () => void;
+  manual?: boolean;
+}) {
+  return (
+    <View style={s.header}>
+      <Text style={[text.label, s.muted, s.center, { width: 28 }]}>세트</Text>
+      <Text style={[text.label, s.muted, s.prevCol]}>지난 기록</Text>
+      <Text style={[text.label, s.muted, s.center, s.kgCol]}>kg</Text>
+      <Text style={[text.label, s.muted, s.center, s.repsCol]}>회</Text>
+      <View style={s.checkCol}>
+        {!manual && onCompleteAll && (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityLabel={`${name} 전체 세트 완료`}
+            accessibilityState={{ checked: !!allCompleted }}
+            aria-checked={!!allCompleted}
+            onPress={onCompleteAll}
+            hitSlop={6}
+            style={[s.allCheck, allCompleted && s.allCheckOn]}
+          >
+            <AppIcon name="check" color={allCompleted ? c.text.inverse : c.text.secondary} strokeWidth={2} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export function SetRow({
   set,
   index,
   exerciseName,
-  fontScale,
+  previous,
+  current = false,
   finished,
+  manual = false,
   onChange,
   onComplete,
   onDelete,
   onDuplicate,
   dragHandle,
 }: {
-  dragHandle?: ReactNode;
   set: WorkoutSet;
   index: number;
   exerciseName: string;
-  fontScale: number;
+  /** 같은 종목의 지난 기록 같은 순서 세트(예: 60×10)입니다. */
+  previous?: string;
+  current?: boolean;
   finished: boolean;
+  manual?: boolean;
+  /** 예전 호출부 호환용입니다. 글자 확대는 줄 높이가 자동으로 늘어나 처리됩니다. */
+  fontScale?: number;
   onChange(patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>): void;
   onComplete(): void;
   onDelete(): void;
   onDuplicate(): void;
+  /** 번호 칸입니다. SortableSets가 끌기 기능을 붙여 넘겨 줍니다. */
+  dragHandle?: ReactNode;
 }) {
-  const [width, setWidth] = useState(0);
   const [options, setOptions] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
   const weightRef = useRef<TextInput>(null),
     repsRef = useRef<TextInput>(null);
-  const stacked = dragHandle ? width < 250 || fontScale >= 2 : stackedSetRow(width, fontScale);
   const errors = attempted ? setFieldErrors(set) : { weight: '', reps: '' };
   const prefix = `${exerciseName} ${index + 1}세트`;
   function complete() {
@@ -52,113 +101,142 @@ export function SetRow({
     setAttempted(false);
     onComplete();
   }
+  const cellBg = current ? c.bg.default : c.bg.surface;
+  const field = (kind: 'weight' | 'reps') => (
+    <TextInput
+      ref={kind === 'weight' ? weightRef : repsRef}
+      style={[
+        text.headline,
+        s.cell,
+        kind === 'weight' ? s.kgCol : s.repsCol,
+        { backgroundColor: cellBg },
+        focused === kind && s.cellFocus,
+        !!errors[kind] && s.cellError,
+      ]}
+      accessibilityLabel={`${prefix} ${kind === 'weight' ? '무게' : '횟수'}`}
+      accessibilityHint={kind === 'weight' ? '킬로그램 단위' : '회 단위'}
+      aria-invalid={!!errors[kind]}
+      placeholder={manual ? '0' : kind === 'weight' ? 'kg' : '회'}
+      placeholderTextColor={c.text.disabled}
+      keyboardType={kind === 'weight' ? 'decimal-pad' : 'number-pad'}
+      value={set[kind]}
+      editable={!finished}
+      maxLength={kind === 'weight' ? 7 : 4}
+      selectTextOnFocus
+      onFocus={() => setFocused(kind)}
+      onBlur={() => setFocused(null)}
+      onChangeText={(value) => onChange({ [kind]: value })}
+    />
+  );
   return (
-    <View style={s.row} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      {!dragHandle && <Text style={s.label}>{index + 1}세트 · 무게 kg / 횟수</Text>}
-      <View style={[s.controls, stacked && s.stacked]}>
-        {dragHandle}
-        <View style={[s.inputs, stacked && s.inputsStacked]}>
-          <View style={s.field}>
-            <TextInput
-              ref={weightRef}
-              style={[
-                fieldStyles.input,
-                !!dragHandle && { borderWidth: 0, fontSize: 20, padding: 4 },
-                focused === 'weight' && fieldStyles.focus,
-                !!errors.weight && fieldStyles.invalid,
-              ]}
-              accessibilityLabel={`${prefix} 무게`}
-              accessibilityHint="킬로그램 단위"
-              aria-invalid={!!errors.weight}
-              placeholder="kg"
-              keyboardType="decimal-pad"
-              value={set.weight}
-              editable={!finished}
-              maxLength={7}
-              onFocus={() => setFocused('weight')}
-              onBlur={() => setFocused(null)}
-              onChangeText={(weight) => onChange({ weight })}
-            />
-            {!!errors.weight && (
-              <Text style={fieldStyles.error} accessibilityLiveRegion="polite">
-                {errors.weight}
-              </Text>
-            )}
-          </View>
-          <View style={s.field}>
-            <TextInput
-              ref={repsRef}
-              style={[
-                fieldStyles.input,
-                !!dragHandle && { borderWidth: 0, fontSize: 20, padding: 4 },
-                focused === 'reps' && fieldStyles.focus,
-                !!errors.reps && fieldStyles.invalid,
-              ]}
-              accessibilityLabel={`${prefix} 횟수`}
-              accessibilityHint="회 단위"
-              aria-invalid={!!errors.reps}
-              placeholder="회"
-              keyboardType="number-pad"
-              value={set.reps}
-              editable={!finished}
-              maxLength={4}
-              onFocus={() => setFocused('reps')}
-              onBlur={() => setFocused(null)}
-              onChangeText={(reps) => onChange({ reps })}
-            />
-            {!!errors.reps && (
-              <Text style={fieldStyles.error} accessibilityLiveRegion="polite">
-                {errors.reps}
-              </Text>
-            )}
-          </View>
+    <View>
+      <Pressable
+        accessible={false}
+        onLongPress={finished ? undefined : () => setOptions(true)}
+        accessibilityActions={finished ? undefined : [
+          { name: 'duplicate', label: '세트 복제' },
+          { name: 'delete', label: '세트 삭제' },
+        ]}
+        onAccessibilityAction={(event) =>
+          event.nativeEvent.actionName === 'delete' ? onDelete() : onDuplicate()
+        }
+        style={[s.row, current && s.rowCurrent]}
+      >
+        <View style={s.setCol}>
+          {dragHandle ?? <Text style={[text.bodyBold, s.center, { color: c.text.primary }]}>{index + 1}</Text>}
         </View>
-        <View style={[s.actions, !!dragHandle && { width: 48 }, stacked && s.actionsStacked]}>
-          <View style={s.action}>
-            {dragHandle ? <Pressable accessibilityRole="button"
+        <Text numberOfLines={1} style={[text.caption, s.muted, s.prevCol]}>
+          {previous ?? ''}
+        </Text>
+        {field('weight')}
+        {field('reps')}
+        <View style={s.checkCol}>
+          {manual ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={`${prefix} 삭제`} onPress={onDelete} hitSlop={6} style={s.trash}>
+              <AppIcon name="trash" color={c.text.secondary} />
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={`${prefix} ${set.completed ? '완료 취소' : '완료'}`}
-              disabled={finished} onPress={complete}
-              style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
-              <SetCheckIcon checked={set.completed} />
-            </Pressable> : <Button
-              compact
-              title={set.completed || dragHandle ? '✓' : '완료'}
-              accessibilityLabel={`${prefix} ${set.completed ? '완료 취소' : '완료'}`}
-              secondary={!set.completed}
               disabled={finished}
               onPress={complete}
-            />}
-          </View>
-          {!dragHandle && <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${prefix} 추가 옵션`}
-            onPress={() => setOptions(!options)}
-            style={{ width: 32, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Text>⋮</Text>
-          </Pressable>}
+              hitSlop={4}
+              style={[s.check, set.completed && s.checkOn, current && !set.completed && s.checkCurrent]}
+            >
+              {set.completed && <AppIcon name="check" color={c.text.inverse} strokeWidth={2} />}
+            </Pressable>
+          )}
         </View>
-      </View>
-      {options && !finished && (
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Button
-              title="삭제"
-              secondary
-              accessibilityLabel={`${prefix} 삭제`}
-              onPress={onDelete}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button
-              title="복제"
-              secondary
-              accessibilityLabel={`${prefix} 복제`}
-              onPress={onDuplicate}
-            />
-          </View>
-        </View>
+      </Pressable>
+      {(!!errors.weight || !!errors.reps) && (
+        <Text accessibilityLiveRegion="polite" style={[text.label, s.error]}>
+          {errors.weight || errors.reps}
+        </Text>
       )}
+      <BottomSheet visible={options} title={`${index + 1}세트`} subtitle={exerciseName} onClose={() => setOptions(false)}>
+        <ListGroup>
+          <ListRow icon="plus" label="이 세트 복제" accessibilityLabel={`${prefix} 복제`} trailing="none"
+            onPress={() => { setOptions(false); onDuplicate(); }} />
+          <ListRow icon="trash" label="이 세트 삭제" accessibilityLabel={`${prefix} 삭제`} danger trailing="none"
+            onPress={() => { setOptions(false); onDelete(); }} />
+        </ListGroup>
+      </BottomSheet>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], minHeight: 36, paddingHorizontal: tokens.space[8] },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[8],
+    minHeight: 46,
+    paddingHorizontal: tokens.space[8],
+    borderRadius: tokens.radius.md,
+  },
+  rowCurrent: { backgroundColor: c.bg.surface },
+  center: { textAlign: 'center' },
+  muted: { color: c.text.muted },
+  setCol: { width: 28, alignItems: 'center' },
+  prevCol: { flex: 1, minWidth: 0 },
+  kgCol: { width: 60 },
+  repsCol: { width: 52 },
+  checkCol: { width: 36, alignItems: 'center' },
+  cell: {
+    height: 36,
+    borderRadius: tokens.radius.sm,
+    textAlign: 'center',
+    color: c.text.primary,
+    padding: 0,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  cellFocus: { borderColor: c.text.primary },
+  cellError: { borderColor: c.danger.default },
+  check: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderColor: c.line.input,
+    backgroundColor: c.bg.default,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCurrent: { borderColor: c.line.strong },
+  checkOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
+  allCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderColor: c.line.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  allCheckOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
+  trash: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  error: { color: c.danger.default, paddingLeft: 44, paddingTop: 2 },
+});

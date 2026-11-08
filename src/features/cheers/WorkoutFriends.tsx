@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../theme/tokens';
+import { text, tokens } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
 import { TestPhoto } from '../../components/TestPhoto';
@@ -98,7 +98,7 @@ export function WorkoutFriends({
           style={s.avatar}
         >
           <TestPhoto tile={p.avatar} size={44} round label={`${p.nickname} 프로필 사진`} />
-          <Text numberOfLines={1} style={s.name}>
+          <Text numberOfLines={1} style={[s.name, { fontWeight: '700' }]}>
             {p.nickname}
           </Text>
         </Pressable>
@@ -109,7 +109,7 @@ export function WorkoutFriends({
           onPress={() => void send(user, target)}
           style={s.cheer}
         >
-          <AppIcon name={sent ? 'check' : 'heart'} size={16} color={colors.text} />
+          <AppIcon name={sent ? 'check' : 'heart'} size={16} color={tokens.color.text.primary} />
           <Text style={s.name}>{sent ? '보냄' : '응원'}</Text>
         </Pressable>
       </View>
@@ -119,14 +119,13 @@ export function WorkoutFriends({
     <View style={s.card}>
       <View style={s.row}>
         <Text style={s.title}>
-          {workout ? `받은 응원 ${received.length}` : `지금 운동 중 ${members.length}명`}
+          {workout ? `받은 응원 ${received.length}` : `지금 운동 중  ${members.length}명`}
         </Text>
         <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={s.cheer}>
-          <Text style={s.name}>모두 보기</Text>
-          <AppIcon name="chevron" size={14} />
+          <Text style={[s.name, { color: tokens.color.text.secondary }]}>모두 보기</Text>
+          <AppIcon name="chevron-right" size={16} color={tokens.color.text.secondary} />
         </Pressable>
       </View>
-      <Text style={s.muted}>친구 · 로컬 테스트</Text>
       {!!cheers.error && (
         <Text accessibilityRole="alert" style={s.muted}>
           {cheers.error}
@@ -152,7 +151,10 @@ export function WorkoutFriends({
           {members.map((p) => person(p.user, p.workout))}
         </ScrollView>
       ) : (
-        <Text style={s.muted}>지금 운동 중인 친구가 없어요.</Text>
+        <View style={s.empty}>
+          <Text style={[s.name, { fontWeight: '700' }]}>지금 운동 중인 친구가 없어요</Text>
+          <Text style={s.muted}>친구가 운동을 시작하면 여기에서 응원할 수 있어요 · 로컬 테스트</Text>
+        </View>
       )}
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} transparent>
         <View style={s.overlay}>
@@ -171,7 +173,7 @@ export function WorkoutFriends({
                   accessibilityLabel="친구에게 운동 중 상태 공개"
                   disabled={disabled}
                   value={cheers.data.sharing}
-                  trackColor={{ false: colors.border, true: colors.text }}
+                  trackColor={{ false: tokens.color.bg.disabled, true: tokens.color.bg.inverse }}
                   onValueChange={(sharing) =>
                     void cheers.update((d) => ({
                       ...heartbeat(d, testSelf, sharing ? workout : null, Date.now()),
@@ -260,7 +262,7 @@ export function WorkoutFriends({
   );
 }
 const s = StyleSheet.create({
-  card: { gap: 10, backgroundColor: colors.surface, borderRadius: 16, padding: 16 },
+  card: { gap: tokens.space[12] },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,27 +270,34 @@ const s = StyleSheet.create({
     gap: 8,
     flexWrap: 'wrap',
   },
-  title: { fontSize: 16, fontWeight: '700', color: colors.text },
-  muted: { fontSize: 12, lineHeight: 19, color: colors.muted },
-  name: { fontSize: 13, color: colors.text, flexShrink: 1 },
-  member: { width: 96, gap: 4, alignItems: 'center' },
-  avatar: { alignItems: 'center', gap: 6, minHeight: 44, maxWidth: 150 },
+  title: { ...text.bodyBold, color: tokens.color.text.primary },
+  muted: { ...text.label, color: tokens.color.text.secondary },
+  name: { ...text.callout, color: tokens.color.text.primary, flexShrink: 1 },
+  member: {
+    width: 160,
+    backgroundColor: tokens.color.bg.surface,
+    borderRadius: tokens.radius.xl,
+    padding: tokens.space[12],
+    gap: 4,
+  },
+  avatar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   cheer: {
-    minHeight: 44,
-    paddingHorizontal: 10,
+    minHeight: 36,
+    paddingHorizontal: 4,
     flexDirection: 'row',
-    gap: 5,
+    gap: 4,
     alignItems: 'center',
   },
-  overlay: { flex: 1, backgroundColor: '#00000066', justifyContent: 'flex-end' },
+  empty: { backgroundColor: tokens.color.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: 2 },
+  overlay: { flex: 1, backgroundColor: tokens.color.bg.dim, justifyContent: 'flex-end' },
   sheet: {
     width: '100%',
     maxWidth: 640,
     alignSelf: 'center',
     maxHeight: '85%',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: tokens.color.bg.default,
+    borderTopLeftRadius: tokens.radius['2xl'],
+    borderTopRightRadius: tokens.radius['2xl'],
     padding: 20,
     gap: 16,
   },

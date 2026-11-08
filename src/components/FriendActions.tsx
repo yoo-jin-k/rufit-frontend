@@ -1,12 +1,12 @@
 import { AppModal as Modal } from './AppModal';
+import { ListGroup, ListRow } from './kit/Surfaces';
+import { text, tokens } from '../theme/tokens';
 /** 친구 목록과 알림 카드에서 같은 메뉴를 사용합니다. 신고는 로컬 저장임을 명시하며 실제 접수로 표시하지 않습니다. */
 import { useState } from 'react';
-import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
-import { SocialButton } from './SocialButton';
 import { Button } from './Button';
-import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
 import { reportReasons, type SafetyAction } from '../features/profile/friendSafetyModel';
 export function FriendActions({
@@ -31,29 +31,18 @@ export function FriendActions({
   }
   return (
     <>
-      <View style={s.actions}>
-        {friend && (
-          <SocialButton
-            title="친구 해제"
-            secondary
-            disabled={!ready || busy}
-            label={`${name} 친구 해제`}
-            onPress={() => setStage('unfriend')}
-          />
-        )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${name} 더보기`}
-          disabled={busy}
-          onPress={() => {
-            setStage('menu');
-            setReason('');
-          }}
-          style={s.more}
-        >
-          <AppIcon name="more" size={16} color={colors.text} />
-        </Pressable>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${name} 더보기`}
+        disabled={busy}
+        onPress={() => {
+          setStage('menu');
+          setReason('');
+        }}
+        style={s.more}
+      >
+        <AppIcon name="dots" color={tokens.color.text.secondary} />
+      </Pressable>
       <Modal
         visible={stage !== null}
         transparent
@@ -73,18 +62,26 @@ export function FriendActions({
               )}
               {stage === 'menu' && (
                 <>
-                  <Button
-                    title={blocked ? '차단 해제' : '차단하기'}
-                    secondary
-                    disabled={!ready || busy}
-                    onPress={() => (blocked ? void perform('unblock') : setStage('block'))}
-                  />
-                  <Button
-                    title="신고하기"
-                    secondary
-                    disabled={!ready || busy}
-                    onPress={() => setStage('report')}
-                  />
+                  <ListGroup>
+                    <ListRow
+                      label={blocked ? '차단 해제' : '차단하기'}
+                      disabled={!ready || busy}
+                      onPress={() => (blocked ? void perform('unblock') : setStage('block'))}
+                    />
+                    <ListRow label="신고하기" disabled={!ready || busy} onPress={() => setStage('report')} />
+                  </ListGroup>
+                  {friend && (
+                    <ListGroup>
+                      <ListRow
+                        label="친구 끊기"
+                        accessibilityLabel={`${name} 친구 해제`}
+                        danger
+                        trailing="none"
+                        disabled={!ready || busy}
+                        onPress={() => setStage('unfriend')}
+                      />
+                    </ListGroup>
+                  )}
                 </>
               )}
               {stage === 'block' && (
@@ -159,23 +156,22 @@ export function FriendActions({
   );
 }
 const s = StyleSheet.create({
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 },
-  more: { width: 28, height: 44, alignItems: 'center', justifyContent: 'center' },
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
+  more: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: tokens.color.bg.dim },
   sheet: {
     width: '100%',
     maxWidth: 640,
     maxHeight: '90%',
     alignSelf: 'center',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: tokens.color.bg.default,
+    borderTopLeftRadius: tokens.radius['2xl'],
+    borderTopRightRadius: tokens.radius['2xl'],
   },
   content: { padding: 20, gap: 14 },
   footer: { padding: 20, paddingTop: 8 },
-  heading: { fontSize: 20, lineHeight: 28, fontWeight: '700', color: colors.text },
-  body: { fontSize: 15, lineHeight: 23, color: colors.text },
-  muted: { fontSize: 13, lineHeight: 21, color: colors.muted },
-  error: { color: colors.danger },
+  heading: { ...text.titleM, color: tokens.color.text.primary },
+  body: { ...text.body, color: tokens.color.text.primary },
+  muted: { ...text.caption, color: tokens.color.text.secondary },
+  error: { color: tokens.color.danger.default },
   reason: { minHeight: 44, justifyContent: 'center' },
 });

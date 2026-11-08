@@ -22,7 +22,9 @@ test('휴식 조작부는 상태에 맞는 접근성 이름과 만료 버튼 제
       const button = dom.window.document.querySelector(`[aria-label="${state.seconds === 0 ? '세트 일시정지' : state.paused ? '휴식 재개' : '휴식 일시정지'}"]`)!;
       assert.ok(button);
       assert.equal(button.getAttribute('aria-disabled') === 'true', false);
-      assert.ok(dom.window.document.querySelector(`[aria-label="${state.seconds === 0 ? '세트' : '휴식'} 타이머 닫기"]`));
+      // 디자인 변경: 일시정지 중에는 건너뛰기 대신 '이어서'를 보여 주고, 진행 중·세트 시간에는 닫기를 제공합니다.
+      if (state.paused) assert.ok(dom.window.document.querySelector('[aria-label="휴식 이어서 하기"]'));
+      else assert.ok(dom.window.document.querySelector(`[aria-label="${state.seconds === 0 ? '세트' : '휴식'} 타이머 닫기"]`));
       assert.match(dom.window.document.body.textContent!, state.seconds ? /1:20/ : /0:00/);
     } finally { dom.window.close(); }
   }

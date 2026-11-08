@@ -1,6 +1,5 @@
-/** 친구 행 전용 작은 버튼입니다. 글씨는 줄이되 터치 영역 높이는 44px로 유지합니다. */
-import { Pressable, Text, View } from 'react-native';
-import { colors } from '../theme/tokens';
+/** 친구 줄 오른쪽의 작은 버튼입니다(Figma Button sm: 높이 36). 검정은 주요 동작, 흰 테두리는 보조 동작입니다. */
+import { Button } from './Button';
 export function SocialButton({
   title,
   label,
@@ -15,35 +14,14 @@ export function SocialButton({
   disabled?: boolean;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Button
+      title={title}
       accessibilityLabel={label ?? title}
+      size="sm"
+      fullWidth={false}
+      variant={secondary ? 'secondary' : 'primary'}
       disabled={disabled}
-      accessibilityState={{ disabled }}
       onPress={onPress}
-      style={{ minHeight: 44, justifyContent: 'center', opacity: disabled ? 0.45 : 1 }}
-    >
-      <View
-        style={{
-          minHeight: 28,
-          borderRadius: 7,
-          paddingHorizontal: 8,
-          paddingVertical: 5,
-          justifyContent: 'center',
-          backgroundColor: secondary ? colors.primarySoft : colors.primary,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 11,
-            lineHeight: 17,
-            fontWeight: '600',
-            color: secondary ? colors.text : colors.onPrimary,
-          }}
-        >
-          {title}
-        </Text>
-      </View>
-    </Pressable>
+    />
   );
 }

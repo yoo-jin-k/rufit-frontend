@@ -91,7 +91,7 @@ export function ServerWorkoutFriends({
   );
 }
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, gap: 12 },
+  card: { gap: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -59,10 +59,10 @@ export function ServerNotificationButton() {
               position: 'absolute',
               right: 6,
               top: 6,
-              width: 8,
-              height: 8,
+              width: 7,
+              height: 7,
               borderRadius: 4,
-              backgroundColor: colors.danger,
+              backgroundColor: colors.accent,
             }}
           />
         )}

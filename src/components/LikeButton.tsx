@@ -2,6 +2,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { AppIcon } from './AppIcon';
 import { useLikes } from '../features/profile/useLikes';
+import { text, tokens } from '../theme/tokens';
 export function LikeButton({ post, actor = 'local-self' }: { post: string; actor?: string }) {
   const value = useLikes();
   const liked = value.likes.some((x) => x.actor === actor && x.post === post);
@@ -23,11 +24,11 @@ export function LikeButton({ post, actor = 'local-self' }: { post: string; actor
           paddingHorizontal: 8,
         }}
       >
-        <AppIcon name="heart" size={19} color={liked ? '#E64B5D' : '#777780'} filled={liked} />
-        <Text style={{ fontSize: 12, color: '#777780' }}>{count}</Text>
+        <AppIcon name="heart" size={18} color={liked ? tokens.color.danger.default : tokens.color.text.secondary} filled={liked} />
+        <Text style={[text.label, { color: tokens.color.text.secondary }]}>{count}</Text>
       </Pressable>
       {!!value.error && (
-        <Text accessibilityRole="alert" style={{ fontSize: 11, color: '#B42318' }}>
+        <Text accessibilityRole="alert" style={[text.label, { color: tokens.color.danger.default }]}>
           {value.error}
         </Text>
       )}

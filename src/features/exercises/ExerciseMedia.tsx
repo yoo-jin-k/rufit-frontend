@@ -1,27 +1,49 @@
+/** 종목 동작 사진입니다. 사진이 없거나 불러오지 못하면 Figma 사진 자리표시(회색 상자와 그림 아이콘)를 보여 줍니다. */
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, typography } from '../../theme/tokens';
-import { bodyParts, equipmentLabels, type CatalogExercise } from './catalog';
+import { Image, StyleSheet, View } from 'react-native';
+import { AppIcon } from '../../components/AppIcon';
+import { tokens } from '../../theme/tokens';
+import type { CatalogExercise } from './catalog';
 import { exerciseImages } from './images';
 
 export function ExerciseMedia({
   exercise,
   onMissingChange,
   expanded = false,
+  size = 64,
 }: {
   exercise?: Pick<CatalogExercise, 'id' | 'bodyPart' | 'equipment'>;
+  /** 상세 화면처럼 폭을 꽉 채운 큰 사진입니다. */
   expanded?: boolean;
+  /** 목록 썸네일 한 변 길이입니다. */
+  size?: number;
   onMissingChange?(missing: boolean): void;
 }) {
   const source = exercise ? exerciseImages[exercise.id] : undefined;
   const [failedId, setFailedId] = useState<string | null>(null);
   const missing = !source || failedId === exercise?.id;
+  const box = expanded ? s.expanded : { width: size, height: size };
+  if (!missing && expanded)
+    return (
+      <View style={[s.picture, box]}>
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          accessible={false}
+          onError={() => {
+            setFailedId(exercise?.id ?? null);
+            onMissingChange?.(true);
+          }}
+        />
+      </View>
+    );
   if (!missing)
     return (
       <Image
         source={source}
-        style={[s.picture, expanded && { width: '100%', height: 260 }]}
-        resizeMode="contain"
+        style={[s.picture, box]}
+        resizeMode="cover"
         accessible={false}
         onError={() => {
           setFailedId(exercise?.id ?? null);
@@ -30,36 +52,19 @@ export function ExerciseMedia({
       />
     );
   return (
-    <View style={[s.fallback, expanded && { width: '100%', minHeight: 180 }]} accessible={false}>
-      <Text style={s.fallbackStrong}>
-        {exercise ? equipmentLabels[exercise.equipment] : '운동'}
-      </Text>
-      <Text style={s.fallbackText}>{exercise ? bodyParts[exercise.bodyPart] : '직접 입력'}</Text>
+    <View style={[s.fallback, box]} accessible={false}>
+      <AppIcon name="image" color={tokens.color.text.muted} />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  picture: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.input,
-    backgroundColor: colors.background,
-  },
+  picture: { borderRadius: tokens.radius.md, backgroundColor: tokens.color.line.input, overflow: 'hidden' },
+  expanded: { width: '100%', aspectRatio: 362 / 200, borderRadius: tokens.radius.xl },
   fallback: {
-    width: 64,
-    minHeight: 64,
-    borderRadius: radius.input,
-    padding: 4,
+    borderRadius: tokens.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: tokens.color.line.input,
   },
-  fallbackStrong: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  fallbackText: { ...typography.caption, color: colors.text, textAlign: 'center' },
 });

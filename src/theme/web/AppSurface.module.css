@@ -16,7 +16,7 @@
 @media (min-width: 768px) {
   .frame {
     max-width: 640px;
-    border-left: 1px solid #E7E7EC;
-    border-right: 1px solid #E7E7EC;
+    border-left: 1px solid #EAEAEC;
+    border-right: 1px solid #EAEAEC;
   }
 }

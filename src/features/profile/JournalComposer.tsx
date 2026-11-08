@@ -4,13 +4,16 @@ import type { RufitSession } from '../../api/session';
 import { ApiError } from '../../api/client';
 /** 사진은 선택이며 카메라 권한은 촬영 버튼을 눌렀을 때만 요청합니다. 임시 URI 대신 사진 내용을 저장합니다. */
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Image, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenLayout, ui } from '../../components/ScreenLayout';
+import { Alert, Linking, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
+import { Chip, ChipRow, TextField } from '../../components/kit/Controls';
+import { NavBar, NavText, Screen } from '../../components/kit/Screen';
+import { ConfirmDialog } from '../../components/kit/Surfaces';
+import { text, tokens } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
 import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
+import { recordMeta, recordTitle } from '../workout/recordFormat';
 import { CameraPermissionError, pickJournalPhotos } from './pickJournalPhotos';
 import { journalPhotos, journalDraftChanged, type Journal } from './journalModel';
 export function JournalComposer({
@@ -149,207 +152,188 @@ export function JournalComposer({
       setBusy(false);
     }
   }
+  const disabled = busy || picking || photos.length >= 5;
   return (
     <Modal visible animationType="slide" onRequestClose={requestClose}>
-      <SafeAreaView style={ui.page}>
-        <ScreenLayout
-          title="오운완 기록"
-          onBack={requestClose}
-          footer={
-            <>
-              <Button
-                title="오운완 저장"
-                loading={busy}
-                disabled={
-                  picking || (destination === 'account' && cloudVersion === null)
-                }
-                onPress={() => void save()}
-              />
-              <Button
-                title={initial ? '수정 취소' : '나중에 작성하기'}
-                secondary
-                disabled={busy || picking}
-                onPress={requestClose}
-              />
-            </>
-          }
-        >
-          {!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}
-          {destination === 'account' && cloudVersion === null && !busy && (
-            <Button title="저장 준비 다시 시도" secondary onPress={() => void selectAccount()} />
-          )}
-          {photoError && (
+      <Screen
+        header={
+          <NavBar
+            title="오운완 기록"
+            leading="close"
+            onLeading={requestClose}
+            trailing={<NavText label={initial ? '수정 취소' : '건너뛰기'} disabled={busy || picking} onPress={requestClose} />}
+          />
+        }
+        footer={
+          <Button
+            title="저장"
+            accessibilityLabel="오운완 저장"
+            loading={busy}
+            disabled={picking || (destination === 'account' && cloudVersion === null)}
+            onPress={() => void save()}
+          />
+        }
+      >
+        {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: tokens.color.danger.default }]}>{error}</Text>}
+        {destination === 'account' && cloudVersion === null && !busy && (
+          <Button title="저장 준비 다시 시도" variant="soft" size="md" onPress={() => void selectAccount()} />
+        )}
+        {photoError && (
+          <View style={js.notice}>
+            <Text style={[text.caption, { color: tokens.color.text.secondary }]}>
+              불러오지 못한 사진은 추가되지 않았습니다. 기존 사진과 글은 유지됩니다.
+            </Text>
             <Button
-              title="이번 사진 추가를 취소하고 계속 작성"
-              secondary
+              title="실패한 사진 추가 건너뛰기"
+              variant="secondary"
+              size="sm"
+              disabled={busy || picking}
               onPress={() => {
                 setPhotoError(false);
                 setError('');
               }}
             />
-          )}
-          <View style={ui.card}>
-            <Text style={ui.heading}>{workoutDate(workout)} 운동 저장 완료</Text>
-            <Text style={ui.muted}>{workoutSummary(workout)}</Text>
           </View>
-          <View style={ui.between}>
-            <Text style={ui.heading}>오운완 한 줄 설명 · 글</Text>
-            <Text style={ui.muted}>선택 · {memo.length}/200</Text>
-          </View>
-          <TextInput
-            accessibilityLabel="오운완 글"
-            value={memo}
-            onChangeText={setMemo}
-            maxLength={200}
-            editable={!busy}
-            multiline
-            placeholder="오늘 운동은 어땠나요? 사진과 함께 남길 글을 적어 주세요."
-            style={[ui.input, { minHeight: 100, textAlignVertical: 'top' }]}
-          />
-          {photoError && (
-            <View style={ui.card}>
-              <Text style={ui.muted}>
-                불러오지 못한 사진은 추가되지 않았습니다. 기존 사진과 글은 유지됩니다.
-              </Text>
-              <Button
-                title="실패한 사진 추가 건너뛰기"
-                secondary
-                disabled={busy || picking}
-                onPress={() => {
-                  setPhotoError(false);
-                  setError('');
-                }}
-              />
+        )}
+        {photos.length ? (
+          <View style={{ gap: tokens.space[8] }}>
+            <Image source={{ uri: photos[0] }} accessibilityLabel="대표 사진" style={js.cover} resizeMode="cover" />
+            <View style={js.thumbs}>
+              {photos.map((photo, index) => (
+                <View key={index} style={js.thumbItem}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${index + 1}번 사진 대표로 설정`}
+                    accessibilityState={{ disabled: busy || picking || index === 0, selected: index === 0 }}
+                    disabled={busy || picking || index === 0}
+                    onPress={() => setPhotos((current) => [current[index], ...current.filter((_, i) => i !== index)])}
+                  >
+                    <Image source={{ uri: photo }} style={[js.thumb, index === 0 && js.thumbOn]} resizeMode="cover" />
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${index + 1}번 사진 삭제`}
+                    disabled={busy || picking}
+                    hitSlop={8}
+                    onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+                    style={js.remove}
+                  >
+                    <AppIcon name="close" size={12} color={tokens.color.text.inverse} strokeWidth={2.4} />
+                  </Pressable>
+                </View>
+              ))}
+              {photos.length < 5 && (
+                <Pressable accessibilityRole="button" accessibilityLabel="앨범에서 선택" disabled={disabled} onPress={() => void pick(false)} style={js.addThumb}>
+                  <AppIcon name="plus" color={tokens.color.text.secondary} />
+                </Pressable>
+              )}
             </View>
-          )}
-          <View style={ui.between}>
-            <Text style={ui.heading}>사진</Text>
-            <Text style={ui.muted}>
-              {picking
-                ? '사진을 처리하고 있습니다'
-                : photos.length
-                  ? `${photos.length}/5장 · 저장 버튼을 눌러 주세요`
-                  : '사진 미첨부 · 선택 사항'}
+            <View style={js.row}>
+              <Text style={[text.label, { color: tokens.color.text.secondary, flex: 1 }]}>
+                {picking ? '사진을 처리하고 있습니다' : `사진 ${photos.length}/5장 · 첫 사진이 대표 사진이에요`}
+              </Text>
+              <Pressable accessibilityRole="button" disabled={disabled} onPress={() => void pick(true)} hitSlop={8}>
+                <Text style={[text.captionBold, { color: tokens.color.text.primary }]}>사진 더 촬영</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View style={js.empty}>
+            <Text style={[text.bodyBold, { color: tokens.color.text.primary }]}>오늘 운동을 사진으로 남겨 보세요</Text>
+            <Text style={[text.caption, { color: tokens.color.text.secondary }]}>
+              {picking ? '사진을 처리하고 있습니다' : '사진 없이 메모만 저장해도 돼요'}
+            </Text>
+            <View style={js.pickRow}>
+              <Button title="카메라" accessibilityLabel="촬영하기" variant="secondary" size="md" fullWidth={false} style={{ flex: 1 }}
+                icon={<AppIcon name="camera" />} disabled={disabled} onPress={() => void pick(true)} />
+              <Button title="앨범" accessibilityLabel="앨범에서 선택" variant="secondary" size="md" fullWidth={false} style={{ flex: 1 }}
+                icon={<AppIcon name="image" />} disabled={disabled} onPress={() => void pick(false)} />
+            </View>
+          </View>
+        )}
+        <TextField
+          label="메모 (선택)"
+          accessibilityLabel="오운완 글"
+          value={memo}
+          onChangeText={setMemo}
+          maxLength={200}
+          multiline
+          trailing={`${memo.length}/200`}
+          placeholder="오늘 운동은 어땠나요?"
+          inputProps={{ editable: !busy }}
+        />
+        <View style={js.notice}>
+          <Text style={[text.label, { color: tokens.color.text.secondary }]}>함께 저장돼요</Text>
+          <Text style={[text.captionBold, { color: tokens.color.text.primary }]}>
+            {recordTitle(workout)} · {recordMeta(workout)}
+          </Text>
+        </View>
+        {destination === 'account' && (
+          <View style={{ gap: tokens.space[8] }}>
+            <Text style={[text.label, { color: tokens.color.text.secondary }]}>공개 범위</Text>
+            <ChipRow wrap>
+              <Chip label="나만 보기" selected={visibility === 'private'} onPress={() => !busy && setVisibility('private')} />
+              <Chip label="친구 공개" selected={visibility === 'friends'} onPress={() => !busy && setVisibility('friends')} />
+            </ChipRow>
+            <Text style={[text.label, { color: tokens.color.text.muted }]}>
+              {cloudVersion
+                ? '이 운동의 계정 게시물이 있습니다. 저장하면 지금 작성한 내용으로 바뀝니다.'
+                : '저장하면 사진·글·운동 날짜와 요약을 내 계정에 저장합니다. 친구 공개면 현재 친구가 볼 수 있어요.'}
             </Text>
           </View>
-          <View style={[ui.card, { alignItems: 'center', gap: 16 }]}>
-            {photos.length ? (
-              <View style={{ width: '100%', gap: 16 }}>
-                {photos.map((photo, index) => (
-                  <View key={index} style={{ gap: 8 }}>
-                    <Text style={ui.muted}>
-                      {index + 1}번 사진 {index === 0 ? '· 대표 사진' : ''}
-                    </Text>
-                    <Image
-                      source={{ uri: photo }}
-                      style={{ width: '100%', height: 180, borderRadius: 12 }}
-                      resizeMode="contain"
-                    />
-                    <View style={ui.row}>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          title="대표로 설정"
-                          secondary
-                          disabled={busy || picking || index === 0}
-                          accessibilityLabel={`${index + 1}번 사진 대표로 설정`}
-                          onPress={() =>
-                            setPhotos((current) => [
-                              current[index],
-                              ...current.filter((_, i) => i !== index),
-                            ])
-                          }
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Button
-                          title="삭제"
-                          secondary
-                          disabled={busy || picking}
-                          accessibilityLabel={`${index + 1}번 사진 삭제`}
-                          onPress={() =>
-                            setPhotos((current) => current.filter((_, i) => i !== index))
-                          }
-                        />
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View style={{ height: 100, justifyContent: 'center' }}>
-                <AppIcon name="image" size={32} />
-              </View>
-            )}
-            <View style={[ui.row, { flexWrap: 'wrap', width: '100%' }]}>
-              <View style={{ flex: 1, minWidth: 120 }}>
-                <Button
-                  title={photos.length ? '사진 더 촬영' : '촬영하기'}
-                  disabled={busy || picking || photos.length >= 5}
-                  onPress={() => void pick(true)}
-                />
-              </View>
-              <View style={{ flex: 1, minWidth: 120 }}>
-                <Button
-                  title="앨범에서 선택"
-                  secondary
-                  disabled={busy || picking || photos.length >= 5}
-                  onPress={() => void pick(false)}
-                />
-              </View>
-            </View>
-            <Text style={ui.muted}>최대 5장 · 첫 사진이 프로필 대표 사진으로 표시됩니다.</Text>
-          </View>
-          {destination === 'account' ? (
-            <>
-              <Text style={ui.heading}>공개 범위</Text>
-              <View style={[ui.row, { flexWrap: 'wrap' }]}>
-                <Button
-                  title={visibility === 'private' ? '✓ 나만 보기' : '나만 보기'}
-                  secondary
-                  disabled={busy}
-                  onPress={() => setVisibility('private')}
-                />
-                <Button
-                  title={visibility === 'friends' ? '✓ 친구 공개' : '친구 공개'}
-                  secondary
-                  disabled={busy}
-                  onPress={() => setVisibility('friends')}
-                />
-              </View>
-              <Text style={ui.muted}>
-                저장 버튼을 누르면 사진·글·운동 날짜와 요약을 내 계정에 저장합니다. 친구 공개를
-                선택하면 현재 친구가 볼 수 있습니다.
-              </Text>
-              {!!cloudVersion && (
-                <Text style={ui.muted}>
-                  이 운동의 계정 게시물이 있습니다. 저장하면 지금 작성한 내용으로 바뀝니다.
-                </Text>
-              )}
-            </>
-          ) : (
-            null
-          )}
-        </ScreenLayout>
-        <Modal
-          visible={confirmClose}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setConfirmClose(false)}
-        >
-          <View
-            style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#00000066' }}
-          >
-            <View style={ui.card}>
-              <Text style={ui.heading}>작성 중인 내용을 버릴까요?</Text>
-              <Text style={ui.body}>
-                저장한 운동 기록은 유지되며, 이번에 바꾼 글과 사진만 취소합니다.
-              </Text>
-              <Button title="계속 작성하기" onPress={() => setConfirmClose(false)} />
-              <Button title="변경 내용 버리기" secondary onPress={() => void closeDraft()} />
-            </View>
-          </View>
-        </Modal>
-      </SafeAreaView>
+        )}
+      </Screen>
+      <ConfirmDialog
+        visible={confirmClose}
+        title="작성 중인 내용을 버릴까요?"
+        message="저장한 운동 기록은 유지되며, 이번에 바꾼 글과 사진만 취소해요"
+        cancelLabel="계속 작성하기"
+        confirmLabel="변경 내용 버리기"
+        tone="danger"
+        onCancel={() => setConfirmClose(false)}
+        onConfirm={() => void closeDraft()}
+      />
     </Modal>
   );
 }
+
+const js = StyleSheet.create({
+  empty: {
+    backgroundColor: tokens.color.bg.surface,
+    borderRadius: tokens.radius.xl,
+    minHeight: 300,
+    padding: tokens.space[24],
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  pickRow: { flexDirection: 'row', gap: tokens.space[12], marginTop: tokens.space[16], alignSelf: 'stretch' },
+  cover: { width: '100%', aspectRatio: 1.2, borderRadius: tokens.radius.xl, backgroundColor: tokens.color.line.input },
+  thumbs: { flexDirection: 'row', gap: tokens.space[8], flexWrap: 'wrap' },
+  thumbItem: { width: 56, height: 56 },
+  thumb: { width: 56, height: 56, borderRadius: tokens.radius.sm, backgroundColor: tokens.color.line.input },
+  thumbOn: { borderWidth: 2, borderColor: tokens.color.text.primary },
+  remove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: tokens.color.bg.inverse,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: tokens.color.line.strong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  notice: { backgroundColor: tokens.color.bg.surface, borderRadius: tokens.radius.md, padding: tokens.space[16], gap: 2 },
+});

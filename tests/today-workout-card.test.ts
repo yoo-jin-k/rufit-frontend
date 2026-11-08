@@ -19,7 +19,9 @@ test('여러 번 저장한 오늘 운동도 홈에는 클릭 가능한 카드 �
   const dom = new JSDOM(renderToStaticMarkup(createElement(TodayWorkoutCard, { history, now, journals: [], onJournal() {} })));
   try {
     assert.equal(dom.window.document.querySelectorAll('[aria-label="오늘의 운동 전체 기록 보기"]').length, 1);
-    assert.match(dom.window.document.body.textContent!, /6분 · 600 kg/);
-    assert.match(dom.window.document.body.textContent!, /3개 \| 스쿼트 외 2개/);
+    // Figma 02-03: 큰 숫자(분·kg)와 아래 한 줄 요약(부위 · 세트 수)으로 바뀌었습니다.
+    assert.match(dom.window.document.body.textContent!, /6 분/);
+    assert.match(dom.window.document.body.textContent!, /600 kg/);
+    assert.match(dom.window.document.body.textContent!, /3세트/);
   } finally { dom.window.close(); }
 });

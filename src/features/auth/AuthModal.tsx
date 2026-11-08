@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
-import { colors, radius, size, spacing, typography } from '../../theme/tokens';
+import { colors, radius, size, spacing, text, tokens, typography } from '../../theme/tokens';
+import { LogoMark } from '../../components/kit/Surfaces';
 import type { AuthCoordinator } from './authCoordinator';
 import {
   authContentBottomPadding,
@@ -30,7 +31,6 @@ import {
 import { authReturnUrl, nativeAuthClient } from './nativeAuth';
 import type { AuthStatus, SocialProvider } from './types';
 
-const logo = require('../../../assets/brand/rufit-logo-v1.png');
 const kakaoButton = require('../../../assets/brand/kakao-login-ko.png');
 const googleButton =
   Platform.OS === 'ios'
@@ -168,7 +168,7 @@ export function AuthModal({
             accessibilityLabel="운동 기록으로 돌아가기"
             onPress={closeToWorkout}
           />
-          <Image source={logo} resizeMode="contain" style={s.logo} accessibilityLabel="루핏" />
+          <LogoMark size={36} />
           {Platform.OS === 'web' && !coordinator ? (
             <>
               <Text style={s.title}>로그인은 모바일 앱에서 이용할 수 있어요.</Text>
@@ -318,25 +318,24 @@ const s = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.xxl,
   },
-  logo: { width: 160, height: 57, maxWidth: '100%', alignSelf: 'flex-start' },
-  title: { ...typography.title, color: colors.text },
+  title: { ...text.titleM, color: colors.text },
   body: { ...typography.body, color: colors.textSecondary },
   heading: { ...typography.heading, color: colors.text },
   caption: { ...typography.caption, color: colors.textSecondary },
   providers: { width: '100%', maxWidth: 400, alignSelf: 'center', gap: spacing.md },
+  // 공식 로그인 버튼 이미지를 그대로 쓰고, Figma 버튼 높이(56)·모서리(14)에 맞춰 가운데 둡니다.
   providerButton: {
-    height: 68,
-    width: 288,
-    maxWidth: '100%',
-    alignSelf: 'center',
+    height: tokens.size.buttonLg,
+    width: '100%',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: tokens.radius.lg,
   },
-  kakao: { backgroundColor: '#FEE500', borderRadius: 10 },
-  google: { backgroundColor: '#FFFFFF', borderRadius: 6 },
-  kakaoImage: { height: 68, width: 288, maxWidth: '100%' },
-  googleImage: { height: 68, width: 288, maxWidth: '100%' },
+  kakao: { backgroundColor: tokens.color.brand.kakao },
+  google: { backgroundColor: tokens.color.bg.default, borderWidth: 1, borderColor: tokens.color.line.input },
+  kakaoImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
+  googleImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
   providerDisabled: { opacity: 0.45 },
   providerPressed: { opacity: 0.76 },
   status: {

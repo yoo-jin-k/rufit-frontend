@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
 import { FriendRow } from './FriendRow';
 import { Button } from './Button';
-import { colors } from '../theme/tokens';
+import { colors, text } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
 import { testSelf } from '../features/profile/friendTestModel';
 export function NotificationButton() {
@@ -178,28 +178,28 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  unread: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444' },
+  unread: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   trigger: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   dot: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#EF4444',
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
     borderWidth: 1,
     borderColor: colors.surface,
   },
   page: { flex: 1, backgroundColor: colors.background },
   content: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: 20, gap: 24 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: colors.text, fontSize: 24, lineHeight: 34, fontWeight: '700', flexShrink: 0 },
+  title: { ...text.titleL, color: colors.text, flexShrink: 0 },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   footer: { paddingTop: 8 },
-  body: { color: colors.text, fontSize: 16, lineHeight: 24 },
-  muted: { color: colors.muted, fontSize: 13, lineHeight: 21 },
+  body: { ...text.bodyMedium, color: colors.text },
+  muted: { ...text.label, color: colors.muted },
   error: { color: colors.danger },
-  card: { backgroundColor: colors.primarySoft, padding: 18, borderRadius: 16, gap: 12 },
+  card: { backgroundColor: colors.primarySoft, padding: 16, borderRadius: 16, gap: 12 },
   actions: { flexDirection: 'row', gap: 10 },
 });

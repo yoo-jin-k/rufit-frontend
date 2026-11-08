@@ -1,18 +1,24 @@
-/** 사진 선택은 편집 초안만 변경합니다. 저장을 눌러야 반영하며 취소·권한 거절 시 기존 사진을 유지합니다. */
+/**
+ * Figma 06-05 프로필 사진 칸입니다. 큰 원형 사진을 누르면 촬영·앨범·삭제를 고르는 시트가 열립니다.
+ * 사진 선택은 편집 초안만 바꾸고, 저장을 눌러야 반영합니다. 취소·권한 거절 시 기존 사진을 유지합니다.
+ */
 import { useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Button } from '../../components/Button';
-import { ui } from '../../components/ScreenLayout';
+import { AppIcon } from '../../components/AppIcon';
+import { BottomSheet, ListGroup, ListRow } from '../../components/kit/Surfaces';
+import { text, tokens } from '../../theme/tokens';
 import { ProfileAvatar } from './ProfileAvatar';
 import { prepareJournalPhoto } from './prepareJournalPhoto';
 export function ProfilePhotoEditor({ photo, disabled, onChange, onBusy }: {
   photo?: string; disabled: boolean; onChange(photo?: string): void; onBusy(busy: boolean): void;
 }) {
   const [picking, setPicking] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const [error, setError] = useState('');
   async function pick(camera: boolean) {
     if (disabled || picking) return;
+    setSheet(false);
     setPicking(true);
     onBusy(true);
     setError('');
@@ -38,15 +44,21 @@ export function ProfilePhotoEditor({ photo, disabled, onChange, onBusy }: {
       onBusy(false);
     }
   }
-  return <View style={{ gap: 12 }}>
-    <Text style={ui.muted}>프로필 사진</Text>
-    <View style={{ alignItems: 'center' }}><ProfileAvatar photo={photo} size={104} /></View>
-    <View style={[ui.row, { flexWrap: 'wrap' }]}>
-      <View style={{ flex: 1, minWidth: 120 }}><Button title="촬영하기" secondary disabled={disabled || picking} onPress={() => void pick(true)} /></View>
-      <View style={{ flex: 1, minWidth: 120 }}><Button title="앨범에서 선택" secondary disabled={disabled || picking} onPress={() => void pick(false)} /></View>
-    </View>
-    {photo && <Button title="프로필 사진 삭제" secondary disabled={disabled || picking} onPress={() => onChange(undefined)} />}
-    <Text style={ui.muted}>{picking ? '사진을 처리하고 있습니다.' : '아래 저장 버튼을 누르면 프로필에 반영됩니다.'}</Text>
-    {!!error && <Text accessibilityRole="alert" style={ui.error}>{error}</Text>}
+  return <View style={{ alignItems: 'center', gap: tokens.space[8] }}>
+    <Pressable accessibilityRole="button" accessibilityLabel="프로필 사진 바꾸기" disabled={disabled || picking} onPress={() => setSheet(true)}>
+      <ProfileAvatar photo={photo} size={96} />
+      <View style={{ position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: tokens.color.bg.inverse, alignItems: 'center', justifyContent: 'center' }}>
+        <AppIcon name="camera" size={14} color={tokens.color.text.inverse} />
+      </View>
+    </Pressable>
+    {picking && <Text style={[text.label, { color: tokens.color.text.secondary }]}>사진을 처리하고 있습니다.</Text>}
+    {!!error && <Text accessibilityRole="alert" style={[text.label, { color: tokens.color.danger.default, textAlign: 'center' }]}>{error}</Text>}
+    <BottomSheet visible={sheet} title="프로필 사진" subtitle="저장 버튼을 눌러야 프로필에 반영돼요" onClose={() => setSheet(false)}>
+      <ListGroup>
+        <ListRow icon="camera" label="촬영하기" trailing="none" onPress={() => void pick(true)} />
+        <ListRow icon="image" label="앨범에서 선택" trailing="none" onPress={() => void pick(false)} />
+        {photo && <ListRow icon="trash" label="프로필 사진 삭제" danger trailing="none" onPress={() => { setSheet(false); onChange(undefined); }} />}
+      </ListGroup>
+    </BottomSheet>
   </View>;
 }

@@ -1,7 +1,7 @@
 /** 번호 영역에서만 드래그를 시작합니다. 행 높이를 실제로 측정하여 오류 문구·글자 확대에도 이동 위치를 맞춥니다. */
 import { Component, useState, type ReactNode } from 'react';
 import { PanResponder, Text, View } from 'react-native';
-import { colors } from '../../theme/tokens';
+import { text, tokens } from '../../theme/tokens';
 import { setDragStyles } from './SetDrag.styles';
 import type { WorkoutSet } from './model';
 export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, children }: {
@@ -28,7 +28,7 @@ export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, c
     });
     if (target !== sets.findIndex((set) => set.id === id)) onMove(id, target);
   }
-  return <View style={{ gap: 12 }}>
+  return <View style={{ gap: 2 }}>
     {sets.map((set, index) => {
       const handle = <DragNumber
         disabled={disabled}
@@ -46,15 +46,15 @@ export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, c
           const target = index + (event.nativeEvent.actionName === 'increment' ? 1 : -1);
           if (!disabled && target >= 0 && target < sets.length) onMove(set.id, target);
         }}
-        style={[setDragStyles.handle, { width: 44, minHeight: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }]}
-      ><Text style={{ color: colors.textSecondary, fontSize: 17 }}>{index + 1}</Text></DragNumber>;
+        style={[setDragStyles.handle, { width: 28, minHeight: 44, alignItems: 'center', justifyContent: 'center' }]}
+      ><Text style={[text.bodyBold, { color: tokens.color.text.primary }]}>{index + 1}</Text></DragNumber>;
       return <View key={set.id}
         onLayout={(event) => {
           const { y, height } = event.nativeEvent.layout;
           setLayouts((current) => current[set.id]?.y === y && current[set.id]?.height === height
             ? current : { ...current, [set.id]: { y, height } });
         }}
-        style={{ zIndex: drag?.id === set.id ? 10 : 0, backgroundColor: colors.surface, transform: [{ translateY: drag?.id === set.id ? drag.dy : 0 }] }}
+        style={{ zIndex: drag?.id === set.id ? 10 : 0, backgroundColor: drag?.id === set.id ? tokens.color.bg.default : undefined, transform: [{ translateY: drag?.id === set.id ? drag.dy : 0 }] }}
       >{children(set, index, handle)}</View>;
     })}
   </View>;

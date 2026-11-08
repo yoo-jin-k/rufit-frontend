@@ -12,25 +12,27 @@ import {
 } from './journalModel';
 import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
-import { LikeButton } from '../../components/LikeButton';
-import { NotificationButton } from '../../components/NotificationButton';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
 import { useEffect, useRef, useState } from 'react';
 import type { RufitSession } from '../../api/session';
 import { ServerFriendsScreen } from './ServerFriendsScreen';
-import { Platform, Image, Pressable, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenLayout, ui } from '../../components/ScreenLayout';
+import { Platform, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { CheckMark, TextField } from '../../components/kit/Controls';
+import { IconButton, NavBar, PageHeader, Screen } from '../../components/kit/Screen';
+import { EmptyCard } from '../../components/kit/Surfaces';
+import { text, tokens } from '../../theme/tokens';
+import { WorkoutDetail } from '../workout/WorkoutDetail';
+import { formatDay, recordMeta, recordTitle, workoutDay } from '../workout/recordFormat';
 import { AppIcon } from '../../components/AppIcon';
 import { nicknameMessage, useNicknameAvailability } from './useNicknameAvailability';
 import { Button } from '../../components/Button';
-import { colors } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
-import { WorkoutHistory } from '../workout/WorkoutHistory';
 import { workoutsByDay } from '../calendar/model';
 import { WorkoutCalendar } from '../calendar/WorkoutCalendar';
 import { FriendsScreen } from './FriendsScreen';
 import type { useProfile } from './useProfile';
+const c = tokens.color;
+
 export function ProfileScreen({
   now,
   history,
@@ -97,6 +99,8 @@ export function ProfileScreen({
   }
   const [choosingWorkout, setChoosingWorkout] = useState(false);
   const [post, setPost] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Workout | null>(null);
+  const [choice, setChoice] = useState<string | null>(null);
   // 사진 없는 오운완도 게시물입니다. 운동 목록과 별도로 보관한 기록을 숨기지 않습니다.
   const entries = profile.value.journals;
   if (friends)
@@ -112,171 +116,132 @@ export function ProfileScreen({
     );
   if (editing)
     return (
-      <ScreenLayout
-        title="프로필 편집"
-        onBack={() => {
-          if (!photoBusy && !profile.busy) setEditing(false);
-        }}
+      <Screen
+        edges={['top']}
+        header={<NavBar title="프로필 편집" leading="close" onLeading={() => { if (!photoBusy && !profile.busy) setEditing(false); }} />}
+        footer={
+          <Button
+            title="저장"
+            loading={profile.busy}
+            disabled={photoBusy || nicknameStatus === 'taken' || nicknameStatus === 'short'}
+            onPress={async () => {
+              try {
+                const next = updateProfileAvatar(updateProfileDetails(profile.value, name, bio, gym), avatar);
+                if (session?.isActive()) {
+                  // 친구 검색 공개 여부는 유지하고 닉네임만 같은 계정의 서버 프로필에 반영합니다.
+                  const directory = await session.api.directorySettings();
+                  await session.api.updateDirectory({ nickname: next.nickname,
+                    discoverable: directory.discoverable, version: directory.version });
+                }
+                await profile.save(next);
+                setEditing(false);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.');
+              }
+            }}
+          />
+        }
       >
-        <ProfilePhotoEditor
-          photo={avatar}
-          disabled={profile.busy}
-          onChange={setAvatar}
-          onBusy={setPhotoBusy}
-        />
-        <Text style={ui.muted}>닉네임</Text>
-        <TextInput
-          accessibilityLabel="닉네임"
+        <ProfilePhotoEditor photo={avatar} disabled={profile.busy} onChange={setAvatar} onBusy={setPhotoBusy} />
+        {/* 입력이 멈추면 자동으로 중복 여부를 확인해 입력칸 바로 아래에 작게 안내합니다. */}
+        <TextField
+          label="닉네임"
           value={name}
           onChangeText={setName}
           maxLength={24}
-          style={ui.input}
+          trailing={`${name.length}/24`}
+          helper={nicknameMessage(nicknameStatus) || '친구 검색에 쓰여요'}
+          error={nicknameStatus === 'taken' || nicknameStatus === 'short' ? nicknameMessage(nicknameStatus) : undefined}
         />
-        {/* 입력이 멈추면 자동으로 중복 여부를 확인해 입력칸 바로 아래에 작게 안내합니다. */}
-        {!!nicknameMessage(nicknameStatus) && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[
-              ui.muted,
-              { fontSize: 12, marginTop: -4 },
-              nicknameStatus === 'available' && { color: colors.text },
-              (nicknameStatus === 'taken' || nicknameStatus === 'short') && { color: colors.danger },
-            ]}
-          >
-            {nicknameMessage(nicknameStatus)}
-          </Text>
-        )}
-        <Text style={ui.muted}>한 줄 소개 (선택 · 80자 이내)</Text>
-        <TextInput
-          accessibilityLabel="한 줄 소개"
+        <TextField
+          label="한 줄 소개"
           placeholder="예: 어제보다 한 걸음 더"
           value={bio}
           onChangeText={setBio}
           maxLength={80}
-          style={ui.input}
+          trailing={`${bio.length}/80`}
         />
-        <Text style={ui.muted}>헬스장 · 지점 (선택 · 60자 이내)</Text>
-        <TextInput
+        <TextField
+          label="운동 장소 (선택)"
           accessibilityLabel="헬스장 지점"
           placeholder="예: 루핏짐 강남점"
           value={gym}
           onChangeText={setGym}
           maxLength={60}
-          style={ui.input}
         />
-        <Text style={ui.muted}>소개와 헬스장은 프로필 사진 아래에 표시됩니다.</Text>
-        {!!error && <Text style={ui.error}>{error}</Text>}
-        <Button
-          title="저장"
-          loading={profile.busy}
-          disabled={photoBusy || nicknameStatus === 'taken' || nicknameStatus === 'short'}
-          onPress={async () => {
-            try {
-              const next = updateProfileAvatar(
-                updateProfileDetails(profile.value, name, bio, gym),
-                avatar,
-              );
-              if (session?.isActive()) {
-                // 친구 검색 공개 여부는 유지하고 닉네임만 같은 계정의 서버 프로필에 반영합니다.
-                const directory = await session.api.directorySettings();
-                await session.api.updateDirectory({ nickname: next.nickname,
-                  discoverable: directory.discoverable, version: directory.version });
-              }
-              await profile.save(next);
-              setEditing(false);
-            } catch (cause) {
-              setError(
-                cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.',
-              );
-            }
-          }}
-        />
-      </ScreenLayout>
+        {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
+      </Screen>
     );
+  const stats = [
+    { label: '운동한 날', value: Object.keys(workoutsByDay(history)).length },
+    {
+      label: '오운완',
+      value:
+        session && journalSource === 'account'
+          ? postLoadStatus === 'error'
+            ? '확인 실패'
+            : (serverPostCount ?? '확인 중')
+          : entries.length,
+    },
+    { label: '친구', value: friendCount },
+  ];
+  const sorted = [...history]
+    .filter((w) => w.finishedAt !== undefined)
+    .sort((a, b) => workoutDay(b).localeCompare(workoutDay(a)) || b.startedAt - a.startedAt);
+  const days = [...new Set(sorted.map(workoutDay))];
+  const withoutJournal = sorted.filter((w) => !entries.some((j) => j.workoutId === w.id)).slice(0, 10);
   return (
-    <ScreenLayout>
-      <View style={ui.between}>
-        <Text numberOfLines={1} style={[ui.heading, { flex: 1, minWidth: 0 }]}>{profile.value.nickname}</Text>
-        {/* 추가·알림·편집 아이콘을 간격 없이 붙여 한 묶음으로 보이게 합니다. */}
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="오운완 기록 추가"
-            onPress={() => {
-              if (history.length) setChoosingWorkout(true);
-              else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
-            }}
-            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <AppIcon name="plus" color={colors.text} />
-          </Pressable>
-          <NotificationButton />
-          {/* 편집 기능은 추가·알림과 같은 상단 도구 모음에서 제공합니다. */}
-          <Pressable accessibilityRole="button" accessibilityLabel="프로필 편집"
-            disabled={!profile.ready} onPress={openEditor}
-            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <AppIcon name="edit" size={20} color={colors.text} />
-          </Pressable>
-        </View>
-      </View>
-      <View style={ui.row}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="프로필 사진 수정"
-          disabled={!profile.ready}
-          onPress={openEditor}
-        >
+    <Screen
+      edges={['top']}
+      header={
+        <PageHeader
+          title="프로필"
+          actions={
+            <>
+              <IconButton icon="userplus" label="친구 찾기" onPress={() => setFriends(true)} />
+              <IconButton
+                icon="plus"
+                label="오운완 기록 추가"
+                onPress={() => {
+                  if (history.length) setChoosingWorkout(true);
+                  else setError('운동을 완료한 뒤 오운완을 남겨 주세요.');
+                }}
+              />
+            </>
+          }
+        />
+      }
+    >
+      <View style={ps.me}>
+        <Pressable accessibilityRole="button" accessibilityLabel="프로필 사진 수정" disabled={!profile.ready} onPress={openEditor}>
           <ProfileAvatar photo={profile.value.avatar} />
         </Pressable>
-        {[
-          { label: '운동한 날', value: Object.keys(workoutsByDay(history)).length },
-          {
-            label: '오운완',
-            value:
-              session && journalSource === 'account'
-                ? postLoadStatus === 'error'
-                  ? '확인 실패'
-                  : (serverPostCount ?? '확인 중')
-                : entries.length,
-          },
-          { label: '친구', value: friendCount },
-        ].map((item) => (
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text numberOfLines={1} style={[text.headline, { color: c.text.primary }]}>{profile.value.nickname}</Text>
+          {/* 입력한 항목만 표시하며 긴 소개와 지점명은 화면 너비에 맞춰 줄바꿈합니다. */}
+          {!!profile.value.bio && <Text style={[text.caption, { color: c.text.secondary }]}>{profile.value.bio}</Text>}
+          {!!profile.value.gym && <Text style={[text.label, { color: c.text.muted }]}>{profile.value.gym}</Text>}
+        </View>
+      </View>
+      <View style={ps.stats}>
+        {stats.map((item) => (
           <Pressable
             key={item.label}
             accessibilityRole="button"
             accessibilityLabel={item.label === '친구' ? '친구 목록' : item.label}
-            onPress={() =>
-              item.label === '친구'
-                ? setFriends(true)
-                : setTab(item.label === '오운완' ? '오운완' : '달력')
-            }
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              gap: 5,
-              minHeight: 48,
-              justifyContent: 'center',
-            }}
+            onPress={() => (item.label === '친구' ? setFriends(true) : setTab(item.label === '오운완' ? '오운완' : '달력'))}
+            style={ps.stat}
           >
-            {/* 숫자 대신 안내 문구가 표시되어도 작은 화면에서 통계 열이 밀리지 않도록 합니다. */}
-            <Text
-              numberOfLines={1}
-              style={[ui.heading, typeof item.value === 'string' && { fontSize: 12 }]}
-            >
-              {item.value}
-            </Text>
-            <Text style={[ui.muted, { fontSize: 11 }]}>{item.label}</Text>
+            <Text style={[text.bodyBold, { color: c.text.primary }]}>{item.value}</Text>
+            <Text style={[text.caption, { color: c.text.secondary }]}>{item.label}</Text>
           </Pressable>
         ))}
       </View>
-      {/* 입력한 항목만 표시하며 긴 소개와 지점명은 화면 너비에 맞춰 줄바꿈합니다. */}
-      {!!(profile.value.bio || profile.value.gym) && (
-        <View style={{ gap: 4 }}>
-          {!!profile.value.bio && <Text style={ui.body}>{profile.value.bio}</Text>}
-          {!!profile.value.gym && <Text style={ui.muted}>헬스장 · {profile.value.gym}</Text>}
-        </View>
-      )}
-      <View style={ui.row}>
+      <View style={ps.actions}>
+        <Button title="프로필 편집" variant="soft" size="sm" fullWidth={false} style={{ flex: 1 }} disabled={!profile.ready} onPress={openEditor} />
+        <Button title={`친구 ${typeof friendCount === 'number' ? `${friendCount}명` : ''}`.trim()} variant="soft" size="sm" fullWidth={false} style={{ flex: 1 }} onPress={() => setFriends(true)} />
+      </View>
+      <View accessibilityRole="tablist" style={ps.tabs}>
         {['오운완', '전체 기록', '달력'].map((t) => (
           <Pressable
             key={t}
@@ -284,143 +249,173 @@ export function ProfileScreen({
             accessibilityState={{ selected: t === tab }}
             aria-selected={t === tab}
             onPress={() => setTab(t)}
-            style={{
-              flex: 1,
-              minHeight: 48,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderBottomWidth: 2,
-              borderColor: tab === t ? colors.text : 'transparent',
-            }}
+            style={[ps.tab, tab === t && ps.tabOn]}
           >
-            <Text style={[ui.muted, tab === t && { color: colors.text, fontWeight: '700' }]}>
-              {t}
-            </Text>
+            <Text style={[tab === t ? text.calloutBold : text.callout, { color: tab === t ? c.text.primary : c.text.muted }]}>{t}</Text>
           </Pressable>
         ))}
       </View>
       {!!(error || profile.error) && (
-        <Text accessibilityRole="alert" style={ui.error}>
+        <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
           {error || profile.error}
         </Text>
       )}
       {tab === '달력' ? (
-        <WorkoutCalendar monthly history={history} ready now={now} />
-      ) : tab === '전체 기록' ? (
-        <WorkoutHistory records={[...history].reverse()} journals={entries} onJournal={onJournal} />
-      ) : session && journalSource === 'account' ? (
-        <ServerPostList
-          session={session}
-          onTotal={setServerPostCount}
-          onLoadStatus={setPostLoadStatus}
+        <WorkoutCalendar
+          monthly
+          history={history}
+          ready
+          now={now}
+          renderDay={(day, records) =>
+            records.length ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={`${formatDay(day)} 기록 보기`} onPress={() => setDetail(records[0])} style={ps.daySummary}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[text.calloutBold, { color: c.text.primary }]}>{formatDay(day)}</Text>
+                  <Text style={[text.label, { color: c.text.secondary }]}>
+                    {records.map((w) => recordTitle(w)).join(', ')} · {recordMeta(records[0]).split(' · ').filter((_, i) => i !== 1).join(' · ')}
+                    {records.some((w) => entries.some((j) => j.workoutId === w.id)) ? ' · 오운완 있음' : ''}
+                  </Text>
+                </View>
+                <AppIcon name="chevron-right" color={c.text.muted} />
+              </Pressable>
+            ) : (
+              <Text style={[text.caption, { color: c.text.secondary }]}>{formatDay(day)} · 기록이 없어요</Text>
+            )
+          }
         />
+      ) : tab === '전체 기록' ? (
+        days.length ? (
+          <View style={{ gap: tokens.space[16] }}>
+            {days.map((day) => (
+              <View key={day} style={{ gap: tokens.space[8] }}>
+                <Text style={[text.captionBold, { color: c.text.secondary }]}>{formatDay(day, 'compact')}</Text>
+                {sorted.filter((w) => workoutDay(w) === day).map((w) => {
+                  const journal = entries.find((j) => j.workoutId === w.id);
+                  const photo = journal && journalPhotos(journal)[0];
+                  return (
+                    <Pressable key={w.id} accessibilityRole="button" accessibilityLabel={`${day} 운동 기록 보기`} onPress={() => setDetail(w)} style={ps.recordRow}>
+                      {photo ? (
+                        <Image source={{ uri: photo }} style={ps.recordThumb} />
+                      ) : (
+                        <View style={[ps.recordThumb, ps.recordIcon]}>
+                          <AppIcon name={journal ? 'image' : 'dumbbell'} color={c.text.secondary} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                        <Text style={[text.bodyBold, { color: c.text.primary }]}>{recordTitle(w)}</Text>
+                        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{recordMeta(w)}</Text>
+                      </View>
+                      <AppIcon name="chevron-right" color={c.text.muted} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <EmptyCard icon="dumbbell" title="아직 운동 기록이 없어요" body="운동을 마치면 여기에 날짜별로 쌓여요" />
+        )
+      ) : session && journalSource === 'account' ? (
+        <ServerPostList session={session} onTotal={setServerPostCount} onLoadStatus={setPostLoadStatus} />
       ) : entries.length > 0 ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -20 }}>
+        <View style={ps.grid}>
           {[...entries]
             .sort((a, b) => b.createdAt - a.createdAt)
             .map((j) => (
-              <View key={j.workoutId} style={{ width: '33.333333%', padding: 1 }}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${j.memo || '오운완'} 게시물 보기`}
-                  onPress={() => {
-                    setPost(`own:${j.workoutId}`);
-                  }}
-                >
-                  {j.testPhotoTile !== undefined ? (
-                    <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
-                  ) : journalPhotos(j).length ? (
-                    <Image
-                      source={{ uri: journalPhotos(j)[0] }}
-                      style={{ width: '100%', aspectRatio: 1 }}
-                    />
-                  ) : (
-                    <View
-                      style={{
-                        aspectRatio: 1,
-                        padding: 10,
-                        gap: 8,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: colors.primarySoft,
-                      }}
-                    >
-                      <AppIcon name="image" size={24} />
-                      <Text numberOfLines={3} style={[ui.muted, { textAlign: 'center' }]}>
-                        {j.memo || '사진 없는 오운완'}
-                      </Text>
-                    </View>
-                  )}
-                  {journalPhotos(j).length > 1 && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 6,
-                        right: 6,
-                        backgroundColor: colors.text,
-                        borderRadius: 8,
-                        paddingHorizontal: 7,
-                        paddingVertical: 3,
-                      }}
-                    >
-                      <Text style={{ color: colors.onPrimary, fontSize: 12 }}>
-                        {journalPhotos(j).length}장
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-                <LikeButton post={`own:${j.workoutId}`} />
-              </View>
+              <Pressable
+                key={j.workoutId}
+                accessibilityRole="button"
+                accessibilityLabel={`${j.memo || '오운완'} 게시물 보기`}
+                onPress={() => setPost(`own:${j.workoutId}`)}
+                style={ps.cell}
+              >
+                {j.testPhotoTile !== undefined ? (
+                  <TestPhoto tile={j.testPhotoTile} label="내 가상 오운완 사진" />
+                ) : journalPhotos(j).length ? (
+                  <Image source={{ uri: journalPhotos(j)[0] }} style={ps.cellImage} />
+                ) : (
+                  <View style={[ps.cellImage, ps.cellText]}>
+                    <AppIcon name="image" color={c.text.muted} />
+                    <Text numberOfLines={2} style={[text.label, { color: c.text.secondary, textAlign: 'center' }]}>
+                      {j.memo || '사진 없는 오운완'}
+                    </Text>
+                  </View>
+                )}
+                {journalPhotos(j).length > 1 && (
+                  <View style={ps.count}>
+                    <Text style={[text.label, { color: c.text.inverse }]}>{journalPhotos(j).length}장</Text>
+                  </View>
+                )}
+              </Pressable>
             ))}
         </View>
       ) : (
-        <View style={[ui.card, { alignItems: 'center', paddingVertical: 48 }]}>
-          <AppIcon name="image" size={32} />
-          <Text style={ui.heading}>
-            {entries.length ? '사진을 남겨보세요' : '첫 오운완을 남겨보세요'}
-          </Text>
-          <Text style={ui.muted}>
-            {entries.length
-              ? '사진 없는 오운완은 전체 기록에서 확인할 수 있어요.'
-              : '운동을 마친 뒤 사진을 기록할 수 있어요.'}
-          </Text>
-        </View>
+        <EmptyCard icon="image" title="첫 오운완을 남겨보세요" body="운동을 마친 뒤 사진을 기록할 수 있어요." />
       )}
       {__DEV__ &&
         profile.value.journals.filter((j) => j.workoutId.startsWith('sample-own-')).length < 3 && (
           <Button
             title="내 샘플 게시물 3개 추가"
-            secondary
+            variant="soft"
+            size="md"
             disabled={!profile.ready || profile.busy}
             onPress={() =>
-              void profile
-                .save(addOwnSamplePosts(profile.value))
-                .catch(() => setError('샘플 게시물을 저장하지 못했습니다.'))
+              void profile.save(addOwnSamplePosts(profile.value)).catch(() => setError('샘플 게시물을 저장하지 못했습니다.'))
             }
           />
         )}
-      {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다. */}
-      <Modal
-        visible={choosingWorkout}
-        onDismiss={openPendingJournal}
-        animationType="slide"
-        onRequestClose={() => setChoosingWorkout(false)}
-      >
-        <SafeAreaView style={ui.page}>
-          <ScreenLayout title="오운완을 남길 운동 선택" onBack={() => setChoosingWorkout(false)}>
-            <Text style={ui.muted}>
-              사진과 글을 남길 운동 날짜를 선택해 주세요. 기존 오운완은 수정할 수 있습니다.
-            </Text>
-            <WorkoutHistory
-              records={history}
-              onSelect={(workout) => {
-                pendingJournal.current = workout;
+      <WorkoutDetail
+        visible={!!detail}
+        workout={detail}
+        journal={detail ? entries.find((j) => j.workoutId === detail.id) : undefined}
+        onClose={() => setDetail(null)}
+        onJournal={onJournal}
+      />
+      {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다(Figma 06-11). */}
+      <Modal visible={choosingWorkout} onDismiss={openPendingJournal} animationType="slide" onRequestClose={() => setChoosingWorkout(false)}>
+        <Screen
+          header={<NavBar title="오운완 추가" leading="close" onLeading={() => setChoosingWorkout(false)} />}
+          footer={
+            <Button
+              title="다음"
+              disabled={!choice}
+              onPress={() => {
+                pendingJournal.current = sorted.find((w) => w.id === choice) ?? null;
                 setChoosingWorkout(false);
                 if (Platform.OS !== 'ios') openPendingJournal();
               }}
             />
-          </ScreenLayout>
-        </SafeAreaView>
+          }
+        >
+          <View style={{ gap: 4 }}>
+            <Text style={[text.titleM, { color: c.text.primary }]}>어떤 운동의 오운완인가요?</Text>
+            <Text style={[text.callout, { color: c.text.secondary }]}>오운완이 없는 최근 기록이에요</Text>
+          </View>
+          {withoutJournal.map((w) => {
+            const on = choice === w.id;
+            return (
+              <Pressable
+                key={w.id}
+                accessibilityRole="radio"
+                accessibilityLabel={`${workoutDay(w)} 운동 기록 보기`}
+                accessibilityState={{ checked: on }}
+                onPress={() => setChoice(w.id)}
+                style={[ps.choice, on && ps.choiceOn]}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[text.calloutBold, { color: c.text.primary }]}>
+                    {formatDay(workoutDay(w), 'compact')} · {recordTitle(w)}
+                  </Text>
+                  <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(w)}</Text>
+                </View>
+                <CheckMark checked={on} />
+              </Pressable>
+            );
+          })}
+          {!withoutJournal.length && (
+            <EmptyCard icon="check" title="모든 기록에 오운완이 있어요" body="기존 오운완은 게시물에서 고칠 수 있어요" />
+          )}
+        </Screen>
       </Modal>
       {post && (
         <LikedPostScreen
@@ -437,6 +432,43 @@ export function ProfileScreen({
           }
         />
       )}
-    </ScreenLayout>
+    </Screen>
   );
 }
+
+const ps = StyleSheet.create({
+  me: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[16] },
+  stats: { flexDirection: 'row', gap: tokens.space[20] },
+  stat: { flexDirection: 'row', alignItems: 'baseline', gap: 4, minHeight: 32 },
+  actions: { flexDirection: 'row', gap: tokens.space[8] },
+  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderColor: c.line.default },
+  tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderColor: 'transparent', marginBottom: -1 },
+  tabOn: { borderColor: c.text.primary },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  cell: { width: '32.4%', aspectRatio: 1, borderRadius: 4, overflow: 'hidden', backgroundColor: c.line.input },
+  cellImage: { width: '100%', height: '100%' },
+  cellText: { padding: 8, gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg.surface },
+  count: { position: 'absolute', top: 6, right: 6, backgroundColor: c.bg.inverse, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 56 },
+  recordThumb: { width: 52, height: 52, borderRadius: tokens.radius.md, backgroundColor: c.line.input },
+  recordIcon: { backgroundColor: c.bg.surface, alignItems: 'center', justifyContent: 'center' },
+  daySummary: {
+    backgroundColor: c.bg.surface,
+    borderRadius: tokens.radius.xl,
+    padding: tokens.space[16],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  choice: {
+    backgroundColor: c.bg.surface,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    padding: tokens.space[16],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  choiceOn: { backgroundColor: c.bg.default, borderColor: c.text.primary },
+});

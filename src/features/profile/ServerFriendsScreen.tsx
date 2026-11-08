@@ -184,6 +184,7 @@ export function ServerFriendsScreen({
   if (profile)
     return (
       <ScreenLayout
+      safeTop
         title="친구 프로필"
         onBack={() => (initialMemberId ? onClose() : setProfile(null))}
       >
@@ -212,7 +213,7 @@ export function ServerFriendsScreen({
       </ScreenLayout>
     );
   return (
-    <ScreenLayout title="친구" onBack={onClose}>
+    <ScreenLayout safeTop title="친구" onBack={onClose}>
       {!!error && (
         <Text accessibilityRole="alert" style={ui.error}>
           {error}
