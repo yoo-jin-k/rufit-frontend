@@ -51,6 +51,63 @@ export function SetHeader({
   );
 }
 
+/**
+ * 세트 수 조절과 이전 기록 불러오기 줄입니다(− 세트 N개 + | 불러오기).
+ * −는 마지막 세트를 지우고, +는 마지막 세트를 복제해 뒤에 더합니다.
+ */
+export function SetCountControl({
+  name,
+  count,
+  disabled = false,
+  onAdd,
+  onRemove,
+  onLoad,
+}: {
+  name: string;
+  count: number;
+  disabled?: boolean;
+  onAdd(): void;
+  onRemove(): void;
+  onLoad(): void;
+}) {
+  return (
+    <View style={s.countRow}>
+      <View style={[s.countBox, s.countStepper]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${name} 마지막 세트 삭제`}
+          disabled={disabled || count === 0}
+          onPress={onRemove}
+          hitSlop={6}
+          style={s.countButton}
+        >
+          <Text style={[text.titleM, { color: count === 0 ? c.text.disabled : c.text.primary }]}>−</Text>
+        </Pressable>
+        <Text accessibilityLiveRegion="polite" style={[text.callout, s.countLabel]}>세트 {count}개</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${name} 마지막 세트 복제 추가`}
+          disabled={disabled}
+          onPress={onAdd}
+          hitSlop={6}
+          style={s.countButton}
+        >
+          <Text style={[text.titleM, { color: c.text.primary }]}>+</Text>
+        </Pressable>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${name} 이전 기록 불러오기`}
+        disabled={disabled}
+        onPress={onLoad}
+        style={({ pressed }) => [s.countBox, s.countLoad, pressed && { opacity: 0.7 }]}
+      >
+        <Text style={[text.callout, { color: c.text.secondary }]}>불러오기</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function SetRow({
   set,
   index,
@@ -239,4 +296,10 @@ const s = StyleSheet.create({
   allCheckOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
   trash: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   error: { color: c.danger.default, paddingLeft: 44, paddingTop: 2 },
+  countRow: { flexDirection: 'row', gap: tokens.space[8], marginTop: tokens.space[8] },
+  countBox: { minHeight: tokens.size.buttonMd, borderRadius: tokens.radius.xl, backgroundColor: c.bg.surface },
+  countStepper: { flex: 1.6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  countButton: { width: tokens.size.touch, height: tokens.size.buttonMd, alignItems: 'center', justifyContent: 'center' },
+  countLabel: { color: c.text.secondary, flexShrink: 1, textAlign: 'center' },
+  countLoad: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: tokens.space[12] },
 });

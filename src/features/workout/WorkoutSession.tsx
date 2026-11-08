@@ -23,7 +23,7 @@ import { elapsedWorkoutMs, type Exercise, type Workout, type WorkoutSet } from '
 import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
 import { RestTimerDock } from './RestTimerDock';
-import { SetHeader, SetRow } from './SetRow';
+import { SetCountControl, SetHeader, SetRow } from './SetRow';
 import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
@@ -304,9 +304,16 @@ export function WorkoutSession({
                 />
               )}
             </SortableSets>
-            <Pressable accessibilityRole="button" accessibilityLabel={`${e.name} 세트 추가`} onPress={() => actions.onAddSet(e.id, e.sets.at(-1)?.id)} style={s.addSet}>
-              <Text style={[text.calloutBold, { color: c.text.secondary }]}>+ 세트 추가</Text>
-            </Pressable>
+            <SetCountControl
+              name={e.name}
+              count={e.sets.length}
+              onAdd={() => actions.onAddSet(e.id, e.sets.at(-1)?.id)}
+              onRemove={() => {
+                const last = e.sets.at(-1);
+                if (last) actions.onRemoveSet(e.id, last.id);
+              }}
+              onLoad={() => actions.onLoadPrevious(e.id)}
+            />
           </View>
         );
       })}
@@ -324,8 +331,6 @@ export function WorkoutSession({
           <ListGroup>
             <ListRow icon="timer" label="휴식 시간" value={`${restSecondsFor(menuExercise)}초`}
               onPress={() => { setMenuId(null); actions.onRestSettings(menuExercise.id); }} />
-            <ListRow icon="refresh" label="이전 기록 불러오기" accessibilityLabel={`${menuExercise.name} 이전 기록 불러오기`}
-              onPress={() => { setMenuId(null); actions.onLoadPrevious(menuExercise.id); }} />
             <ListRow icon="trash" label="종목 빼기" accessibilityLabel={`${menuExercise.name} 종목 제거`} danger trailing="none"
               onPress={() => { setMenuId(null); setRemoveId(menuExercise.id); }} />
           </ListGroup>
@@ -389,7 +394,6 @@ const s = StyleSheet.create({
     paddingTop: 0,
     gap: tokens.space[4],
   },
-  addSet: { minHeight: 40, alignItems: 'center', justifyContent: 'center' },
   collapsed: {
     backgroundColor: c.bg.surface,
     borderRadius: tokens.radius.xl,
