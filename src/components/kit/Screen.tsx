@@ -30,6 +30,7 @@ export function Screen({
   edges = ['top', 'bottom'],
   contentStyle,
   background = c.bg.default,
+  keyboard = 'lift',
 }: {
   children: ReactNode;
   /** NavBar나 PageHeader처럼 스크롤되지 않는 맨 위 영역입니다. */
@@ -42,10 +43,20 @@ export function Screen({
   edges?: ('top' | 'bottom')[];
   contentStyle?: StyleProp<ViewStyle>;
   background?: string;
+  /**
+   * 키보드가 올라올 때의 동작입니다.
+   * - lift: 화면을 줄여 하단 고정 버튼도 키보드 위로 올립니다. 입력칸이 적고 버튼이 바로 보여야 하는 화면에 씁니다.
+   * - cover: 화면 크기는 그대로 두고 스크롤 영역에만 키보드 높이만큼 여백을 줍니다. 하단 고정 영역은 키보드 뒤로 갑니다.
+   *   입력칸이 많은 화면에서 입력할 때마다 화면이 위아래로 흔들리지 않게 합니다. 아래로 끌면 키보드가 내려갑니다.
+   */
+  keyboard?: 'lift' | 'cover';
 }) {
+  const cover = keyboard === 'cover';
   const body = scroll ? (
     <ScrollView
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={cover}
+      keyboardDismissMode={cover ? 'interactive' : 'none'}
       contentContainerStyle={[s.content, { gap }, contentStyle]}
       style={s.fill}
     >
@@ -54,13 +65,22 @@ export function Screen({
   ) : (
     <View style={[s.content, s.fill, { gap }, contentStyle]}>{children}</View>
   );
+  const inner = (
+    <>
+      {header && <View style={s.header}>{header}</View>}
+      {body}
+      {footer && <View style={s.footer}>{footer}</View>}
+    </>
+  );
   return (
     <SafeAreaView edges={edges} style={[s.fill, { backgroundColor: background }]}>
-      <KeyboardAvoidingView style={s.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {header && <View style={s.header}>{header}</View>}
-        {body}
-        {footer && <View style={s.footer}>{footer}</View>}
-      </KeyboardAvoidingView>
+      {cover ? (
+        <View style={s.fill}>{inner}</View>
+      ) : (
+        <KeyboardAvoidingView style={s.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {inner}
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }

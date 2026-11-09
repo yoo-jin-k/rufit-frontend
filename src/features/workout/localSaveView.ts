@@ -40,6 +40,14 @@ export function localSaveView(value: LocalSaveInput) {
     saved: value.ready && value.state === 'saved',
   };
 }
+/**
+ * 화면에 문구를 보여 줄지 정합니다. 평소 자동 저장은 순식간에 끝나므로 보여 주지 않습니다.
+ * 저장할 때마다 문구가 끼어들면 아래 목록이 밀렸다가 돌아와 화면이 흔들리기 때문입니다.
+ * 실패·재시도와 처음 불러오는 중일 때만 보여 줍니다.
+ */
+export function saveStatusVisible(value: LocalSaveInput) {
+  return localSaveView(value).warning || value.state === 'loading';
+}
 // 실패·재시도 전이 및 실패 복구 성공만 알립니다. 평상시 자동저장 성공은 키 입력마다 낭독하지 않습니다.
 export function saveAnnouncement(
   previous: ReturnType<typeof localSaveView> | null,

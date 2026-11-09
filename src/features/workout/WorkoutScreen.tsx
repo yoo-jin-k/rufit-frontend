@@ -58,6 +58,7 @@ import { RestTimerSheet } from './RestTimerSheet';
 import { recommendedRest } from '../exercises/recommendedRest';
 import { restTimerView } from './timerView';
 import { LocalSaveStatus } from './LocalSaveStatus';
+import { saveStatusVisible } from './localSaveView';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen({
@@ -331,7 +332,7 @@ export function WorkoutScreen({
             }}
           />
         )}
-        {tab !== 'workout' && state !== 'saved' && (
+        {tab !== 'workout' && saveStatusVisible({ state, ready, retryPending, unsavedAfterFailure }) && (
           <View style={s.dock}>
             <LocalSaveStatus
               state={state}

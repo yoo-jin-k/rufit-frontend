@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
-import { localSaveView, saveAnnouncement, type LocalSaveInput } from './localSaveView';
+import { localSaveView, saveAnnouncement, saveStatusVisible, type LocalSaveInput } from './localSaveView';
 
 // 저장 중에도 같은 위치에서 읽기/쓰기 실패 맥락과 재시도 버튼을 유지합니다.
 export function LocalSaveStatus({
@@ -24,11 +24,17 @@ export function LocalSaveStatus({
     // iOS에는 Android/Web의 live region이 없어 같은 전이를 직접 알립니다.
     if (message && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
   }, [state, ready, retryPending, unsavedAfterFailure]);
+  const live = Platform.OS !== 'ios' && (
+    <Text style={s.announcement} accessibilityLiveRegion="polite" aria-atomic>
+      {announcement}
+    </Text>
+  );
+  // 보여 줄 문구가 없으면 자리를 차지하지 않고, 화면 읽기 알림용 글자(크기 1, 겹쳐 둠)만 남깁니다.
+  if (!saveStatusVisible({ state, ready, retryPending, unsavedAfterFailure })) return live || null;
   return (
     <View>
       <View style={[s.status, view.warning && s.warning]}>
-        {/* 정상 저장 완료는 화면에 표시하지 않고, 진행 중·실패 상태만 보여 줍니다. */}
-        {!view.saved && <Text style={view.warning ? s.title : s.normal}>{view.title}</Text>}
+        <Text style={view.warning ? s.title : s.normal}>{view.title}</Text>
         {view.warning && (
           <>
             <Text style={s.description}>{view.description}</Text>
@@ -43,11 +49,7 @@ export function LocalSaveStatus({
           </>
         )}
       </View>
-      {Platform.OS !== 'ios' && (
-        <Text style={s.announcement} accessibilityLiveRegion="polite" aria-atomic>
-          {announcement}
-        </Text>
-      )}
+      {live}
     </View>
   );
 }
