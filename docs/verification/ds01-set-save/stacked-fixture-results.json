@@ -1,0 +1,29 @@
+{
+  "minus": {
+    "top": 364,
+    "bottom": 412,
+    "height": 48
+  },
+  "plus": {
+    "top": 420,
+    "bottom": 468,
+    "height": 48
+  },
+  "close": {
+    "top": 480,
+    "bottom": 528,
+    "height": 48
+  },
+  "input": {
+    "top": 636,
+    "bottom": 686,
+    "height": 50
+  },
+  "complete": {
+    "top": 698,
+    "bottom": 746,
+    "height": 48
+  },
+  "forcedLayoutOnly": true,
+  "actualNativeFontScaleTested": false
+}

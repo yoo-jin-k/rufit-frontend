@@ -1,0 +1,22 @@
+/* 자동 생성: npm run styles. 직접 수정 금지. */
+.frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background-color: #FFFFFF;
+  align-self: center;
+}
+.frame [role=button]:focus-visible,
+.frame [role=tab]:focus-visible,
+.frame input:focus-visible,
+.frame textarea:focus-visible {
+  outline: 2px solid #111113;
+  outline-offset: 2px;
+}
+@media (min-width: 768px) {
+  .frame {
+    max-width: 640px;
+    border-left: 1px solid #EAEAEC;
+    border-right: 1px solid #EAEAEC;
+  }
+}

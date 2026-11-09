@@ -1,0 +1,101 @@
+{
+  "rows": [
+    {
+      "width": 320,
+      "height": 300,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 131.25,
+        "width": 640,
+        "height": 112.75,
+        "scrollTop": 320
+      },
+      "catalog110": true,
+      "media64": true,
+      "clear48": true,
+      "focusOneBorder": true,
+      "stableResultAnnouncement": true,
+      "fallbackVisible": true,
+      "workoutHeaderStacked": true,
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "rapidDoubleSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    },
+    {
+      "width": 844,
+      "height": 260,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 131.25,
+        "width": 640,
+        "height": 112.75,
+        "scrollTop": 320
+      },
+      "catalog110": true,
+      "media64": true,
+      "clear48": true,
+      "focusOneBorder": true,
+      "stableResultAnnouncement": true,
+      "fallbackVisible": true,
+      "workoutHeaderStacked": true,
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "rapidDoubleSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "geometryViewport": {
+        "width": 844,
+        "height": 260
+      },
+      "geometry": {
+        "x": 102,
+        "y": 131.25,
+        "width": 640,
+        "height": 112.75,
+        "scrollTop": 320
+      },
+      "catalog110": true,
+      "media64": true,
+      "clear48": true,
+      "focusOneBorder": true,
+      "stableResultAnnouncement": true,
+      "fallbackVisible": true,
+      "workoutHeaderStacked": true,
+      "initialLowHeightSelect": true,
+      "resizeInputCursorFiltersPreserved": true,
+      "wheelScroll": true,
+      "fixedClose": true,
+      "rawArchivePreservedOnClose": true,
+      "customInputPreserved": true,
+      "rapidDoubleSelectionOnce": true,
+      "linkFailureAutoRevealed": true,
+      "errors": []
+    }
+  ],
+  "catalog110": true,
+  "wheelScroll": true,
+  "nativeKeyboardTested": false,
+  "forceClickUsed": false
+}

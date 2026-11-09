@@ -1,0 +1,23 @@
+@use 'tokens.generated' as t;
+
+// 웹의 앱 프레임과 키보드 포커스는 이 파일에서 관리합니다.
+// 모바일은 전체 폭, 넓은 화면은 같은 토큰의 최대 폭을 사용합니다.
+.frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background-color: t.$colors-background;
+  align-self: center;
+  [role='button']:focus-visible,
+  [role='tab']:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: t.$size-focusWidth solid t.$colors-focus;
+    outline-offset: 2px;
+  }
+  @media (min-width: 768px) {
+    max-width: t.$size-contentMax;
+    border-left: 1px solid t.$colors-border;
+    border-right: 1px solid t.$colors-border;
+  }
+}
