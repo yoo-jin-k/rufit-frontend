@@ -61,7 +61,7 @@ Call log:
 [2m  - retrying click action[22m
 [2m    - waiting 500ms[22m
 
-    at /Users/yoo-jinkim/.codex/.chatgpt-projects/g-p-6a70b6f73c488191a9444a0c848d5cea/rufit-frontend-picker-low-height/docs/verification/exercise-picker/reproduce.cjs:25:39 {
+    at ./docs/verification/exercise-picker/reproduce.cjs:25:39 {
   log: [
     "  - waiting for getByRole('button', { name: '스쿼트, 하체, 바벨, 추가', exact: true })",
     '    - locator resolved to <button tabindex="0" role="button" type="button" aria-label="스쿼트, 하체, 바벨, 추가" class="css-g5y9jx r-1loqt21 r-1otgn73 r-1awozwy r-qklmqi r-1d66ma6 r-18u37iz r-1i71y14 r-1ml3abn">…</button>',
