@@ -61,6 +61,7 @@ export function ManualWorkoutScreen({
       onRequestClose={close}
     >
       <Screen
+        keyboard="cover"
         header={<NavBar title="과거 기록 추가" leading="close" onLeading={close} />}
         footer={
           draft.exercises.length ? (

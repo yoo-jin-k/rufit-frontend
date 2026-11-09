@@ -152,6 +152,7 @@ export function WorkoutSession({
   return (
     <Screen
       edges={['top']}
+      keyboard="cover"
       header={
         <View style={s.header}>
           <View style={{ flex: 1 }}>
