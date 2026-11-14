@@ -47,11 +47,12 @@
     "catalog:integrate:backend": "node --experimental-strip-types scripts/integrate-backend-catalog.mts",
     "styles": "node --experimental-strip-types scripts/build-styles.mts",
     "styles:check": "npm run styles -- --check",
-    "prestart": "npm run styles",
-    "preweb": "npm run styles",
-    "preios": "npm run styles",
-    "preandroid": "npm run styles",
-    "preexport": "npm run styles"
+    "media:sync": "node --experimental-strip-types scripts/sync-licensed-media.mts",
+    "prestart": "npm run styles && npm run media:sync",
+    "preweb": "npm run styles && npm run media:sync",
+    "preios": "npm run styles && npm run media:sync",
+    "preandroid": "npm run styles && npm run media:sync",
+    "preexport": "npm run styles && npm run media:sync"
   },
   "private": true,
   "engines": {

@@ -18,6 +18,16 @@ npm run web
 iOS 시뮬레이터는 Xcode, Android 에뮬레이터는 Android Studio가 필요합니다.
 Expo Go는 프로젝트 SDK와 호환되는 버전이 필요합니다.
 
+## 구매한 운동 그림
+
+구매한 운동 그림(정지 이미지·GIF)은 라이선스상 재배포가 금지되어 Git에 올리지 않습니다.
+
+- 원본 보관: 저장소 밖 `../../Rufit_assets/gymvisual/originals` (다른 위치면 `RUFIT_LICENSED_MEDIA_DIR`로 지정)
+- 종목과 파일 연결: `assets/exercises/licensed-media.json`의 `image`·`gif` 칸에 원본 파일 이름을 적습니다.
+- 앱에 반영: `npm run media:sync` (`npm start`·`npm run ios` 등을 실행할 때도 자동 실행)
+- 복사본 `assets/licensed/`와 생성 파일 `src/features/exercises/licensedMedia.generated.ts`는 `.gitignore` 대상입니다.
+- 원본 폴더가 없으면(GitHub 검사·다른 컴퓨터) 기본 그림만 보이고 나머지는 회색 자리표시로 나옵니다.
+
 ## 검증
 
 ```sh
