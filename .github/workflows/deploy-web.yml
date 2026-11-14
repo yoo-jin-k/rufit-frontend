@@ -1,0 +1,47 @@
+name: Deploy web demo
+# main에 병합되면 웹 체험판을 GitHub Pages에 올립니다.
+# 서버 주소·도메인은 저장소 Settings > Variables에 둡니다. EXPO_PUBLIC 값은 화면 코드에 그대로 들어가므로 비밀값을 넣지 않습니다.
+# 구매한 운동 그림은 저장소에 없으므로 이 빌드에는 기본 그림만 들어갑니다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_RUFIT_API_URL: ${{ vars.RUFIT_API_URL }}
+          EXPO_PUBLIC_RUFIT_WEB_LOGIN_ENABLED: ${{ vars.RUFIT_WEB_LOGIN_ENABLED }}
+          EXPO_PUBLIC_RUFIT_KAKAO_ENABLED: ${{ vars.RUFIT_KAKAO_ENABLED }}
+          EXPO_PUBLIC_RUFIT_GOOGLE_ENABLED: ${{ vars.RUFIT_GOOGLE_ENABLED }}
+      # 새로고침이나 직접 접속한 주소도 앱 화면을 열도록 기본 페이지를 404 페이지로도 씁니다.
+      - run: |
+          cp dist/index.html dist/404.html
+          echo "${{ vars.RUFIT_WEB_DOMAIN }}" > dist/CNAME
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

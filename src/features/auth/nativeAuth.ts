@@ -10,8 +10,10 @@ import { createSecureSessionStore } from './secureSessionStore';
 import { createWebAuthBrowser, createWebSessionStore } from './webAuth';
 import type { AuthClient } from './types';
 
+// 웹 로그인은 설정으로 켠 경우에만, 로컬 시험 주소나 https 배포 주소에서만 사용합니다.
+// 실제 복귀 주소는 서버 설정이 정하므로 여기서 다른 주소를 허용해도 서버가 거절합니다.
 const localWeb = Platform.OS === 'web' && typeof window !== 'undefined'
-  && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  && (['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'https:')
   && process.env.EXPO_PUBLIC_RUFIT_WEB_LOGIN_ENABLED === 'true';
 export const nativeAuthAvailable = Platform.OS === 'ios' || Platform.OS === 'android' || localWeb;
 export const nativeAuthClient: AuthClient | null =

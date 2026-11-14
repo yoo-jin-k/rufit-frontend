@@ -1,7 +1,7 @@
 import type { SessionStore } from './secureSessionStore.ts';
 import { decodeStoredSession } from './storedSession.ts';
 
-/** 로컬 웹 시험에서는 장기 저장을 피하고 현재 탭의 새로고침만 복원합니다. */
+/** 웹에서는 장기 저장을 피하고 현재 탭의 새로고침만 복원합니다. 탭을 닫으면 다시 로그인합니다. */
 export function createWebSessionStore(storage: Storage): SessionStore {
   const key = 'rufit.web-auth-session.v1';
   return {
