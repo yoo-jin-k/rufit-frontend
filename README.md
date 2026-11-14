@@ -3,6 +3,14 @@
 React Native + Expo + TypeScript 기반 iOS/Android 앱입니다. 웹은 개발 검증용으로 함께 지원합니다.
 백엔드(Java/Spring Boot)는 별도 `rufit-backend` 저장소에서 관리합니다.
 
+## 체험하기
+
+- 웹: [app.rufit.yjinee.com](https://app.rufit.yjinee.com) — main에 병합되면 GitHub Pages로 자동 배포됩니다(`.github/workflows/deploy-web.yml`).
+- 안드로이드: [rufit.apk 다운로드](https://github.com/yoo-jin-k/rufit-frontend/releases/latest/download/rufit.apk) — 항상 최신 릴리스의 APK를 가리킵니다. 설치 방법은 [릴리스 페이지](https://github.com/yoo-jin-k/rufit-frontend/releases/latest)에 있습니다.
+- 아이폰: TestFlight 준비 중입니다.
+
+새 안드로이드 테스트 앱은 `npx eas-cli build -p android --profile preview`로 빌드하고, 결과 APK를 `rufit.apk` 이름으로 새 릴리스에 올립니다.
+
 ## 시작
 
 Node.js 24 LTS와 npm 사용을 권장합니다.
