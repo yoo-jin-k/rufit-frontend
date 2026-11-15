@@ -31,6 +31,7 @@ import { workoutsByDay } from '../calendar/model';
 import { WorkoutCalendar } from '../calendar/WorkoutCalendar';
 import { FriendsScreen } from './FriendsScreen';
 import type { useProfile } from './useProfile';
+import { useWeightUnit } from '../units/UnitProvider';
 const c = tokens.color;
 
 export function ProfileScreen({
@@ -48,6 +49,7 @@ export function ProfileScreen({
   profile: ReturnType<typeof useProfile>;
   onJournal: (workout: Workout) => void;
 }) {
+  const { unit } = useWeightUnit();
   // 저장 직후에는 해당 기록을 보여주되 저장 위치를 사용자 선택 메뉴로 노출하지 않습니다.
   const journalSource = initialJournalSource;
   const [serverPostCount, setServerPostCount] = useState<number | null>(null);
@@ -272,7 +274,7 @@ export function ProfileScreen({
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[text.calloutBold, { color: c.text.primary }]}>{formatDay(day)}</Text>
                   <Text style={[text.label, { color: c.text.secondary }]}>
-                    {records.map((w) => recordTitle(w)).join(', ')} · {recordMeta(records[0]).split(' · ').filter((_, i) => i !== 1).join(' · ')}
+                    {records.map((w) => recordTitle(w)).join(', ')} · {recordMeta(records[0], unit).split(' · ').filter((_, i) => i !== 1).join(' · ')}
                     {records.some((w) => entries.some((j) => j.workoutId === w.id)) ? ' · 오운완 있음' : ''}
                   </Text>
                 </View>
@@ -303,7 +305,7 @@ export function ProfileScreen({
                       )}
                       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                         <Text style={[text.bodyBold, { color: c.text.primary }]}>{recordTitle(w)}</Text>
-                        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{recordMeta(w)}</Text>
+                        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{recordMeta(w, unit)}</Text>
                       </View>
                       <AppIcon name="chevron-right" color={c.text.muted} />
                     </Pressable>
@@ -406,7 +408,7 @@ export function ProfileScreen({
                   <Text style={[text.calloutBold, { color: c.text.primary }]}>
                     {formatDay(workoutDay(w), 'compact')} · {recordTitle(w)}
                   </Text>
-                  <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(w)}</Text>
+                  <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(w, unit)}</Text>
                 </View>
                 <CheckMark checked={on} />
               </Pressable>

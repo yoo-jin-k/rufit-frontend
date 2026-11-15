@@ -1,4 +1,6 @@
 /** 운동 기록을 화면 문구로 바꾸는 함수입니다. 홈·기록 상세·프로필이 같은 표현을 씁니다. */
+import type { WeightUnit } from '../../api/client.ts';
+import { unitLabel, volumeNumber } from '../units/model.ts';
 import { bodyParts, findCatalogExercise } from '../exercises/catalog.ts';
 import { localDay } from '../calendar/model.ts';
 import { elapsedWorkoutMs, type Workout } from './model.ts';
@@ -49,11 +51,11 @@ export function recordTitle(workout: Workout) {
 }
 
 /** 기록 요약 한 줄: 32분 · 2,264kg · 가슴 · 어깨 */
-export function recordMeta(workout: Workout) {
+export function recordMeta(workout: Workout, unit: WeightUnit = 'KG') {
   const minutes = workoutMinutes(workout);
   return [
     minutes === null ? '시간 미측정' : `${minutes}분`,
-    `${formatNumber(workoutVolume(workout))}kg`,
+    `${volumeNumber(workoutVolume(workout), unit)}${unitLabel(unit)}`,
     ...workoutParts(workout),
   ].join(' · ');
 }

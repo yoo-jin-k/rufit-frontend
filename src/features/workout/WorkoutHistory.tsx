@@ -11,6 +11,8 @@ import { AppIcon } from '../../components/AppIcon';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { elapsedWorkoutMs, type Workout } from './model';
 import { localDay } from '../calendar/model';
+import { formatWeight, unitLabel, volumeNumber } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 export const workoutDate = (w: Workout) => w.recordDate ?? localDay(w.startedAt);
 export const workoutSummary = (w: Workout) =>
   `${w.entryMode === 'manual' ? '시간 미측정' : `${Math.floor(elapsedWorkoutMs(w, w.finishedAt ?? w.startedAt) / 60000)}분`} · ${w.exercises.length}종목 · ${w.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)}세트`;
@@ -29,6 +31,7 @@ export function WorkoutHistory({
   onJournal?: (w: Workout) => void;
   onSelect?: (w: Workout) => void;
 }) {
+  const { unit } = useWeightUnit();
   const pendingJournal = useRef<Workout | null>(null);
   function openPendingJournal() {
     const target = pendingJournal.current;
@@ -79,7 +82,7 @@ export function WorkoutHistory({
                     .filter((s) => s.completed)
                     .map((s, i) => (
                       <Text key={s.id} style={ui.body}>
-                        {i + 1}세트　{s.weight} kg　×　{s.reps} 회
+                        {i + 1}세트　{formatWeight(s.weight, unit)}　×　{s.reps} 회
                       </Text>
                     ))}
                 </View>
@@ -120,12 +123,13 @@ export function WorkoutHistory({
 
 /** 카드 전체를 누르면 기존 운동 상세 화면으로 연결합니다. 긴 종목명은 줄바꿈합니다. */
 function CompletedSessionCard({ workout }: { workout: Workout }) {
+  const { unit } = useWeightUnit();
   const summary = completedWorkoutSummary(workout);
   return <View style={{ flex: 1, gap: 12 }}>
     <View style={ui.between}><Text style={ui.heading}>자유 운동</Text><AppIcon name="chevron" size={16} /></View>
     <View style={[ui.row, { flexWrap: 'wrap' }]}>
       <Text style={ui.body}>완료</Text>
-      <Text style={ui.muted}>{summary.duration} · {summary.volume} kg</Text>
+      <Text style={ui.muted}>{summary.duration} · {volumeNumber(summary.volumeKg, unit)} {unitLabel(unit)}</Text>
     </View>
     {!!summary.parts && <Text style={ui.body}>{summary.parts}</Text>}
     <Text style={ui.muted}>{summary.exercises}</Text>

@@ -21,6 +21,8 @@ export function completedWorkoutSummary(workout: Workout) {
   return {
     duration: workout.entryMode === 'manual' ? '시간 미측정' : `${Math.floor(elapsedWorkoutMs(workout, workout.finishedAt ?? workout.startedAt) / 60000)}분`,
     volume: volume.toLocaleString('ko-KR', { maximumFractionDigits: 2 }),
+    /** 단위를 바꿔 보여 줄 때 쓰는 kg 숫자입니다. */
+    volumeKg: volume,
     parts: parts.join(', '),
     exercises: `${exercises.length}개 | ${exercises[0]?.name ?? '운동'}${exercises.length > 1 ? ` 외 ${exercises.length - 1}개` : ''}`,
   };

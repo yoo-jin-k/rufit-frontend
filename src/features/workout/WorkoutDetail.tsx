@@ -12,7 +12,9 @@ import { text, tokens } from '../../theme/tokens';
 import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
 import type { Journal } from '../profile/journalModel';
 import type { Workout } from './model';
-import { completedSets, formatNumber, recordTitle, workoutMinutes, workoutVolume } from './recordFormat';
+import { completedSets, recordTitle, workoutMinutes, workoutVolume } from './recordFormat';
+import { formatWeight, unitLabel, volumeNumber } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -45,6 +47,7 @@ export function WorkoutDetail({
   onJournal?: (workout: Workout) => void;
   onDelete?: (id: string) => void;
 }) {
+  const { unit } = useWeightUnit();
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   if (!workout) return null;
@@ -71,7 +74,7 @@ export function WorkoutDetail({
         <StatTriplet
           items={[
             { value: minutes === null ? '미측정' : `${minutes}분`, label: '운동 시간' },
-            { value: `${formatNumber(workoutVolume(workout))}kg`, label: '총 볼륨' },
+            { value: `${volumeNumber(workoutVolume(workout), unit)}${unitLabel(unit)}`, label: '총 볼륨' },
             { value: `${completedSets(workout)}세트`, label: '완료 세트' },
           ]}
         />
@@ -93,7 +96,7 @@ export function WorkoutDetail({
                   <View key={set.id} style={s.setRow}>
                     <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>{index + 1}세트</Text>
                     <Text style={[text.calloutBold, { color: c.text.primary }]}>
-                      {set.weight}kg × {set.reps}회
+                      {formatWeight(set.weight, unit)} × {set.reps}회
                     </Text>
                   </View>
                 ))}

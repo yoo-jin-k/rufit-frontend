@@ -32,3 +32,16 @@ test('증감은 고른 단위로 하고 0~1500kg 안에 둡니다', () => {
   assert.equal(stepWeightIn('1', -5, 'LB'), '0');
   assert.equal(stepWeightIn('1499', 50, 'LB'), '1500');
 });
+
+test('총 볼륨과 기록 요약 한 줄도 고른 단위로 씁니다', async () => {
+  const { volumeNumber } = await import('../src/features/units/model.ts');
+  const { recordMeta } = await import('../src/features/workout/recordFormat.ts');
+  const { addExercise, finishWorkout, startWorkout, updateSet } = await import('../src/features/workout/model.ts');
+  assert.equal(volumeNumber(2264, 'KG'), '2,264');
+  assert.equal(volumeNumber(100, 'LB'), '220');
+  let w = addExercise(startWorkout('w', 0), 'e', '스쿼트');
+  w = updateSet(w, 'e', 'e-1', { weight: '100', reps: '10', completed: true });
+  w = finishWorkout(w, 60_000);
+  assert.equal(recordMeta(w), '1분 · 1,000kg');
+  assert.equal(recordMeta(w, 'LB'), '1분 · 2,205lbs');
+});

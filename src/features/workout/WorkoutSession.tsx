@@ -327,7 +327,7 @@ export function WorkoutSession({
                     <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{e.name}</Text>
                     <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>
                       {finishedCount}/{e.sets.length}세트 완료
-                      {paused ? '' : ` · ${e.sets.map((set) => set.weight).filter(Boolean).join('·')}kg`}
+                      {paused ? '' : ` · ${e.sets.map((set) => displayWeight(set.weight, unit)).filter(Boolean).join('·')}${unitLabel(unit)}`}
                     </Text>
                   </View>
                   {!paused && <AppIcon name="chevron-right" color={c.text.muted} />}
