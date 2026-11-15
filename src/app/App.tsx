@@ -5,7 +5,7 @@ import { WelcomeScreen } from '../features/auth/WelcomeScreen';
  * 앱의 공통 화면과 인증 상태를 연결하는 최상위 구성 요소입니다.
  * 인증 기능의 활성 여부는 실행 환경 설정을 따르며 게스트 운동 화면도 제공합니다.
  */
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -48,6 +48,14 @@ export default function App() {
     status.kind === 'signed-in' || status.kind === 'refreshing' || status.kind === 'signing-out'
       ? '계정'
       : '로그인';
+  // 로그인 창에서 방금 로그인에 성공하면 창을 닫아 운동 화면(운동 시작 시트)으로 바로 보냅니다.
+  // 이미 로그인한 상태에서 계정 화면을 연 경우에는 닫지 않습니다.
+  const wasSignedIn = useRef(authLabel === '계정');
+  useEffect(() => {
+    const signedIn = authLabel === '계정';
+    if (signedIn && !wasSignedIn.current) setShowAuth(false);
+    wasSignedIn.current = signedIn;
+  }, [authLabel]);
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />

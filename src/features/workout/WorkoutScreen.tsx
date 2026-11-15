@@ -150,13 +150,23 @@ export function WorkoutScreen({
     return () => { active = false; };
   }, [draftScope]);
   const [now, setNow] = useState(Date.now);
+  const [startSoon, setStartSoon] = useState(false);
   if (startPending && ready) {
     setStartPending(false);
     if (!workout || workout.finishedAt !== undefined) {
       setTab('workout');
-      setShowStart(true);
+      setStartSoon(true);
     }
   }
+  // 로그인 창이 내려가는 중에 시트를 띄우면 iOS에서 무시되므로 잠시 뒤에 엽니다.
+  useEffect(() => {
+    if (!startSoon) return;
+    const timer = setTimeout(() => {
+      setStartSoon(false);
+      setShowStart(true);
+    }, Platform.OS === 'ios' ? 600 : 0);
+    return () => clearTimeout(timer);
+  }, [startSoon]);
   function beginWorkout(source?: Workout) {
     setShowStart(false);
     if (workout && workout.finishedAt === undefined) return;
