@@ -6,6 +6,9 @@
 import { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
+import { DEFAULT_BODY_KG, formatKcal, workoutCalories } from '../calories/model';
+import { useBodyWeight } from '../calories/useBodyWeight';
+import { findCatalogExercise } from '../exercises/catalog';
 import { AppModal } from '../../components/AppModal';
 import { NavBar, Screen } from '../../components/kit/Screen';
 import { LogoMark } from '../../components/kit/Surfaces';
@@ -29,13 +32,14 @@ import {
 const c = tokens.color;
 
 /** 여러 기록을 하루 합계로 묶습니다. 시간을 재지 않은 직접 입력 기록은 시간 합계에서 뺍니다. */
-export function dayTotals(records: Workout[]) {
+export function dayTotals(records: Workout[], bodyKg = DEFAULT_BODY_KG) {
   const minutes = records.reduce((sum, w) => sum + (workoutMinutes(w) ?? 0), 0);
   const measured = records.some((w) => workoutMinutes(w) !== null);
   return {
     minutes: measured ? minutes : null,
     volume: records.reduce((sum, w) => sum + workoutVolume(w), 0),
     sets: records.reduce((sum, w) => sum + completedSets(w), 0),
+    kcal: records.reduce((sum, w) => sum + (workoutCalories(w, bodyKg, w.finishedAt ?? w.startedAt, (id) => findCatalogExercise(id)?.equipment)?.total ?? 0), 0),
     parts: [...new Set(records.flatMap(workoutParts))],
     exercises: [...new Set(records.flatMap((w) => w.exercises.filter((e) => e.sets.some((set) => set.completed)).map((e) => e.name)))],
   };
@@ -68,6 +72,8 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
   function afterClose() { const target = pending.current; pending.current = null; if (target) onJournal(target); }
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<Workout | null>(null);
+  // 체중을 기록한 뒤 다시 계산되도록 기록 수가 바뀔 때마다 체중을 다시 읽습니다.
+  const body = useBodyWeight(history.length);
   const records = completedWorkoutsOnDay(history, now);
   const today = localDay(now);
   if (!records.length) {
@@ -86,7 +92,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
       );
     const lastDay = workoutDay(last);
     const sameDay = history.filter((w) => w.finishedAt !== undefined && workoutDay(w) === lastDay);
-    const totals = dayTotals(sameDay);
+    const totals = dayTotals(sameDay, body.kg);
     return (
       <>
         <Pressable
@@ -115,7 +121,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
       </>
     );
   }
-  const totals = dayTotals(records);
+  const totals = dayTotals(records, body.kg);
   return <>
     <Pressable
       accessibilityRole="button"
@@ -129,7 +135,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
       </View>
       <Values minutes={totals.minutes} volume={totals.volume} inverse />
       <Text style={[text.caption, { color: c.text.muted }]}>
-        {[...totals.parts, `${totals.sets}세트`].join(' · ')}
+        {[...totals.parts, `${totals.sets}세트`, totals.kcal > 0 ? formatKcal(totals.kcal) : ''].filter(Boolean).join(' · ')}
       </Text>
     </Pressable>
     <AppModal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} onDismiss={afterClose}>
@@ -140,6 +146,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
             { value: totals.minutes === null ? '-' : String(totals.minutes), label: '분 운동' },
             { value: formatNumber(totals.volume), label: 'kg 볼륨' },
             { value: String(totals.sets), label: '세트' },
+            ...(totals.kcal > 0 ? [{ value: String(Math.round(totals.kcal)), label: 'kcal(추정)' }] : []),
           ]}
         />
         {/* 상세 화면을 한 번 더 열지 않도록 기록별 세트와 메모를 이 화면에 모두 표시합니다. */}

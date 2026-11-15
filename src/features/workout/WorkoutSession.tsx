@@ -33,6 +33,8 @@ import { SetDetailSheet, setTypeInfo } from './SetDetailSheet';
 import { recommendSet, weightless } from './setEditorModel';
 import { displayWeight, formatWeight, unitLabel } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
+import { formatKcal, workoutCalories } from '../calories/model';
+import { useBodyWeight } from '../calories/useBodyWeight';
 import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
@@ -156,6 +158,8 @@ export function WorkoutSession({
   const [restList, setRestList] = useState(false);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
   const { unit } = useWeightUnit();
+  const body = useBodyWeight();
+  const calories = workoutCalories(workout, body.kg, now, (id) => findCatalogExercise(id)?.equipment);
   const [editing, setEditing] = useState<{ exerciseId: string; setId: string } | null>(null);
   const editExercise = workout.exercises.find((e) => e.id === editing?.exerciseId);
   const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
@@ -230,6 +234,7 @@ export function WorkoutSession({
           <View style={{ flex: 1 }}>
             <Text style={[text.caption, { color: paused ? c.accent.default : c.text.secondary }]}>
               {paused ? '일시정지됨' : '운동 기록 중'}
+              {calories ? ` · ${formatKcal(calories.total)}` : ''}
             </Text>
             <Text
               accessibilityLabel={`운동 시간 ${formatRest(Math.floor(elapsedWorkoutMs(workout, now) / 1000))}`}
@@ -342,7 +347,7 @@ export function WorkoutSession({
                   name={e.name}
                   exercise={findCatalogExercise(e.catalogId)}
                   onOpenDetail={setDetail}
-                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}회` : ''}`}
+                  meta={`${finishedCount}/${e.sets.length}세트${calories && finishedCount ? ` · ${formatKcal(calories.byExercise[e.id] ?? 0)}` : ''}${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}회` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
               )}
@@ -408,7 +413,11 @@ export function WorkoutSession({
         <View style={s.summary}>
           <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>
             지금까지 {completedSets}세트 · {formatNumber(Number(displayWeight(String(volume), unit)))}{unitLabel(unit)}
+            {calories ? ` · ${formatKcal(calories.total)}` : ''}
           </Text>
+          {body.estimated && (
+            <Text style={[text.label, { color: c.text.muted }]}>체중 70kg 기준 추정</Text>
+          )}
           <Text style={[text.label, { color: c.text.secondary }]}>전체 {totalSets}세트</Text>
         </View>
       )}
