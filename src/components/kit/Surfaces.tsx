@@ -1,5 +1,5 @@
 /** Figma 표시 부품(카드·목록 행·아바타·사진 자리·대화상자·시트·토스트·로고)입니다. */
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -310,10 +310,15 @@ export function BottomSheet({
 
 /** Figma Toast: 검정 둥근 알림입니다. 정해진 시간이 지나면 onHide로 스스로 사라집니다. */
 export function Toast({ message, onHide, duration = 2400 }: { message: string; onHide: () => void; duration?: number }) {
+  // 부모가 1초마다 다시 그려지면서 onHide가 새로 만들어져도 타이머를 다시 시작하지 않도록 최신 함수만 기억합니다.
+  const hide = useRef(onHide);
   useEffect(() => {
-    const timer = setTimeout(onHide, duration);
+    hide.current = onHide;
+  });
+  useEffect(() => {
+    const timer = setTimeout(() => hide.current(), duration);
     return () => clearTimeout(timer);
-  }, [message, onHide, duration]);
+  }, [message, duration]);
   return (
     <View pointerEvents="none" style={s.toastWrap}>
       <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.toast}>

@@ -28,6 +28,8 @@ import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
 import { RestTimerDock } from './RestTimerDock';
 import { SetCountControl, SetHeader, SetRow } from './SetRow';
+import { SetEditorSheet } from './SetEditorSheet';
+import { recommendSet, weightless } from './setEditorModel';
 import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
@@ -97,6 +99,8 @@ export type SessionActions = {
   onCompleteAll(exerciseId: string, completed: boolean): void;
   onAddSet(exerciseId: string, afterSetId?: string): void;
   onRemoveSet(exerciseId: string, setId: string): void;
+  /** 고른 세트의 무게·횟수를 그 뒤의 완료하지 않은 세트에 넣고, 바뀐 세트 수를 돌려줍니다. */
+  onFillRemaining(exerciseId: string, setId: string): number;
   onMoveSet(exerciseId: string, setId: string, target: number): void;
   onRemoveExercise(exerciseId: string): void;
   onRestSettings(exerciseId: string): void;
@@ -146,6 +150,27 @@ export function WorkoutSession({
   const [toast, setToast] = useState('');
   const [restList, setRestList] = useState(false);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
+  const [editing, setEditing] = useState<{ exerciseId: string; setId: string } | null>(null);
+  const editExercise = workout.exercises.find((e) => e.id === editing?.exerciseId);
+  const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
+  const editSet = editIndex >= 0 ? editExercise?.sets[editIndex] : undefined;
+  const [editError, setEditError] = useState('');
+  const noWeightFor = (e: Exercise) => weightless(findCatalogExercise(e.catalogId)?.equipment);
+  function completeFromEditor() {
+    if (!editExercise || !editSet) return;
+    const noWeight = noWeightFor(editExercise);
+    if (!editSet.completed) {
+      const errors = setFieldErrors(noWeight ? { ...editSet, weight: '0' } : editSet);
+      if (errors.weight || errors.reps) {
+        setEditError(errors.weight || errors.reps);
+        return;
+      }
+      if (noWeight && editSet.weight !== '0') actions.onChangeSet(editExercise.id, editSet.id, { weight: '0' });
+    }
+    actions.onCompleteSet(editExercise.id, editSet.id, !editSet.completed);
+    setEditing(null);
+    setEditError('');
+  }
   // 펼친 종목이 지워졌거나 아직 고르지 않았으면 첫 미완료 종목을 펼칩니다.
   const focus = workout.exercises.find((e) => e.id === focusId) ?? firstOpen;
   const totalSets = workout.exercises.reduce((n, e) => n + e.sets.length, 0);
@@ -172,11 +197,13 @@ export function WorkoutSession({
       if (nextOpen) setFocusId(nextOpen.id);
       return;
     }
-    const errors = setFieldErrors(currentSet);
+    const noWeight = noWeightFor(focus);
+    const errors = setFieldErrors(noWeight ? { ...currentSet, weight: '0' } : currentSet);
     if (errors.weight || errors.reps) {
       setToast(errors.weight || errors.reps);
       return;
     }
+    if (noWeight && currentSet.weight !== '0') actions.onChangeSet(focus.id, currentSet.id, { weight: '0' });
     actions.onCompleteSet(focus.id, currentSet.id, true);
     if (focus.sets.filter((set) => !set.completed).length === 1) setToast(`${focus.name} ${focus.sets.length}세트를 모두 완료했어요`);
   }
@@ -305,7 +332,7 @@ export function WorkoutSession({
                   name={e.name}
                   exercise={findCatalogExercise(e.catalogId)}
                   onOpenDetail={setDetail}
-                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${lastSet.weight}kg × ${lastSet.reps}회` : ''}`}
+                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${lastSet.weight}kg × `}${lastSet.reps}회` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
               )}
@@ -325,7 +352,7 @@ export function WorkoutSession({
                 </Pressable>
               }
             />
-            <SetHeader name={e.name} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
+            <SetHeader name={e.name} noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
             <SortableSets sets={e.sets} name={e.name} disabled={false} onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}>
               {(set, i, handle) => (
                 <SetRow
@@ -334,7 +361,9 @@ export function WorkoutSession({
                   set={set}
                   index={i}
                   exerciseName={e.name}
-                  previous={prev?.sets[i] ? `${prev.sets[i].weight}×${prev.sets[i].reps}` : undefined}
+                  previous={prev?.sets[i] ? (noWeightFor(e) ? `${prev.sets[i].reps}회` : `${prev.sets[i].weight}×${prev.sets[i].reps}`) : undefined}
+                  noWeight={noWeightFor(e)}
+                  onEdit={() => { setEditError(''); setEditing({ exerciseId: e.id, setId: set.id }); }}
                   current={set.id === currentSet?.id}
                   finished={false}
                   onChange={(patch) => actions.onChangeSet(e.id, set.id, patch)}
@@ -366,6 +395,26 @@ export function WorkoutSession({
         </View>
       )}
       {!!toast && <Toast message={toast} onHide={() => setToast('')} />}
+      {editExercise && editSet && (
+        <SetEditorSheet
+          key={editSet.id}
+          exercise={editExercise}
+          set={editSet}
+          index={editIndex}
+          history={history}
+          noWeight={noWeightFor(editExercise)}
+          recommendation={recommendSet(history, editExercise, findCatalogExercise(editExercise.catalogId)?.equipment)}
+          error={editError}
+          onChange={(patch) => { setEditError(''); actions.onChangeSet(editExercise.id, editSet.id, patch); }}
+          onFillRemaining={() => {
+            const count = actions.onFillRemaining(editExercise.id, editSet.id);
+            setEditing(null);
+            setToast(count ? `${editIndex + 1}세트 값을 뒤 ${count}개 세트에 넣었어요` : '바꿀 남은 세트가 없어요');
+          }}
+          onComplete={completeFromEditor}
+          onClose={() => setEditing(null)}
+        />
+      )}
       <BottomSheet visible={!!menuExercise} title={menuExercise?.name ?? ''} onClose={() => setMenuId(null)}>
         {menuExercise && (
           <ListGroup>

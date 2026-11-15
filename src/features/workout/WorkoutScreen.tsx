@@ -31,6 +31,7 @@ import { BottomSheet, ConfirmDialog } from '../../components/kit/Surfaces';
 import { WorkoutHome } from './WorkoutHome';
 import { StartWorkoutSheet } from './StartWorkoutSheet';
 import { workoutFromTemplate } from './startSheetModel';
+import { fillRemainingSets, recommendSet } from './setEditorModel';
 import { WorkoutSession, type SessionActions } from './WorkoutSession';
 import { text, tokens } from '../../theme/tokens';
 import {
@@ -274,6 +275,17 @@ export function WorkoutScreen({
     },
     onAddSet: (exerciseId, afterSetId) => act((w) => addSet(w, exerciseId, nextId(), afterSetId)),
     onRemoveSet: (exerciseId, setId) => act((w) => removeSet(w, exerciseId, setId)),
+    onFillRemaining: (exerciseId, setId) => {
+      if (!workout) return 0;
+      try {
+        const result = fillRemainingSets(workout, exerciseId, setId);
+        change(() => result.workout);
+        return result.count;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
+        return 0;
+      }
+    },
     onMoveSet: (exerciseId, setId, target) => act((w) => moveSet(w, exerciseId, setId, target)),
     onRemoveExercise: (exerciseId) => act((w) => removeExercise(w, exerciseId)),
     onRestSettings: setRestSettingsId,
@@ -535,10 +547,14 @@ export function WorkoutScreen({
           onClose={() => setShowPicker(false)}
           onSelect={(exercises) =>
             change((w) =>
-              exercises.reduce(
-                (current, exercise) => addExercise(current, nextId(), exercise.name, exercise.id),
-                w,
-              ),
+              exercises.reduce((current, exercise) => {
+                // 새 종목의 첫 세트에는 추천 무게·횟수를 미리 넣어 바로 기록할 수 있게 합니다.
+                const id = nextId();
+                const added = addExercise(current, id, exercise.name, exercise.id);
+                const created = added.exercises.at(-1)!;
+                const pick = recommendSet(history, created, findCatalogExercise(exercise.id)?.equipment);
+                return updateSet(added, id, created.sets[0]!.id, { weight: pick.weight, reps: pick.reps });
+              }, w),
             )
           }
         />
