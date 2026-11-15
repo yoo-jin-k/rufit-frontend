@@ -17,6 +17,8 @@ import { hasExerciseImage } from './images';
 import { recommendedRest } from './recommendedRest';
 import { AppIcon } from '../../components/AppIcon';
 import { useFavorites } from '../favorites/FavoritesProvider';
+import { formatWeight } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -41,6 +43,7 @@ export function ExerciseDetail({
   onClose(): void;
   onAdd?(): void;
 }) {
+  const { unit } = useWeightUnit();
   const records = previousExercises(history, { id: exercise.id, name: exercise.name, catalogId: exercise.id, sets: [] });
   const best = records
     .flatMap((r) => r.exercise.sets)
@@ -130,7 +133,7 @@ export function ExerciseDetail({
             <View style={s.record}>
               <Text style={[text.label, { color: c.text.secondary }]}>최고 무게</Text>
               <Text style={[text.headline, { color: c.text.primary }]}>
-                {best.weight}kg × {best.reps}회
+                {formatWeight(String(best.weight), unit)} × {best.reps}회
               </Text>
             </View>
             <View style={s.record}>

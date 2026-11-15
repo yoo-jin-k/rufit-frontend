@@ -22,12 +22,12 @@ import { WorkoutRecordCard } from './WorkoutRecordCard';
 import {
   completedSets,
   formatDay,
-  formatNumber,
   workoutDay,
   workoutMinutes,
   workoutParts,
-  workoutVolume,
-} from './recordFormat';
+  workoutVolume } from './recordFormat';
+import { unitLabel, volumeNumber } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -46,6 +46,7 @@ export function dayTotals(records: Workout[], bodyKg = DEFAULT_BODY_KG) {
 }
 
 function Values({ minutes, volume, inverse }: { minutes: number | null; volume: number; inverse?: boolean }) {
+  const { unit: weightUnit } = useWeightUnit();
   const main = inverse ? c.text.inverse : c.text.primary;
   const unit = inverse ? c.text.inverse : c.text.secondary;
   return (
@@ -57,8 +58,8 @@ function Values({ minutes, volume, inverse }: { minutes: number | null; volume: 
         </Text>
       )}
       <Text style={[text.titleL, { color: main }]}>
-        {formatNumber(volume)}
-        <Text style={[text.bodyMedium, { color: unit }]}> kg</Text>
+        {volumeNumber(volume, weightUnit)}
+        <Text style={[text.bodyMedium, { color: unit }]}> {unitLabel(weightUnit)}</Text>
       </Text>
     </View>
   );
@@ -68,6 +69,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
   onDelete?: (id: string) => void;
   history: Workout[]; now: number; journals: Journal[]; onJournal: (workout: Workout) => void;
 }) {
+  const { unit } = useWeightUnit();
   const pending = useRef<Workout | null>(null);
   function afterClose() { const target = pending.current; pending.current = null; if (target) onJournal(target); }
   const [open, setOpen] = useState(false);
@@ -144,7 +146,7 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
           size="titleL"
           items={[
             { value: totals.minutes === null ? '-' : String(totals.minutes), label: '분 운동' },
-            { value: formatNumber(totals.volume), label: 'kg 볼륨' },
+            { value: volumeNumber(totals.volume, unit), label: `${unitLabel(unit)} 볼륨` },
             { value: String(totals.sets), label: '세트' },
             ...(totals.kcal > 0 ? [{ value: String(Math.round(totals.kcal)), label: 'kcal(추정)' }] : []),
           ]}

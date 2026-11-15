@@ -47,5 +47,11 @@ export function stepWeightIn(kg: string, delta: number, unit: WeightUnit): strin
   return String(round(Math.min(1500, asKg), 2));
 }
 
+/** 총 볼륨(무게×횟수 합, kg)을 고른 단위의 숫자 문자열로 씁니다(예: 2,264). 단위 글자는 붙이지 않습니다. */
+export function volumeNumber(kg: number, unit: WeightUnit): string {
+  const value = unit === 'LB' ? kg / KG_PER_LB : kg;
+  return Math.round(value).toLocaleString('ko-KR');
+}
+
 /** 증감 버튼 크기입니다. kg는 0.5·5, lb는 1·5입니다. */
 export const weightSteps = (unit: WeightUnit): [number, number] => (unit === 'LB' ? [1, 5] : [0.5, 5]);

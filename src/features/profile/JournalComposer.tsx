@@ -16,6 +16,7 @@ import { workoutDate, workoutSummary } from '../workout/WorkoutHistory';
 import { recordMeta, recordTitle } from '../workout/recordFormat';
 import { CameraPermissionError, pickJournalPhotos } from './pickJournalPhotos';
 import { journalPhotos, journalDraftChanged, type Journal } from './journalModel';
+import { useWeightUnit } from '../units/UnitProvider';
 export function JournalComposer({
   workout,
   initial,
@@ -33,6 +34,7 @@ export function JournalComposer({
   onSave: (j: Journal, accountSaved?: boolean) => Promise<void>;
   onClose: () => void;
 }) {
+  const { unit } = useWeightUnit();
   const [memo, setMemo] = useState(restoredDraft?.memo ?? initial?.memo ?? ''),
     [photos, setPhotos] = useState(() => restoredDraft?.photos ?? journalPhotos(initial)),
     [error, setError] = useState(''),
@@ -265,7 +267,7 @@ export function JournalComposer({
         <View style={js.notice}>
           <Text style={[text.label, { color: tokens.color.text.secondary }]}>함께 저장돼요</Text>
           <Text style={[text.captionBold, { color: tokens.color.text.primary }]}>
-            {recordTitle(workout)} · {recordMeta(workout)}
+            {recordTitle(workout)} · {recordMeta(workout, unit)}
           </Text>
         </View>
         {destination === 'account' && (

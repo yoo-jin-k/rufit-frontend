@@ -8,6 +8,8 @@ import { text, tokens } from '../../theme/tokens';
 import type { Journal } from '../profile/journalModel';
 import { recordMeta, recordTitle } from './recordFormat';
 import type { Workout } from './model';
+import { formatWeight } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -19,6 +21,7 @@ export function WorkoutRecordCard({ workout, journal, onJournal, onDelete, onPre
   /** 카드를 누르면 상세 화면을 엽니다. 없으면 카드는 눌리지 않습니다. */
   onPress?: () => void;
 }) {
+  const { unit } = useWeightUnit();
   const [confirm, setConfirm] = useState(false);
   const title = recordTitle(workout);
   const exercises = workout.exercises.filter((exercise) => exercise.sets.some((set) => set.completed));
@@ -27,7 +30,7 @@ export function WorkoutRecordCard({ workout, journal, onJournal, onDelete, onPre
       <View style={s.head}>
         <View style={s.titles}>
           <Text style={[text.bodyBold, { color: c.text.primary }]}>{title}</Text>
-          <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(workout)}</Text>
+          <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(workout, unit)}</Text>
         </View>
         {onJournal && (
           <Pressable accessibilityRole="button" accessibilityLabel={`${title} 오운완 작성·수정`}
@@ -54,7 +57,7 @@ export function WorkoutRecordCard({ workout, journal, onJournal, onDelete, onPre
               <View key={set.id} style={s.setLine}>
                 <Text style={[text.caption, s.setIndex]}>{index + 1}</Text>
                 <Text style={[text.caption, { color: c.text.primary }]}>
-                  {set.weight}kg × {set.reps}회
+                  {formatWeight(set.weight, unit)} × {set.reps}회
                 </Text>
               </View>
             ))}

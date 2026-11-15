@@ -11,9 +11,11 @@ import { NavBar, Screen } from '../../components/kit/Screen';
 import { ProgressBar } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
-import { completedSets, formatDay, formatNumber, workoutMinutes, workoutVolume } from '../workout/recordFormat';
+import { completedSets, formatDay, workoutMinutes, workoutVolume } from '../workout/recordFormat';
 import { localDay } from './model';
 import type { monthlyProgress } from './monthlyProgress';
+import { unitLabel, volumeNumber } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -28,6 +30,7 @@ export function MonthlyCompletion({
   onClose: () => void;
   onJournal?: () => void;
 }) {
+  const { unit } = useWeightUnit();
   const [openingJournal, setOpeningJournal] = useState(false);
   if (!progress) return null;
   const minutes = workout ? workoutMinutes(workout) ?? 0 : 0;
@@ -36,7 +39,7 @@ export function MonthlyCompletion({
     : '';
   const tiles = [
     { label: '운동 시간', value: `${minutes}분` },
-    { label: '총 볼륨', value: `${workout ? formatNumber(workoutVolume(workout)) : 0}kg` },
+    { label: '총 볼륨', value: `${workout ? volumeNumber(workoutVolume(workout), unit) : 0}${unitLabel(unit)}` },
     { label: '완료 세트', value: `${workout ? completedSets(workout) : 0}세트` },
   ];
   return (
