@@ -29,10 +29,13 @@ import { StrengthScreen } from '../strength/StrengthScreen';
 import { useEffect, useState } from 'react';
 import { BottomSheet, ConfirmDialog } from '../../components/kit/Surfaces';
 import { WorkoutHome } from './WorkoutHome';
+import { StartWorkoutSheet } from './StartWorkoutSheet';
+import { workoutFromTemplate } from './startSheetModel';
 import { WorkoutSession, type SessionActions } from './WorkoutSession';
 import { text, tokens } from '../../theme/tokens';
 import {
   AppState,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -53,7 +56,7 @@ import {
   IncompleteSetsError,
   type Workout,
 } from './model';
-import { useWorkoutArchive } from './useWorkoutArchive';
+import { markWorkoutActive, useWorkoutArchive } from './useWorkoutArchive';
 import { RestTimerSheet } from './RestTimerSheet';
 import { recommendedRest } from '../exercises/recommendedRest';
 import { restTimerView } from './timerView';
@@ -107,9 +110,15 @@ export function WorkoutScreen({
   const accountKey = session ? `${session.scope.server}:${session.scope.accountId}` : null;
   // 로그인이 완료되어 계정이 바뀌면 설정 등 다른 메뉴에 있었더라도 메인 홈으로 이동합니다.
   const [seenAccount, setSeenAccount] = useState(accountKey);
+  // 앱을 켠 직후와 로그인 직후에는 진행 중인 운동이 없으면 '운동 시작' 시트를 먼저 엽니다.
+  const [startPending, setStartPending] = useState(true);
+  const [showStart, setShowStart] = useState(false);
   if (seenAccount !== accountKey) {
     setSeenAccount(accountKey);
-    if (accountKey) setTab('workout');
+    if (accountKey) {
+      setTab('workout');
+      setStartPending(true);
+    }
   }
   const profile = useProfile();
   const [journalRevision, setJournalRevision] = useState(0);
@@ -137,6 +146,24 @@ export function WorkoutScreen({
     return () => { active = false; };
   }, [draftScope]);
   const [now, setNow] = useState(Date.now);
+  if (startPending && ready) {
+    setStartPending(false);
+    if (!workout || workout.finishedAt !== undefined) {
+      setTab('workout');
+      setShowStart(true);
+    }
+  }
+  function beginWorkout(source?: Workout) {
+    setShowStart(false);
+    if (workout && workout.finishedAt === undefined) return;
+    const now = Date.now();
+    setWorkout(source ? workoutFromTemplate(source, nextId(), now, nextId) : startWorkout(nextId(), now));
+    setNow(now);
+    setError('');
+    // 빈 운동은 바로 종목을 고르고, 불러온 운동은 종목이 채워져 있으므로 기록 화면을 보여 줍니다.
+    // iOS는 닫히는 시트와 새 모달을 동시에 띄우면 새 모달이 무시되므로 시트가 내려간 뒤 엽니다.
+    if (!source) setTimeout(() => setShowPicker(true), Platform.OS === 'ios' ? 450 : 0);
+  }
   const restView = rest ? restTimerView(rest.endsAt, rest.pausedAt ?? now) : null;
   // 표시만 주기적으로 갱신합니다. 접기·회전·백그라운드 전환은 운동을 자동 정지하지 않습니다.
   useEffect(() => {
@@ -150,6 +177,21 @@ export function WorkoutScreen({
       foreground.remove();
     };
   }, []);
+  // 운동이 흐르는 동안 30초마다, 그리고 화면을 벗어날 때 켜져 있던 시각을 남깁니다.
+  // 앱을 완전히 껐다 켜면 이 시각에 멈춘 상태로 복구됩니다. 다른 앱으로 잠깐 전환해도 운동은 계속 흐릅니다.
+  const running = ready && !!workout && workout.finishedAt === undefined && workout.pausedAt === undefined;
+  useEffect(() => {
+    if (!running) return;
+    void markWorkoutActive(Date.now());
+    const beat = setInterval(() => void markWorkoutActive(Date.now()), 30_000);
+    const leave = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') void markWorkoutActive(Date.now());
+    });
+    return () => {
+      clearInterval(beat);
+      leave.remove();
+    };
+  }, [running]);
   // 저장 성공 상태에서만 팝업을 표시하며 실패 시 기존 재시도 안내를 유지합니다.
   function completeWorkout(discardIncomplete = false, timeOnly = false) {
     if (!workout || workout.finishedAt !== undefined) return;
@@ -289,10 +331,7 @@ export function WorkoutScreen({
                   )}
                 </>
               }
-              onStart={() => {
-                setWorkout(startWorkout(nextId(), Date.now()));
-                setShowPicker(true);
-              }}
+              onStart={() => setShowStart(true)}
               onManual={setManualDate}
               onJournal={setJournalWorkout}
               onDelete={deleteWorkout}
@@ -482,6 +521,13 @@ export function WorkoutScreen({
             }}
           />
         )}
+        <StartWorkoutSheet
+          visible={showStart && tab === 'workout' && (!workout || finished)}
+          history={history}
+          onClose={() => setShowStart(false)}
+          onEmpty={() => beginWorkout()}
+          onLoad={(source) => beginWorkout(source)}
+        />
         <ExercisePicker
           visible={showPicker}
           history={history}
