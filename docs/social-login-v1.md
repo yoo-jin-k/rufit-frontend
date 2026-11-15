@@ -26,7 +26,7 @@ EXPO_PUBLIC_RUFIT_GOOGLE_ENABLED=true
 
 - 공급자 등록 전에는 각 활성화 값을 설정하지 않는다.
 - 개발용 가짜 공급자는 `EXPO_PUBLIC_RUFIT_AUTH_DEMO=true`와 loopback API 주소를 함께 사용한 개발 빌드에서만 보인다.
-- 반환 주소는 `rufit://auth/callback`이다. 앱 등록 시 iOS bundle ID와 Android package `com.rufit.app`도 함께 확인한다.
+- 반환 주소는 `rufit://auth/callback`이다. 앱 등록 시 iOS bundle ID `com.yjinee.rufit`과 Android package `com.rufit.app`도 함께 확인한다.
 
 ## 개발용 HTTP 흐름
 

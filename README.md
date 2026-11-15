@@ -7,9 +7,11 @@ React Native + Expo + TypeScript 기반 iOS/Android 앱입니다. 웹은 개발 
 
 - 웹: [app.rufit.yjinee.com](https://app.rufit.yjinee.com) — main에 병합되면 GitHub Pages로 자동 배포됩니다(`.github/workflows/deploy-web.yml`).
 - 안드로이드: [rufit.apk 다운로드](https://github.com/yoo-jin-k/rufit-frontend/releases/latest/download/rufit.apk) — 항상 최신 릴리스의 APK를 가리킵니다. 설치 방법은 [릴리스 페이지](https://github.com/yoo-jin-k/rufit-frontend/releases/latest)에 있습니다.
-- 아이폰: TestFlight 준비 중입니다.
+- 아이폰: [TestFlight 참여 링크](https://testflight.apple.com/join/pYtQMuAQ) — App Store에서 TestFlight 앱을 설치한 뒤 링크를 열어 설치합니다.
 
 새 안드로이드 테스트 앱은 `npx eas-cli build -p android --profile preview`로 빌드하고, 결과 APK를 `rufit.apk` 이름으로 새 릴리스에 올립니다.
+
+새 아이폰 테스트 앱은 `app.json`의 `ios.buildNumber`를 올린 뒤 `npx eas-cli build -p ios --profile testflight --auto-submit`으로 빌드·제출합니다. Apple 로그인과 인증서 생성이 대화형이라 터미널에서 직접 실행하고, 업로드된 빌드를 App Store Connect의 외부 테스트 그룹에 추가하면 같은 링크로 업데이트됩니다. iOS 번들 ID는 `com.yjinee.rufit`입니다(Android package는 `com.rufit.app`).
 
 ## 시작
 

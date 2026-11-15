@@ -23,11 +23,18 @@ import { AppModal } from '../../components/AppModal';
 import { bodyParts, equipmentLabels, findCatalogExercise, type CatalogExercise } from '../exercises/catalog';
 import { ExerciseDetail } from '../exercises/ExerciseDetail';
 import { ExerciseMedia } from '../exercises/ExerciseMedia';
-import { elapsedWorkoutMs, type Exercise, type Workout, type WorkoutSet } from './model';
+import { elapsedWorkoutMs, setLabels, type Exercise, type SetType, type Workout, type WorkoutSet } from './model';
 import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
 import { RestTimerDock } from './RestTimerDock';
 import { SetCountControl, SetHeader, SetRow } from './SetRow';
+import { SetEditorSheet } from './SetEditorSheet';
+import { SetDetailSheet, setTypeInfo } from './SetDetailSheet';
+import { recommendSet, weightless } from './setEditorModel';
+import { displayWeight, formatWeight, unitLabel } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
+import { formatKcal, workoutCalories } from '../calories/model';
+import { useBodyWeight } from '../calories/useBodyWeight';
 import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
@@ -97,6 +104,10 @@ export type SessionActions = {
   onCompleteAll(exerciseId: string, completed: boolean): void;
   onAddSet(exerciseId: string, afterSetId?: string): void;
   onRemoveSet(exerciseId: string, setId: string): void;
+  /** 고른 세트의 무게·횟수를 그 뒤의 완료하지 않은 세트에 넣고, 바뀐 세트 수를 돌려줍니다. */
+  onFillRemaining(exerciseId: string, setId: string): number;
+  /** 세트 종류·운동 자각도를 바꿉니다. rpe가 null이면 지웁니다. */
+  onSetDetail(exerciseId: string, setId: string, detail: { setType?: SetType; rpe?: number | null }): void;
   onMoveSet(exerciseId: string, setId: string, target: number): void;
   onRemoveExercise(exerciseId: string): void;
   onRestSettings(exerciseId: string): void;
@@ -146,6 +157,34 @@ export function WorkoutSession({
   const [toast, setToast] = useState('');
   const [restList, setRestList] = useState(false);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
+  const { unit } = useWeightUnit();
+  const body = useBodyWeight();
+  const calories = workoutCalories(workout, body.kg, now, (id) => findCatalogExercise(id)?.equipment);
+  const [editing, setEditing] = useState<{ exerciseId: string; setId: string } | null>(null);
+  const editExercise = workout.exercises.find((e) => e.id === editing?.exerciseId);
+  const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
+  const editSet = editIndex >= 0 ? editExercise?.sets[editIndex] : undefined;
+  const [editError, setEditError] = useState('');
+  const [detailFor, setDetailFor] = useState<{ exerciseId: string; setId: string } | null>(null);
+  const detailExercise = workout.exercises.find((e) => e.id === detailFor?.exerciseId);
+  const detailIndex = detailExercise?.sets.findIndex((set) => set.id === detailFor?.setId) ?? -1;
+  const detailSet = detailIndex >= 0 ? detailExercise?.sets[detailIndex] : undefined;
+  const noWeightFor = (e: Exercise) => weightless(findCatalogExercise(e.catalogId)?.equipment);
+  function completeFromEditor() {
+    if (!editExercise || !editSet) return;
+    const noWeight = noWeightFor(editExercise);
+    if (!editSet.completed) {
+      const errors = setFieldErrors(noWeight ? { ...editSet, weight: '0' } : editSet);
+      if (errors.weight || errors.reps) {
+        setEditError(errors.weight || errors.reps);
+        return;
+      }
+      if (noWeight && editSet.weight !== '0') actions.onChangeSet(editExercise.id, editSet.id, { weight: '0' });
+    }
+    actions.onCompleteSet(editExercise.id, editSet.id, !editSet.completed);
+    setEditing(null);
+    setEditError('');
+  }
   // 펼친 종목이 지워졌거나 아직 고르지 않았으면 첫 미완료 종목을 펼칩니다.
   const focus = workout.exercises.find((e) => e.id === focusId) ?? firstOpen;
   const totalSets = workout.exercises.reduce((n, e) => n + e.sets.length, 0);
@@ -172,11 +211,13 @@ export function WorkoutSession({
       if (nextOpen) setFocusId(nextOpen.id);
       return;
     }
-    const errors = setFieldErrors(currentSet);
+    const noWeight = noWeightFor(focus);
+    const errors = setFieldErrors(noWeight ? { ...currentSet, weight: '0' } : currentSet);
     if (errors.weight || errors.reps) {
       setToast(errors.weight || errors.reps);
       return;
     }
+    if (noWeight && currentSet.weight !== '0') actions.onChangeSet(focus.id, currentSet.id, { weight: '0' });
     actions.onCompleteSet(focus.id, currentSet.id, true);
     if (focus.sets.filter((set) => !set.completed).length === 1) setToast(`${focus.name} ${focus.sets.length}세트를 모두 완료했어요`);
   }
@@ -193,6 +234,7 @@ export function WorkoutSession({
           <View style={{ flex: 1 }}>
             <Text style={[text.caption, { color: paused ? c.accent.default : c.text.secondary }]}>
               {paused ? '일시정지됨' : '운동 기록 중'}
+              {calories ? ` · ${formatKcal(calories.total)}` : ''}
             </Text>
             <Text
               accessibilityLabel={`운동 시간 ${formatRest(Math.floor(elapsedWorkoutMs(workout, now) / 1000))}`}
@@ -305,7 +347,7 @@ export function WorkoutSession({
                   name={e.name}
                   exercise={findCatalogExercise(e.catalogId)}
                   onOpenDetail={setDetail}
-                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${lastSet.weight}kg × ${lastSet.reps}회` : ''}`}
+                  meta={`${finishedCount}/${e.sets.length}세트${calories && finishedCount ? ` · ${formatKcal(calories.byExercise[e.id] ?? 0)}` : ''}${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}회` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
               )}
@@ -325,8 +367,16 @@ export function WorkoutSession({
                 </Pressable>
               }
             />
-            <SetHeader name={e.name} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
-            <SortableSets sets={e.sets} name={e.name} disabled={false} onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}>
+            <SetHeader name={e.name} unitAware noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
+            <SortableSets
+              sets={e.sets}
+              name={e.name}
+              disabled={false}
+              labels={setLabels(e.sets)}
+              labelColor={(set) => (set.setType && set.setType !== 'NORMAL' ? setTypeInfo[set.setType].color : undefined)}
+              onTapNumber={(set) => setDetailFor({ exerciseId: e.id, setId: set.id })}
+              onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}
+            >
               {(set, i, handle) => (
                 <SetRow
                   key={set.id}
@@ -334,7 +384,9 @@ export function WorkoutSession({
                   set={set}
                   index={i}
                   exerciseName={e.name}
-                  previous={prev?.sets[i] ? `${prev.sets[i].weight}×${prev.sets[i].reps}` : undefined}
+                  previous={prev?.sets[i] ? (noWeightFor(e) ? `${prev.sets[i].reps}회` : `${displayWeight(prev.sets[i].weight, unit)}×${prev.sets[i].reps}`) : undefined}
+                  noWeight={noWeightFor(e)}
+                  onEdit={() => { setEditError(''); setEditing({ exerciseId: e.id, setId: set.id }); }}
                   current={set.id === currentSet?.id}
                   finished={false}
                   onChange={(patch) => actions.onChangeSet(e.id, set.id, patch)}
@@ -360,12 +412,46 @@ export function WorkoutSession({
       {!paused && completedSets > 0 && workout.exercises.some(done) && (
         <View style={s.summary}>
           <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>
-            지금까지 {completedSets}세트 · {formatNumber(volume)}kg
+            지금까지 {completedSets}세트 · {formatNumber(Number(displayWeight(String(volume), unit)))}{unitLabel(unit)}
+            {calories ? ` · ${formatKcal(calories.total)}` : ''}
           </Text>
+          {body.estimated && (
+            <Text style={[text.label, { color: c.text.muted }]}>체중 70kg 기준 추정</Text>
+          )}
           <Text style={[text.label, { color: c.text.secondary }]}>전체 {totalSets}세트</Text>
         </View>
       )}
       {!!toast && <Toast message={toast} onHide={() => setToast('')} />}
+      {detailExercise && detailSet && (
+        <SetDetailSheet
+          key={detailSet.id}
+          exerciseName={detailExercise.name}
+          label={setLabels(detailExercise.sets)[detailIndex]!}
+          set={detailSet}
+          onChange={(detail) => actions.onSetDetail(detailExercise.id, detailSet.id, detail)}
+          onClose={() => setDetailFor(null)}
+        />
+      )}
+      {editExercise && editSet && (
+        <SetEditorSheet
+          key={editSet.id}
+          exercise={editExercise}
+          set={editSet}
+          index={editIndex}
+          history={history}
+          noWeight={noWeightFor(editExercise)}
+          recommendation={recommendSet(history, editExercise, findCatalogExercise(editExercise.catalogId)?.equipment)}
+          error={editError}
+          onChange={(patch) => { setEditError(''); actions.onChangeSet(editExercise.id, editSet.id, patch); }}
+          onFillRemaining={() => {
+            const count = actions.onFillRemaining(editExercise.id, editSet.id);
+            setEditing(null);
+            setToast(count ? `${editIndex + 1}세트 값을 뒤 ${count}개 세트에 넣었어요` : '바꿀 남은 세트가 없어요');
+          }}
+          onComplete={completeFromEditor}
+          onClose={() => setEditing(null)}
+        />
+      )}
       <BottomSheet visible={!!menuExercise} title={menuExercise?.name ?? ''} onClose={() => setMenuId(null)}>
         {menuExercise && (
           <ListGroup>

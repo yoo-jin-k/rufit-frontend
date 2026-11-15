@@ -26,7 +26,11 @@ export function serverWorkout(snapshot: WorkoutSnapshot): Workout {
         ...(set.exerciseId ? { catalogId: set.exerciseId } : {}), sets: [] };
       workout.exercises.push(exercise);
     }
-    exercise.sets.push({ id: `${snapshot.id}:set:${index}`, weight: String(set.weight), reps: String(set.reps), completed: true });
+    exercise.sets.push({
+      id: `${snapshot.id}:set:${index}`, weight: String(set.weight), reps: String(set.reps), completed: true,
+      ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
+      ...(typeof set.rpe === 'number' ? { rpe: set.rpe } : {}),
+    });
   });
   if (snapshot.recordDate != null || snapshot.entryMode != null) {
     if (snapshot.entryMode !== 'manual' || !snapshot.recordDate || !validDate(snapshot.recordDate)

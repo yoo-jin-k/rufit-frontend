@@ -3,7 +3,7 @@
  * 읽기에 실패한 기록을 빈 기록으로 대체하지 않으며, 기존 저장 자료를 보존합니다.
  */
 import { validDate } from '../strength/model.ts';
-import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, type Workout } from './model.ts';
+import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, RPE_VALUES, SET_TYPES, type Workout } from './model.ts';
 export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number; pausedAt?: number };
 export type WorkoutArchive = {
   schemaVersion: 3;
@@ -24,6 +24,8 @@ type Storage = {
   setItem(key: string, value: string): Promise<void>;
 };
 const key = 'rufit.local-workouts.v1';
+/** 운동 중 앱이 마지막으로 켜져 있던 시각입니다. 기록을 바꾸지 않고 켜 둔 시간도 재실행 시 운동 시간에 넣기 위해 따로 둡니다. */
+const activeKey = 'rufit.local-workouts.active-at.v1';
 const object = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 const finite = (value: unknown): value is number =>
@@ -77,7 +79,9 @@ export function isWorkout(value: unknown): value is Workout {
           typeof s.id === 'string' &&
           typeof s.weight === 'string' &&
           typeof s.reps === 'string' &&
-          typeof s.completed === 'boolean',
+          typeof s.completed === 'boolean' &&
+          (s.setType === undefined || SET_TYPES.includes(s.setType as never)) &&
+          (s.rpe === undefined || (RPE_VALUES as readonly unknown[]).includes(s.rpe)),
       ),
   );
 }
@@ -155,7 +159,14 @@ export function createWorkoutStorage(storage: Storage, pauseOnLoad = false) {
       const archive = decodeArchive(raw);
       if (!pauseOnLoad || !raw) return archive;
       const savedAt: unknown = JSON.parse(raw).savedAt;
-      return pauseRestoredWorkout(archive, typeof savedAt === 'number' ? savedAt : Date.now());
+      const activeAt = Number(await storage.getItem(activeKey).catch(() => null));
+      return pauseRestoredWorkout(archive, restoredPauseTime(
+        typeof savedAt === 'number' ? savedAt : Date.now(), activeAt, Date.now(),
+      ));
+    },
+    /** 진행 중인 운동이 화면에 켜져 있음을 기록합니다. 실패해도 마지막 저장 시각으로 멈추므로 기록은 잃지 않습니다. */
+    touch(now: number) {
+      return storage.setItem(activeKey, String(now)).catch(() => {});
     },
     save(value: WorkoutArchive) {
       const snapshot = JSON.stringify({ ...value, savedAt: Date.now() });
@@ -182,7 +193,16 @@ export function removeArchivedWorkout(archive: WorkoutArchive, id: string): Work
     current: archive.current?.id === id && archive.current.finishedAt !== undefined ? null : archive.current };
 }
 
-/** 재로그인·앱 재실행으로 복구한 운동은 마지막 저장 시점에 멈추고 명시적으로 재개합니다. */
+/**
+ * 앱을 완전히 껐다 켰을 때 운동을 멈출 시각입니다. 마지막 저장과 마지막으로 켜져 있던 시각 중 늦은 쪽을 쓰고,
+ * 기기 시계가 되돌아가 미래 시각이 남은 경우에는 지금 시각을 넘지 않게 합니다.
+ */
+export function restoredPauseTime(savedAt: number, activeAt: number, now: number) {
+  const latest = Number.isSafeInteger(activeAt) && activeAt > savedAt ? activeAt : savedAt;
+  return Math.min(latest, Math.max(savedAt, now));
+}
+
+/** 재로그인·앱 재실행으로 복구한 운동은 앱을 끈 시점에 멈추고 명시적으로 재개합니다. */
 export function pauseRestoredWorkout(archive: WorkoutArchive, savedAt: number): WorkoutArchive {
   const workout = archive.current;
   if (!workout || workout.finishedAt !== undefined || workout.pausedAt !== undefined) return archive;

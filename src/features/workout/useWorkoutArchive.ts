@@ -7,3 +7,7 @@ const storage = createWorkoutStorage(AsyncStorage, true);
 export function useWorkoutArchive() {
   return useLocalWorkoutArchive(storage);
 }
+/** 진행 중인 운동 화면이 켜져 있음을 남겨, 앱을 껐다 켜면 이 시각에 운동을 멈춥니다. */
+export function markWorkoutActive(now: number) {
+  return storage.touch(now);
+}

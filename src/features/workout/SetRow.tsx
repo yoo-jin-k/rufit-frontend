@@ -11,6 +11,8 @@ import { BottomSheet, ListGroup, ListRow } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import type { WorkoutSet } from './model';
 import { setFieldErrors } from './setRowView';
+import { displayWeight, unitLabel } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -20,17 +22,24 @@ export function SetHeader({
   allCompleted,
   onCompleteAll,
   manual = false,
+  noWeight = false,
+  unitAware = false,
 }: {
   name: string;
   allCompleted?: boolean;
   onCompleteAll?: () => void;
   manual?: boolean;
+  /** 맨몸 운동은 kg 칸을 두지 않습니다. */
+  noWeight?: boolean;
+  /** 운동 기록 화면처럼 고른 무게 단위(kg·lbs)로 보여 줄지입니다. 직접 입력 화면은 kg로 받습니다. */
+  unitAware?: boolean;
 }) {
+  const { unit } = useWeightUnit();
   return (
     <View style={s.header}>
       <Text style={[text.label, s.muted, s.center, { width: 28 }]}>세트</Text>
       <Text style={[text.label, s.muted, s.prevCol]}>지난 기록</Text>
-      <Text style={[text.label, s.muted, s.center, s.kgCol]}>kg</Text>
+      {!noWeight && <Text style={[text.label, s.muted, s.center, s.kgCol]}>{unitAware ? unitLabel(unit) : 'kg'}</Text>}
       <Text style={[text.label, s.muted, s.center, s.repsCol]}>회</Text>
       <View style={s.checkCol}>
         {!manual && onCompleteAll && (
@@ -116,6 +125,8 @@ export function SetRow({
   current = false,
   finished,
   manual = false,
+  noWeight = false,
+  onEdit,
   onChange,
   onComplete,
   onDelete,
@@ -130,6 +141,10 @@ export function SetRow({
   current?: boolean;
   finished: boolean;
   manual?: boolean;
+  /** 맨몸 운동은 무게 칸 없이 횟수만 받습니다. */
+  noWeight?: boolean;
+  /** 있으면 무게·횟수 칸을 눌러 입력 시트를 엽니다(운동 기록 중). 없으면 칸에 바로 입력합니다(직접 입력). */
+  onEdit?(kind: 'weight' | 'reps'): void;
   /** 예전 호출부 호환용입니다. 글자 확대는 줄 높이가 자동으로 늘어나 처리됩니다. */
   fontScale?: number;
   onChange(patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>): void;
@@ -140,26 +155,42 @@ export function SetRow({
   dragHandle?: ReactNode;
 }) {
   const [options, setOptions] = useState(false);
+  const { unit } = useWeightUnit();
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
   const weightRef = useRef<TextInput>(null),
     repsRef = useRef<TextInput>(null);
-  const errors = attempted ? setFieldErrors(set) : { weight: '', reps: '' };
+  // 맨몸 운동은 무게를 받지 않으므로 0kg으로 보고 검사합니다.
+  const checked = noWeight ? { ...set, weight: '0' } : set;
+  const errors = attempted ? setFieldErrors(checked) : { weight: '', reps: '' };
   const prefix = `${exerciseName} ${index + 1}세트`;
   function complete() {
     if (!set.completed) {
       setAttempted(true);
-      const next = setFieldErrors(set);
+      const next = setFieldErrors(checked);
       if (next.weight || next.reps) {
-        (next.weight ? weightRef : repsRef).current?.focus();
+        if (onEdit) onEdit(next.weight ? 'weight' : 'reps');
+        else (next.weight ? weightRef : repsRef).current?.focus();
         return;
       }
+      if (noWeight && set.weight !== '0') onChange({ weight: '0' });
     }
     setAttempted(false);
     onComplete();
   }
   const cellBg = current ? c.bg.default : c.bg.surface;
-  const field = (kind: 'weight' | 'reps') => (
+  const field = (kind: 'weight' | 'reps') => onEdit ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${prefix} ${kind === 'weight' ? `무게 ${displayWeight(set.weight, unit) || '미입력'}${unit === 'LB' ? '파운드' : '킬로그램'}` : `횟수 ${set.reps || '미입력'}회`} 수정`}
+      onPress={() => onEdit(kind)}
+      style={[s.cell, s.cellButton, kind === 'weight' ? s.kgCol : s.repsCol, { backgroundColor: cellBg }, !!errors[kind] && s.cellError]}
+    >
+      <Text style={[text.headline, { color: set[kind] ? c.text.primary : c.text.disabled }]}>
+        {(kind === 'weight' ? displayWeight(set.weight, unit) : set.reps) || (kind === 'weight' ? unitLabel(unit) : '회')}
+      </Text>
+    </Pressable>
+  ) : (
     <TextInput
       ref={kind === 'weight' ? weightRef : repsRef}
       style={[
@@ -203,9 +234,9 @@ export function SetRow({
           {dragHandle ?? <Text style={[text.bodyBold, s.center, { color: c.text.primary }]}>{index + 1}</Text>}
         </View>
         <Text numberOfLines={1} style={[text.caption, s.muted, s.prevCol]}>
-          {previous ?? ''}
+          {[previous, set.rpe ? `RPE ${set.rpe}` : ''].filter(Boolean).join(' · ')}
         </Text>
-        {field('weight')}
+        {!noWeight && field('weight')}
         {field('reps')}
         <View style={s.checkCol}>
           {manual ? (
@@ -271,6 +302,7 @@ const s = StyleSheet.create({
     borderColor: 'transparent',
   },
   cellFocus: { borderColor: c.text.primary },
+  cellButton: { alignItems: 'center', justifyContent: 'center' },
   cellError: { borderColor: c.danger.default },
   check: {
     width: 36,
