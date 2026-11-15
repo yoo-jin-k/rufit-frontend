@@ -23,7 +23,9 @@ export function importPreviousSets(workout: Workout, exerciseId: string, source:
     const id = nextId();
     if (!id || ids.has(id)) throw new Error('중복된 세트 ID입니다. 다시 시도해 주세요.');
     ids.add(id);
-    return { ...set, id, completed: false };
+    // 지난 세트의 종류는 이어받고, 자각도는 오늘 새로 적도록 비웁니다.
+    const { rpe: _rpe, ...rest } = set;
+    return { ...rest, id, completed: false };
   });
   return {
     ...workout, exercises: workout.exercises.map((exercise) => exercise.id === exerciseId

@@ -31,6 +31,8 @@ export function workoutImportBody(workout: Workout): OfflineWorkoutImport {
         exerciseName: e.name,
         weight: Number(s.weight),
         reps: Number(s.reps),
+        ...(s.setType && s.setType !== 'NORMAL' ? { setType: s.setType } : {}),
+        ...(s.rpe !== undefined ? { rpe: s.rpe } : {}),
       },
       completed: true,
     })),

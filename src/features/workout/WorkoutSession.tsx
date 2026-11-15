@@ -23,12 +23,13 @@ import { AppModal } from '../../components/AppModal';
 import { bodyParts, equipmentLabels, findCatalogExercise, type CatalogExercise } from '../exercises/catalog';
 import { ExerciseDetail } from '../exercises/ExerciseDetail';
 import { ExerciseMedia } from '../exercises/ExerciseMedia';
-import { elapsedWorkoutMs, type Exercise, type Workout, type WorkoutSet } from './model';
+import { elapsedWorkoutMs, setLabels, type Exercise, type SetType, type Workout, type WorkoutSet } from './model';
 import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
 import { RestTimerDock } from './RestTimerDock';
 import { SetCountControl, SetHeader, SetRow } from './SetRow';
 import { SetEditorSheet } from './SetEditorSheet';
+import { SetDetailSheet, setTypeInfo } from './SetDetailSheet';
 import { recommendSet, weightless } from './setEditorModel';
 import { displayWeight, formatWeight, unitLabel } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
@@ -103,6 +104,8 @@ export type SessionActions = {
   onRemoveSet(exerciseId: string, setId: string): void;
   /** 고른 세트의 무게·횟수를 그 뒤의 완료하지 않은 세트에 넣고, 바뀐 세트 수를 돌려줍니다. */
   onFillRemaining(exerciseId: string, setId: string): number;
+  /** 세트 종류·운동 자각도를 바꿉니다. rpe가 null이면 지웁니다. */
+  onSetDetail(exerciseId: string, setId: string, detail: { setType?: SetType; rpe?: number | null }): void;
   onMoveSet(exerciseId: string, setId: string, target: number): void;
   onRemoveExercise(exerciseId: string): void;
   onRestSettings(exerciseId: string): void;
@@ -158,6 +161,10 @@ export function WorkoutSession({
   const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
   const editSet = editIndex >= 0 ? editExercise?.sets[editIndex] : undefined;
   const [editError, setEditError] = useState('');
+  const [detailFor, setDetailFor] = useState<{ exerciseId: string; setId: string } | null>(null);
+  const detailExercise = workout.exercises.find((e) => e.id === detailFor?.exerciseId);
+  const detailIndex = detailExercise?.sets.findIndex((set) => set.id === detailFor?.setId) ?? -1;
+  const detailSet = detailIndex >= 0 ? detailExercise?.sets[detailIndex] : undefined;
   const noWeightFor = (e: Exercise) => weightless(findCatalogExercise(e.catalogId)?.equipment);
   function completeFromEditor() {
     if (!editExercise || !editSet) return;
@@ -356,7 +363,15 @@ export function WorkoutSession({
               }
             />
             <SetHeader name={e.name} unitAware noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
-            <SortableSets sets={e.sets} name={e.name} disabled={false} onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}>
+            <SortableSets
+              sets={e.sets}
+              name={e.name}
+              disabled={false}
+              labels={setLabels(e.sets)}
+              labelColor={(set) => (set.setType && set.setType !== 'NORMAL' ? setTypeInfo[set.setType].color : undefined)}
+              onTapNumber={(set) => setDetailFor({ exerciseId: e.id, setId: set.id })}
+              onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}
+            >
               {(set, i, handle) => (
                 <SetRow
                   key={set.id}
@@ -398,6 +413,16 @@ export function WorkoutSession({
         </View>
       )}
       {!!toast && <Toast message={toast} onHide={() => setToast('')} />}
+      {detailExercise && detailSet && (
+        <SetDetailSheet
+          key={detailSet.id}
+          exerciseName={detailExercise.name}
+          label={setLabels(detailExercise.sets)[detailIndex]!}
+          set={detailSet}
+          onChange={(detail) => actions.onSetDetail(detailExercise.id, detailSet.id, detail)}
+          onClose={() => setDetailFor(null)}
+        />
+      )}
       {editExercise && editSet && (
         <SetEditorSheet
           key={editSet.id}

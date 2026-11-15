@@ -146,6 +146,8 @@ export function prepareWorkoutDraft(workout: Workout, context: DraftContext): Dr
       exerciseName: exercise.name.trim(),
       weight: Number(set.weight),
       reps: Number(set.reps),
+      ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
+      ...(set.rpe !== undefined ? { rpe: set.rpe } : {}),
     },
     completed: set.completed,
   }));

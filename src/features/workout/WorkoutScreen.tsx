@@ -49,6 +49,7 @@ import {
   addExercise,
   addSet,
   removeSet,
+  setSetDetail,
   removeExercise,
   moveSet,
   startWorkout,
@@ -276,6 +277,7 @@ export function WorkoutScreen({
     },
     onAddSet: (exerciseId, afterSetId) => act((w) => addSet(w, exerciseId, nextId(), afterSetId)),
     onRemoveSet: (exerciseId, setId) => act((w) => removeSet(w, exerciseId, setId)),
+    onSetDetail: (exerciseId, setId, detail) => act((w) => setSetDetail(w, exerciseId, setId, detail)),
     onFillRemaining: (exerciseId, setId) => {
       if (!workout) return 0;
       try {

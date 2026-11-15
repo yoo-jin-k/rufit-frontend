@@ -3,7 +3,7 @@
  * 읽기에 실패한 기록을 빈 기록으로 대체하지 않으며, 기존 저장 자료를 보존합니다.
  */
 import { validDate } from '../strength/model.ts';
-import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, type Workout } from './model.ts';
+import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, RPE_VALUES, SET_TYPES, type Workout } from './model.ts';
 export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number; pausedAt?: number };
 export type WorkoutArchive = {
   schemaVersion: 3;
@@ -79,7 +79,9 @@ export function isWorkout(value: unknown): value is Workout {
           typeof s.id === 'string' &&
           typeof s.weight === 'string' &&
           typeof s.reps === 'string' &&
-          typeof s.completed === 'boolean',
+          typeof s.completed === 'boolean' &&
+          (s.setType === undefined || SET_TYPES.includes(s.setType as never)) &&
+          (s.rpe === undefined || (RPE_VALUES as readonly unknown[]).includes(s.rpe)),
       ),
   );
 }

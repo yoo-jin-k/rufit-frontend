@@ -87,7 +87,8 @@ export type Recommendation = { weight: string; reps: string; basis: 'history' | 
 export function recommendSet(history: Workout[], exercise: Exercise, equipment?: Equipment): Recommendation {
   const kind = equipment ?? 'OTHER';
   const last = previousExercises(history, exercise)[0]?.exercise;
-  const sets = last?.sets.filter(validSet) ?? [];
+  // 웜업 세트는 실제 작업 무게가 아니므로 추천 계산에서 뺍니다.
+  const sets = last?.sets.filter((set) => validSet(set) && set.setType !== 'WARMUP') ?? [];
   if (!sets.length) {
     const start = starters[kind];
     return { weight: formatWeight(start.weight), reps: String(start.reps), basis: 'starter' };

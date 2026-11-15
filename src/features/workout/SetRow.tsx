@@ -234,7 +234,7 @@ export function SetRow({
           {dragHandle ?? <Text style={[text.bodyBold, s.center, { color: c.text.primary }]}>{index + 1}</Text>}
         </View>
         <Text numberOfLines={1} style={[text.caption, s.muted, s.prevCol]}>
-          {previous ?? ''}
+          {[previous, set.rpe ? `RPE ${set.rpe}` : ''].filter(Boolean).join(' · ')}
         </Text>
         {!noWeight && field('weight')}
         {field('reps')}

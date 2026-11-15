@@ -62,6 +62,7 @@ export function workoutFromTemplate(source: Workout, id: string, now: number, ne
       weight: set.weight,
       reps: set.reps,
       completed: false,
+      ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
     }));
     remaining -= sets.length;
     return [{ id: exerciseId, name: exercise.name, ...(exercise.catalogId ? { catalogId: exercise.catalogId } : {}), sets }];

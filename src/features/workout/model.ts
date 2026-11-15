@@ -1,4 +1,12 @@
-export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean };
+import type { SetType } from '../../api/client.ts';
+export type { SetType };
+/**
+ * 세트 하나입니다. setType이 없으면 일반 세트, rpe가 없으면 자각도 미입력입니다.
+ * 예전 기록과 호환되도록 두 값은 선택 항목으로 둡니다.
+ */
+export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean; setType?: SetType; rpe?: number };
+export const SET_TYPES: readonly SetType[] = ['NORMAL', 'WARMUP', 'DROP', 'FAILURE'];
+export const RPE_VALUES = [5, 6, 7, 8, 9, 10] as const;
 export type Exercise = { id: string; name: string; catalogId?: string; sets: WorkoutSet[] };
 export type Workout = {
   recordDate?: string;
@@ -103,6 +111,8 @@ export function addSet(
     weight: source?.weight ?? '',
     reps: source?.reps ?? '',
     completed: false,
+    // 복제한 세트는 종류만 이어받고 자각도는 새로 적습니다.
+    ...(source?.setType && source.setType !== 'NORMAL' ? { setType: source.setType } : {}),
   };
   return {
     ...workout,
@@ -139,6 +149,47 @@ export function validSet(set: WorkoutSet): boolean {
   );
 }
 // 입력 문자열을 보존하고 완료할 때만 유효성을 검사합니다.
+/**
+ * 세트 종류와 운동 자각도를 바꿉니다. 무게·횟수·완료 표시는 그대로 둡니다.
+ * rpe에 null을 주면 자각도를 지웁니다. 일반 세트는 setType을 저장하지 않습니다(예전 기록과 같은 모양).
+ */
+export function setSetDetail(
+  workout: Workout,
+  exerciseId: string,
+  setId: string,
+  detail: { setType?: SetType; rpe?: number | null },
+): Workout {
+  editable(workout);
+  if (detail.setType !== undefined && !SET_TYPES.includes(detail.setType))
+    throw new Error('세트 종류를 확인해 주세요.');
+  if (detail.rpe != null && !(RPE_VALUES as readonly number[]).includes(detail.rpe))
+    throw new Error('운동 자각도는 5~10 중에서 골라 주세요.');
+  let found = false;
+  const exercises = workout.exercises.map((e) => e.id !== exerciseId ? e : {
+    ...e,
+    sets: e.sets.map((s) => {
+      if (s.id !== setId) return s;
+      found = true;
+      const { setType: oldType, rpe: oldRpe, ...rest } = s;
+      const setType = detail.setType ?? oldType;
+      const rpe = detail.rpe === undefined ? oldRpe : detail.rpe ?? undefined;
+      return {
+        ...rest,
+        ...(setType && setType !== 'NORMAL' ? { setType } : {}),
+        ...(rpe !== undefined ? { rpe } : {}),
+      };
+    }),
+  });
+  if (!found) throw new Error('세트를 찾을 수 없습니다.');
+  return { ...workout, exercises };
+}
+
+/** 세트 번호 칸에 쓸 표시입니다. 웜업 W·드롭 D·실패 F, 일반 세트는 일반 세트끼리 1부터 셉니다. */
+export function setLabels(sets: WorkoutSet[]): string[] {
+  let normal = 0;
+  return sets.map((s) => s.setType === 'WARMUP' ? 'W' : s.setType === 'DROP' ? 'D' : s.setType === 'FAILURE' ? 'F' : String(++normal));
+}
+
 export function updateSet(
   workout: Workout,
   exerciseId: string,
