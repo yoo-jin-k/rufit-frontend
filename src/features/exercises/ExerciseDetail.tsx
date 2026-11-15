@@ -2,7 +2,7 @@
  * Figma 03-03 종목 상세입니다. 큰 동작 사진, 부위·장비 칩, 운동 설명, 내 기록(최고 무게·최근 운동), 하단 '이 종목 추가'.
  * 상세를 열어도 선택 상태는 바뀌지 않고, '이 종목 추가'를 눌러야 선택 목록에 들어갑니다.
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { NavBar, Screen, SectionTitle } from '../../components/kit/Screen';
 import { text, tokens } from '../../theme/tokens';
@@ -15,6 +15,8 @@ import { ExerciseMedia } from './ExerciseMedia';
 import { exerciseGuides } from './guides';
 import { hasExerciseImage } from './images';
 import { recommendedRest } from './recommendedRest';
+import { AppIcon } from '../../components/AppIcon';
+import { useFavorites } from '../favorites/FavoritesProvider';
 
 const c = tokens.color;
 
@@ -49,10 +51,29 @@ export function ExerciseDetail({
   const latest = records[0]?.record;
   const rest = recommendedRest(exercise);
   const guide = exerciseGuides[exercise.id];
+  const favorites = useFavorites();
+  const favorite = favorites.isFavorite(exercise.id);
   return (
     <Screen
       edges={[]}
-      header={<NavBar title={exercise.name} onLeading={onClose} />}
+      header={
+        <NavBar
+          title={exercise.name}
+          onLeading={onClose}
+          trailing={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${exercise.name} 즐겨찾기 ${favorite ? '해제' : '추가'}`}
+              accessibilityState={{ selected: favorite }}
+              hitSlop={10}
+              onPress={() => favorites.toggle(exercise.id)}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <AppIcon name="star" filled={favorite} color={favorite ? '#F5B800' : c.text.secondary} />
+            </Pressable>
+          }
+        />
+      }
       footer={
         onAdd && (
           <Button

@@ -29,6 +29,9 @@ import type { Workout } from '../workout/model';
 import { previousExercises } from '../workout/previousSetModel';
 import { bodyParts, equipmentLabels, searchExercises, type CatalogExercise } from './catalog';
 import { ExerciseDetail } from './ExerciseDetail';
+import { useFavorites } from '../favorites/FavoritesProvider';
+import { formatWeight } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 import { ExerciseMedia } from './ExerciseMedia';
 import { exercisePickerFocusStyles } from './ExercisePickerFocus.styles';
 import { hasExerciseImage } from './images';
@@ -69,6 +72,9 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
   const [bodyPart, setBodyPart] = useState<BodyPart>();
   const [equipment, setEquipment] = useState<Equipment>();
   const [showEquipment, setShowEquipment] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const favorites = useFavorites();
+  const { unit } = useWeightUnit();
   const [custom, setCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [error, setError] = useState<{ title: string; body: string } | null>(null);
@@ -80,18 +86,20 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
   const errorOffset = useRef<number | null>(null);
   const revealPending = useRef(false);
   const choosing = useRef(false);
-  const results = useMemo(
-    () => searchExercises(query, bodyPart, equipment),
-    [bodyPart, equipment, query],
-  );
+  const results = useMemo(() => {
+    const found = searchExercises(query, bodyPart, equipment);
+    return favoritesOnly ? found.filter((item) => favorites.ids.includes(item.id)) : found;
+  }, [bodyPart, equipment, query, favoritesOnly, favorites.ids]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   // 같은 종목의 가장 최근 완료 기록에서 마지막 세트를 '65kg × 8회'로 보여 줍니다.
   const lastRecord = (item: CatalogExercise) => {
     const set = previousExercises(history, { id: item.id, name: item.name, catalogId: item.id, sets: [] })[0]?.exercise.sets.at(-1);
-    return set ? `${set.weight}kg × ${set.reps}회` : undefined;
+    if (!set) return undefined;
+    return item.equipment === 'BODYWEIGHT' ? `${set.reps}회` : `${formatWeight(set.weight, unit)} × ${set.reps}회`;
   };
-  const hasConditions = !!(query || bodyPart || equipment);
+  const hasConditions = !!(query || bodyPart || equipment || favoritesOnly);
   const conditionLabel = [
+    favoritesOnly ? '즐겨찾기' : '',
     bodyPart ? bodyParts[bodyPart] : '',
     equipment ? equipmentLabels[equipment] : '',
   ]
@@ -132,6 +140,7 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
     setQuery('');
     setBodyPart(undefined);
     setEquipment(undefined);
+    setFavoritesOnly(false);
   }
   function close() {
     stopSearchFocusRecovery();
@@ -282,6 +291,12 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                       )}
                     </View>
                     <ChipRow>
+                      <Chip
+                        label={`★ 즐겨찾기 ${favorites.ids.length}`}
+                        accessibilityLabel={`즐겨찾기한 종목만 보기, ${favorites.ids.length}개`}
+                        selected={favoritesOnly}
+                        onPress={() => setFavoritesOnly((v) => !v)}
+                      />
                       <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
                       {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => (
                         <Chip key={value} label={label} selected={bodyPart === value} onPress={() => setBodyPart(value)} />
@@ -318,6 +333,8 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                     last={lastRecord(item)}
                     selectionOrder={pending.findIndex((entry) => entry.id === item.id) + 1}
                     alreadyAdded={selectedIdSet.has(item.id)}
+                    favorite={favorites.ids.includes(item.id)}
+                    onFavorite={() => favorites.toggle(item.id)}
                     onDetail={(exercise) => {
                       stopSearchFocusRecovery();
                       setDetail(exercise);
@@ -425,6 +442,8 @@ function ExerciseListItem({
   last,
   selectionOrder,
   alreadyAdded,
+  favorite,
+  onFavorite,
   onDetail,
   onChoose,
 }: {
@@ -432,6 +451,8 @@ function ExerciseListItem({
   last?: string;
   selectionOrder: number;
   alreadyAdded: boolean;
+  favorite: boolean;
+  onFavorite(): void;
   onDetail(exercise: CatalogExercise): void;
   onChoose(exercise: CatalogExercise): void;
 }) {
@@ -464,12 +485,24 @@ function ExerciseListItem({
         </View>
         <CheckMark checked={selected || alreadyAdded} />
       </Pressable>
+      {/* 선택과 겹치지 않게 별표는 따로 둡니다. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name} 즐겨찾기 ${favorite ? '해제' : '추가'}`}
+        accessibilityState={{ selected: favorite }}
+        hitSlop={8}
+        onPress={onFavorite}
+        style={s.star}
+      >
+        <AppIcon name="star" filled={favorite} color={favorite ? '#F5B800' : tokens.color.text.muted} />
+      </Pressable>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: tokens.color.bg.default },
+  star: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
   head: { paddingHorizontal: tokens.size.screenPadding, width: '100%', maxWidth: size.contentMax, alignSelf: 'center' },
   scroll: { flex: 1, minHeight: 0 },
   list: {

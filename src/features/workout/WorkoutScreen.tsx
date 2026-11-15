@@ -30,6 +30,7 @@ import { useEffect, useState } from 'react';
 import { BottomSheet, ConfirmDialog } from '../../components/kit/Surfaces';
 import { WorkoutHome } from './WorkoutHome';
 import { UnitProvider } from '../units/UnitProvider';
+import { FavoritesProvider } from '../favorites/FavoritesProvider';
 import { StartWorkoutSheet } from './StartWorkoutSheet';
 import { workoutFromTemplate } from './startSheetModel';
 import { fillRemainingSets, recommendSet } from './setEditorModel';
@@ -311,6 +312,7 @@ export function WorkoutScreen({
   const friends = session ? <ServerWorkoutFriends session={session} live={live} /> : <WorkoutFriends enabled={__DEV__} />;
   return (
     <UnitProvider session={session}>
+    <FavoritesProvider session={session}>
     <View style={s.page}>
       <View style={s.page}>
         {tab === 'workout' ? (
@@ -564,6 +566,7 @@ export function WorkoutScreen({
         />
       </View>
     </View>
+    </FavoritesProvider>
     </UnitProvider>
   );
 }
