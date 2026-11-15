@@ -11,6 +11,8 @@ import { BottomSheet, ListGroup, ListRow } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import type { WorkoutSet } from './model';
 import { setFieldErrors } from './setRowView';
+import { displayWeight, unitLabel } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -21,6 +23,7 @@ export function SetHeader({
   onCompleteAll,
   manual = false,
   noWeight = false,
+  unitAware = false,
 }: {
   name: string;
   allCompleted?: boolean;
@@ -28,12 +31,15 @@ export function SetHeader({
   manual?: boolean;
   /** 맨몸 운동은 kg 칸을 두지 않습니다. */
   noWeight?: boolean;
+  /** 운동 기록 화면처럼 고른 무게 단위(kg·lbs)로 보여 줄지입니다. 직접 입력 화면은 kg로 받습니다. */
+  unitAware?: boolean;
 }) {
+  const { unit } = useWeightUnit();
   return (
     <View style={s.header}>
       <Text style={[text.label, s.muted, s.center, { width: 28 }]}>세트</Text>
       <Text style={[text.label, s.muted, s.prevCol]}>지난 기록</Text>
-      {!noWeight && <Text style={[text.label, s.muted, s.center, s.kgCol]}>kg</Text>}
+      {!noWeight && <Text style={[text.label, s.muted, s.center, s.kgCol]}>{unitAware ? unitLabel(unit) : 'kg'}</Text>}
       <Text style={[text.label, s.muted, s.center, s.repsCol]}>회</Text>
       <View style={s.checkCol}>
         {!manual && onCompleteAll && (
@@ -149,6 +155,7 @@ export function SetRow({
   dragHandle?: ReactNode;
 }) {
   const [options, setOptions] = useState(false);
+  const { unit } = useWeightUnit();
   const [attempted, setAttempted] = useState(false);
   const [focused, setFocused] = useState<'weight' | 'reps' | null>(null);
   const weightRef = useRef<TextInput>(null),
@@ -175,12 +182,12 @@ export function SetRow({
   const field = (kind: 'weight' | 'reps') => onEdit ? (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${prefix} ${kind === 'weight' ? `무게 ${set.weight || '미입력'}킬로그램` : `횟수 ${set.reps || '미입력'}회`} 수정`}
+      accessibilityLabel={`${prefix} ${kind === 'weight' ? `무게 ${displayWeight(set.weight, unit) || '미입력'}${unit === 'LB' ? '파운드' : '킬로그램'}` : `횟수 ${set.reps || '미입력'}회`} 수정`}
       onPress={() => onEdit(kind)}
       style={[s.cell, s.cellButton, kind === 'weight' ? s.kgCol : s.repsCol, { backgroundColor: cellBg }, !!errors[kind] && s.cellError]}
     >
       <Text style={[text.headline, { color: set[kind] ? c.text.primary : c.text.disabled }]}>
-        {set[kind] || (kind === 'weight' ? 'kg' : '회')}
+        {(kind === 'weight' ? displayWeight(set.weight, unit) : set.reps) || (kind === 'weight' ? unitLabel(unit) : '회')}
       </Text>
     </Pressable>
   ) : (

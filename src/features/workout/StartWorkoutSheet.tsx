@@ -12,6 +12,8 @@ import { ExerciseMedia } from '../exercises/ExerciseMedia';
 import type { Workout } from './model';
 import { formatDay } from './recordFormat';
 import { recentWorkouts, startCard } from './startSheetModel';
+import { formatWeight } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -29,6 +31,7 @@ export function StartWorkoutSheet({
   onLoad(source: Workout): void;
 }) {
   const recent = recentWorkouts(history);
+  const { unit } = useWeightUnit();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = recent.find((w) => w.id === selectedId) ?? recent[0];
   const card = selected ? startCard(selected) : null;
@@ -69,7 +72,9 @@ export function StartWorkoutSheet({
                     <ExerciseMedia exercise={findCatalogExercise(row.catalogId)} size={48} />
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{row.name}</Text>
-                      <Text style={[text.label, { color: c.text.secondary }]}>{row.detail}</Text>
+                      <Text style={[text.label, { color: c.text.secondary }]}>
+                        {[`${row.sets}세트`, row.weight && formatWeight(row.weight, unit), row.reps && `${row.reps}회`].filter(Boolean).join(' · ')}
+                      </Text>
                     </View>
                   </View>
                 ))}

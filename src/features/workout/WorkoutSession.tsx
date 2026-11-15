@@ -30,6 +30,8 @@ import { RestTimerDock } from './RestTimerDock';
 import { SetCountControl, SetHeader, SetRow } from './SetRow';
 import { SetEditorSheet } from './SetEditorSheet';
 import { recommendSet, weightless } from './setEditorModel';
+import { displayWeight, formatWeight, unitLabel } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
@@ -150,6 +152,7 @@ export function WorkoutSession({
   const [toast, setToast] = useState('');
   const [restList, setRestList] = useState(false);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
+  const { unit } = useWeightUnit();
   const [editing, setEditing] = useState<{ exerciseId: string; setId: string } | null>(null);
   const editExercise = workout.exercises.find((e) => e.id === editing?.exerciseId);
   const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
@@ -332,7 +335,7 @@ export function WorkoutSession({
                   name={e.name}
                   exercise={findCatalogExercise(e.catalogId)}
                   onOpenDetail={setDetail}
-                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${lastSet.weight}kg × `}${lastSet.reps}회` : ''}`}
+                  meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}회` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
               )}
@@ -352,7 +355,7 @@ export function WorkoutSession({
                 </Pressable>
               }
             />
-            <SetHeader name={e.name} noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
+            <SetHeader name={e.name} unitAware noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
             <SortableSets sets={e.sets} name={e.name} disabled={false} onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}>
               {(set, i, handle) => (
                 <SetRow
@@ -361,7 +364,7 @@ export function WorkoutSession({
                   set={set}
                   index={i}
                   exerciseName={e.name}
-                  previous={prev?.sets[i] ? (noWeightFor(e) ? `${prev.sets[i].reps}회` : `${prev.sets[i].weight}×${prev.sets[i].reps}`) : undefined}
+                  previous={prev?.sets[i] ? (noWeightFor(e) ? `${prev.sets[i].reps}회` : `${displayWeight(prev.sets[i].weight, unit)}×${prev.sets[i].reps}`) : undefined}
                   noWeight={noWeightFor(e)}
                   onEdit={() => { setEditError(''); setEditing({ exerciseId: e.id, setId: set.id }); }}
                   current={set.id === currentSet?.id}
@@ -389,7 +392,7 @@ export function WorkoutSession({
       {!paused && completedSets > 0 && workout.exercises.some(done) && (
         <View style={s.summary}>
           <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>
-            지금까지 {completedSets}세트 · {formatNumber(volume)}kg
+            지금까지 {completedSets}세트 · {formatNumber(Number(displayWeight(String(volume), unit)))}{unitLabel(unit)}
           </Text>
           <Text style={[text.label, { color: c.text.secondary }]}>전체 {totalSets}세트</Text>
         </View>

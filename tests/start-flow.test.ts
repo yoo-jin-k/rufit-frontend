@@ -49,7 +49,7 @@ test('최근 운동은 종료한 기록만 최근 날짜 순으로 보여 줍니
   const card = startCard(list[0]!);
   assert.equal(card.parts, '하체');
   assert.equal(card.meta, '1종목 · 1시간 0분');
-  assert.equal(card.rows[0]!.detail, '1세트 · 60kg · 10회');
+  assert.deepEqual([card.rows[0]!.sets, card.rows[0]!.weight, card.rows[0]!.reps], [1, '60', '10']);
 });
 
 test('불러오기는 종목과 무게·횟수만 복사하고 완료 표시와 원본은 그대로 둡니다', () => {

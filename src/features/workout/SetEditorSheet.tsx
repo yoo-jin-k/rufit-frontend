@@ -3,6 +3,7 @@
  * 큰 숫자를 직접 고치거나 증감 버튼으로 조절하고, 최근·추천·이전 기록 값을 눌러 지금 세트에 넣습니다.
  * '남은 세트 통일'은 지금 세트와 그 뒤의 완료하지 않은 세트에만 같은 값을 넣습니다.
  * 맨몸 운동은 무게 영역 없이 횟수만 보여 줍니다.
+ * 무게는 kg·lbs 중 고른 단위로 보여 주고 입력받되, 저장은 언제나 kg로 합니다.
  */
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -17,9 +18,10 @@ import {
   recommendationNote,
   setHistory,
   stepReps,
-  stepWeight,
   type Recommendation,
 } from './setEditorModel';
+import { displayWeight, formatWeight, otherUnitHint, stepWeightIn, toKg, unitLabel, weightSteps } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 
 const c = tokens.color;
 
@@ -52,34 +54,67 @@ export function SetEditorSheet({
 }) {
   const [showHistory, setShowHistory] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const { unit, setUnit } = useWeightUnit();
+  // 입력 중인 글자(예: '45.')를 그대로 보여 주기 위해, 칸을 고치는 동안만 따로 들고 있습니다.
+  const [typing, setTyping] = useState<string | null>(null);
+  const [small, large] = weightSteps(unit);
+  const u = unitLabel(unit);
   const recent = recentSet(history, exercise, index);
   const records = showHistory ? setHistory(history, exercise) : [];
-  const label = (w: string, r: string) => (noWeight ? `${r}회` : `${w}kg × ${r}회`);
-  const apply = (source: Pick<WorkoutSet, 'weight' | 'reps'>) =>
+  const label = (w: string, r: string) => (noWeight ? `${r}회` : `${formatWeight(w, unit)} × ${r}회`);
+  const apply = (source: Pick<WorkoutSet, 'weight' | 'reps'>) => {
+    setTyping(null);
     onChange(noWeight ? { weight: '0', reps: source.reps } : { weight: source.weight, reps: source.reps });
+  };
+  const step = (delta: number) => {
+    setTyping(null);
+    onChange({ weight: stepWeightIn(set.weight, delta, unit) });
+  };
   return (
     <BottomSheet visible title={`${index + 1}세트`} subtitle={exercise.name} onClose={onClose}>
       <View style={s.fields}>
         {!noWeight && (
           <View style={s.field}>
-            <Text style={[text.captionBold, s.fieldLabel]}>무게 (kg)</Text>
+            <View style={s.unitRow}>
+              <Text style={[text.captionBold, { color: c.text.secondary }]}>무게</Text>
+              <View style={s.unitToggle} accessibilityRole="radiogroup" accessibilityLabel="무게 단위">
+                {(['KG', 'LB'] as const).map((option) => (
+                  <Pressable
+                    key={option}
+                    accessibilityRole="radio"
+                    accessibilityLabel={option === 'KG' ? '킬로그램' : '파운드'}
+                    accessibilityState={{ checked: unit === option }}
+                    aria-checked={unit === option}
+                    hitSlop={6}
+                    onPress={() => { setTyping(null); setUnit(option); }}
+                    style={[s.unitOption, unit === option && s.unitOptionOn]}
+                  >
+                    <Text style={[text.label, { color: unit === option ? c.text.primary : c.text.muted }]}>{unitLabel(option)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
             <TextInput
-              accessibilityLabel={`${exercise.name} ${index + 1}세트 무게 킬로그램`}
+              accessibilityLabel={`${exercise.name} ${index + 1}세트 무게 ${unit === 'LB' ? '파운드' : '킬로그램'}`}
               style={[text.display, s.value]}
               keyboardType="decimal-pad"
-              value={set.weight}
+              value={typing ?? displayWeight(set.weight, unit)}
               maxLength={7}
               selectTextOnFocus
               placeholder="0"
               placeholderTextColor={c.text.disabled}
-              onChangeText={(weight) => onChange({ weight })}
+              onChangeText={(value) => { setTyping(value); onChange({ weight: toKg(value, unit) }); }}
+              onBlur={() => setTyping(null)}
             />
-            <Stepper label="0.5kg" name="무게 0.5킬로그램" onStep={(sign) => onChange({ weight: stepWeight(set.weight, sign * 0.5) })} />
-            <Stepper label="5kg" name="무게 5킬로그램" onStep={(sign) => onChange({ weight: stepWeight(set.weight, sign * 5) })} />
+            <Text style={[text.label, s.hint]}>{otherUnitHint(set.weight, unit)}</Text>
+            <Stepper label={`${small}${u}`} name={`무게 ${small}${u}`} onStep={(sign) => step(sign * small)} />
+            <Stepper label={`${large}${u}`} name={`무게 ${large}${u}`} onStep={(sign) => step(sign * large)} />
           </View>
         )}
         <View style={s.field}>
-          <Text style={[text.captionBold, s.fieldLabel]}>횟수</Text>
+          <View style={s.unitRow}>
+            <Text style={[text.captionBold, { color: c.text.secondary }]}>횟수</Text>
+          </View>
           <TextInput
             accessibilityLabel={`${exercise.name} ${index + 1}세트 횟수`}
             style={[text.display, s.value]}
@@ -91,6 +126,7 @@ export function SetEditorSheet({
             placeholderTextColor={c.text.disabled}
             onChangeText={(reps) => onChange({ reps })}
           />
+          <Text style={[text.label, s.hint]} />
           <Stepper label="1회" name="횟수 1회" onStep={(sign) => onChange({ reps: stepReps(set.reps, sign) })} />
           <Stepper label="5회" name="횟수 5회" onStep={(sign) => onChange({ reps: stepReps(set.reps, sign * 5) })} />
         </View>
@@ -123,7 +159,7 @@ export function SetEditorSheet({
                       style={({ pressed }) => [s.historyRow, pressed && { backgroundColor: c.bg.default }]}
                     >
                       <Text style={[text.caption, s.historyIndex]}>{i + 1}</Text>
-                      {!noWeight && <Text style={[text.bodyBold, s.historyValue]}>{row.weight}kg</Text>}
+                      {!noWeight && <Text style={[text.bodyBold, s.historyValue]}>{formatWeight(row.weight, unit)}</Text>}
                       <Text style={[text.bodyBold, s.historyValue]}>{row.reps}회</Text>
                       <Text style={[text.label, { color: c.text.secondary }]}>넣기</Text>
                     </Pressable>
@@ -202,7 +238,11 @@ function Chip({ label, name, onPress }: { label: string; name: string; onPress()
 const s = StyleSheet.create({
   fields: { flexDirection: 'row', gap: tokens.space[16] },
   field: { flex: 1, gap: tokens.space[8] },
-  fieldLabel: { color: c.text.secondary, textAlign: 'center' },
+  unitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: tokens.space[8], minHeight: 28 },
+  unitToggle: { flexDirection: 'row', borderRadius: tokens.radius.sm, backgroundColor: c.bg.surface, padding: 2 },
+  unitOption: { paddingHorizontal: tokens.space[8], paddingVertical: 2, borderRadius: 6 },
+  unitOptionOn: { backgroundColor: c.bg.default },
+  hint: { color: c.text.muted, textAlign: 'center', minHeight: 18 },
   value: {
     color: c.text.primary,
     textAlign: 'center',

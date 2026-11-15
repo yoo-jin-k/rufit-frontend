@@ -71,11 +71,16 @@ export type DirectoryResults = {
   size: number;
   hasNext: boolean;
 };
+export type SetType = 'NORMAL' | 'WARMUP' | 'DROP' | 'FAILURE';
 export type SetInput = {
   exerciseId?: string | null;
   exerciseName: string;
   weight: number;
   reps: number;
+  /** 생략하면 서버가 NORMAL로 저장합니다. */
+  setType?: SetType;
+  /** 운동 자각도 5~10. 생략하면 미입력입니다. */
+  rpe?: number | null;
 };
 export type MeasurementKind = 'weight' | 'strength';
 export type ServerMeasurement = {
@@ -163,6 +168,9 @@ export type ExerciseRest = {
   source: 'RECOMMENDED' | 'PERSONAL' | 'DEFAULT';
 };
 export type RestPreferences = { version: number; defaultRestSeconds: number };
+export type WeightUnit = 'KG' | 'LB';
+export type UnitPreferences = { version: number; weightUnit: WeightUnit };
+export type ExerciseFavorite = { exerciseId: string; createdAt: string };
 export type Routine = {
   id: string;
   title: string;
@@ -361,6 +369,14 @@ export function createRufitApi(options: Options) {
     restPreferences: () => request<RestPreferences>('GET', '/preferences/rest'),
     saveRestPreferences: (version: number, defaultRestSeconds: number) =>
       request<RestPreferences>('PUT', '/preferences/rest', { version, defaultRestSeconds }),
+    unitPreferences: () => request<UnitPreferences>('GET', '/preferences/units'),
+    saveUnitPreferences: (version: number, weightUnit: WeightUnit) =>
+      request<UnitPreferences>('PUT', '/preferences/units', { version, weightUnit }),
+    exerciseFavorites: () => request<{ favorites: ExerciseFavorite[] }>('GET', '/exercises/favorites'),
+    addExerciseFavorite: (exerciseId: string) =>
+      request<ExerciseFavorite>('PUT', `/exercises/${segment(exerciseId)}/favorite`),
+    removeExerciseFavorite: (exerciseId: string) =>
+      request<void>('DELETE', `/exercises/${segment(exerciseId)}/favorite`),
     profile: () => request<Profile>('GET', '/profile'),
     createProfile: (profile: ProfileFields, idempotencyKey: string) =>
       request<Profile>('POST', '/profile', profile, { 'Idempotency-Key': idempotencyKey }),

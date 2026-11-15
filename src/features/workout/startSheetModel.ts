@@ -31,9 +31,15 @@ export function startCard(workout: Workout) {
     meta: `${exercises.length}종목${minutes === null ? '' : ` · ${formatMinutes(minutes)}`}`,
     rows: exercises.map((e) => {
       const top = e.sets.reduce((best, set) => (Number(set.weight) || 0) > (Number(best.weight) || 0) ? set : best, e.sets[0]!);
-      const weight = Number(top.weight) > 0 ? ` · ${top.weight}kg` : '';
-      const reps = Number(top.reps) > 0 ? ` · ${top.reps}회` : '';
-      return { id: e.id, name: e.name, catalogId: e.catalogId, detail: `${e.sets.length}세트${weight}${reps}` };
+      return {
+        id: e.id,
+        name: e.name,
+        catalogId: e.catalogId,
+        sets: e.sets.length,
+        /** 가장 무거운 세트의 kg 문자열입니다. 0이면 맨몸 운동처럼 무게 없이 보여 줍니다. */
+        weight: Number(top.weight) > 0 ? top.weight : '',
+        reps: Number(top.reps) > 0 ? top.reps : '',
+      };
     }),
   };
 }
