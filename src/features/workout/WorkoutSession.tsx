@@ -18,7 +18,11 @@ import {
   Toast,
 } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
-import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppModal } from '../../components/AppModal';
+import { bodyParts, equipmentLabels, findCatalogExercise, type CatalogExercise } from '../exercises/catalog';
+import { ExerciseDetail } from '../exercises/ExerciseDetail';
+import { ExerciseMedia } from '../exercises/ExerciseMedia';
 import { elapsedWorkoutMs, type Exercise, type Workout, type WorkoutSet } from './model';
 import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
@@ -43,11 +47,41 @@ const done = (e: Exercise) => e.sets.length > 0 && e.sets.every((set) => set.com
 const volumeOf = (sets: WorkoutSet[]) =>
   sets.reduce((sum, set) => sum + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0);
 
-/** 종목 사진 자리와 이름·설명 한 줄입니다(Figma ExerciseRow). */
-function ExerciseLine({ name, meta, trailing }: { name: string; meta: string; trailing?: ReactNode }) {
+/**
+ * 종목 사진과 이름·설명 한 줄입니다(Figma ExerciseRow).
+ * 목록에서 고른 종목이면 동작 사진을 보여 주고, 사진을 누르면 동작 GIF와 자세 설명이 있는 상세를 엽니다.
+ * 직접 입력한 종목처럼 목록에 없으면 사진 자리표시만 보여 줍니다.
+ */
+function ExerciseLine({
+  name,
+  meta,
+  trailing,
+  exercise,
+  onOpenDetail,
+}: {
+  name: string;
+  meta: string;
+  trailing?: ReactNode;
+  exercise?: CatalogExercise;
+  onOpenDetail?(exercise: CatalogExercise): void;
+}) {
+  const thumb = exercise ? <ExerciseMedia exercise={exercise} size={44} /> : (
+    <PhotoPlaceholder style={s.thumb} radius={tokens.radius.md} />
+  );
   return (
     <View style={s.exerciseLine}>
-      <PhotoPlaceholder style={s.thumb} radius={tokens.radius.md} />
+      {exercise && onOpenDetail ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${name} 동작과 자세 설명 보기`}
+          hitSlop={4}
+          onPress={() => onOpenDetail(exercise)}
+        >
+          {thumb}
+        </Pressable>
+      ) : (
+        thumb
+      )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{name}</Text>
         <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{meta}</Text>
@@ -111,6 +145,7 @@ export function WorkoutSession({
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const [restList, setRestList] = useState(false);
+  const [detail, setDetail] = useState<CatalogExercise | null>(null);
   // 펼친 종목이 지워졌거나 아직 고르지 않았으면 첫 미완료 종목을 펼칩니다.
   const focus = workout.exercises.find((e) => e.id === focusId) ?? firstOpen;
   const totalSets = workout.exercises.reduce((n, e) => n + e.sets.length, 0);
@@ -268,6 +303,8 @@ export function WorkoutSession({
               ) : (
                 <ExerciseLine
                   name={e.name}
+                  exercise={findCatalogExercise(e.catalogId)}
+                  onOpenDetail={setDetail}
                   meta={`${finishedCount}/${e.sets.length}세트${lastSet ? ` · 지난번 ${lastSet.weight}kg × ${lastSet.reps}회` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
@@ -279,6 +316,8 @@ export function WorkoutSession({
           <View key={e.id} style={s.focus}>
             <ExerciseLine
               name={e.name}
+              exercise={findCatalogExercise(e.catalogId)}
+              onOpenDetail={setDetail}
               meta={meta(e)}
               trailing={
                 <Pressable accessibilityRole="button" accessibilityLabel={`${e.name} 더보기`} onPress={() => setMenuId(e.id)} hitSlop={10} style={s.dots}>
@@ -374,6 +413,12 @@ export function WorkoutSession({
           setRemoveId(null);
         }}
       />
+      {/* 운동 중에 동작을 다시 확인하는 화면입니다. 이미 추가한 종목이라 '이 종목 추가' 버튼은 없습니다. */}
+      <AppModal visible={!!detail} animationType="slide" onRequestClose={() => setDetail(null)}>
+        <SafeAreaView style={s.detailPage} edges={['top', 'bottom']}>
+          {detail && <ExerciseDetail exercise={detail} history={history} onClose={() => setDetail(null)} />}
+        </SafeAreaView>
+      </AppModal>
     </Screen>
   );
 }
@@ -386,6 +431,7 @@ const s = StyleSheet.create({
   end: { minHeight: 44, justifyContent: 'center' },
   exerciseLine: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
   thumb: { width: 44, height: 44 },
+  detailPage: { flex: 1, backgroundColor: c.bg.default },
   dots: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   focus: {
     borderWidth: 1,

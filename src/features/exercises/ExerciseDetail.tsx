@@ -12,6 +12,7 @@ import { formatDay } from '../workout/recordFormat';
 import { localDay } from '../calendar/model';
 import { bodyParts, equipmentLabels, type CatalogExercise } from './catalog';
 import { ExerciseMedia } from './ExerciseMedia';
+import { exerciseGuides } from './guides';
 import { hasExerciseImage } from './images';
 import { recommendedRest } from './recommendedRest';
 
@@ -47,6 +48,7 @@ export function ExerciseDetail({
     }, null);
   const latest = records[0]?.record;
   const rest = recommendedRest(exercise);
+  const guide = exerciseGuides[exercise.id];
   return (
     <Screen
       edges={[]}
@@ -71,8 +73,31 @@ export function ExerciseDetail({
       </View>
       <SectionTitle title="운동 설명" />
       <Text style={[text.body, { color: c.text.primary }]}>
-        {exercise.name}은(는) {equipmentLabels[exercise.equipment]} 운동이며 {bodyParts[exercise.bodyPart]} 부위로 분류됩니다.
+        {guide?.summary ??
+          `${exercise.name}은(는) ${equipmentLabels[exercise.equipment]} 운동이며 ${bodyParts[exercise.bodyPart]} 부위로 분류됩니다.`}
       </Text>
+      {guide && (
+        <>
+          <SectionTitle title="자세" />
+          <View style={s.list}>
+            {guide.steps.map((step, i) => (
+              <View key={step} style={s.item}>
+                <Text style={[text.bodyBold, s.marker, { color: c.text.primary }]}>{i + 1}</Text>
+                <Text style={[text.body, s.itemText, { color: c.text.primary }]}>{step}</Text>
+              </View>
+            ))}
+          </View>
+          <SectionTitle title="주의할 점" />
+          <View style={s.list}>
+            {guide.tips.map((tip) => (
+              <View key={tip} style={s.item}>
+                <Text style={[text.body, s.marker, { color: c.text.secondary }]}>·</Text>
+                <Text style={[text.body, s.itemText, { color: c.text.secondary }]}>{tip}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
       <Text style={[text.caption, { color: c.text.secondary }]}>
         다른 이름: {exercise.aliases.join(' · ') || exercise.name}
         {rest !== undefined ? ` · 기본 세트 간 휴식 ${rest}초` : ''}
@@ -96,7 +121,11 @@ export function ExerciseDetail({
           </View>
         </>
       )}
-      <Text style={[text.label, { color: c.text.muted }]}>사진은 참고용입니다. 종목별 자세 설명은 추후 보강됩니다.</Text>
+      <Text style={[text.label, { color: c.text.muted }]}>
+        {guide
+          ? '일반적인 동작 안내입니다. 통증이 느껴지면 바로 멈추고 무게를 줄여 주세요.'
+          : '사진은 참고용입니다. 종목별 자세 설명은 추후 보강됩니다.'}
+      </Text>
     </Screen>
   );
 }
@@ -113,5 +142,9 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   records: { flexDirection: 'row', gap: tokens.space[12] },
+  list: { gap: tokens.space[8] },
+  item: { flexDirection: 'row', gap: tokens.space[8] },
+  marker: { width: 16, textAlign: 'center' },
+  itemText: { flex: 1 },
   record: { flex: 1, backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: 4 },
 });
