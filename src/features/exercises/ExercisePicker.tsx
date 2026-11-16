@@ -11,7 +11,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -24,7 +23,7 @@ import { Button } from '../../components/Button';
 import { CheckMark, Chip, ChipRow, TextField } from '../../components/kit/Controls';
 import { IconButton, NavBar } from '../../components/kit/Screen';
 import { BottomSheet, EmptyCard } from '../../components/kit/Surfaces';
-import { size, text, tokens } from '../../theme/tokens';
+import { text, tokens } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
 import { previousExercises } from '../workout/previousSetModel';
 import { bodyParts, equipmentLabels, searchExercises, type CatalogExercise } from './catalog';
@@ -36,6 +35,7 @@ import { ExerciseMedia } from './ExerciseMedia';
 import { exercisePickerFocusStyles } from './ExercisePickerFocus.styles';
 import { hasExerciseImage } from './images';
 import { useExerciseResultAnnouncement } from './useExerciseResultAnnouncement';
+import { s } from './ExercisePicker.styles';
 
 type Props = {
   visible: boolean;
@@ -64,7 +64,14 @@ function ExerciseResultAnnouncement({ signature, count }: { signature: string; c
   ) : null;
 }
 
-export function ExercisePicker({ visible, title = '종목 추가', history = [], selectedIds, onClose, onSelect }: Props) {
+export function ExercisePicker({
+  visible,
+  title = '종목 추가',
+  history = [],
+  selectedIds,
+  onClose,
+  onSelect,
+}: Props) {
   const viewport = useWindowDimensions();
   const [pending, setPending] = useState<(Pick<CatalogExercise, 'name'> & { id?: string })[]>([]);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
@@ -93,9 +100,16 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   // 같은 종목의 가장 최근 완료 기록에서 마지막 세트를 '65kg × 8회'로 보여 줍니다.
   const lastRecord = (item: CatalogExercise) => {
-    const set = previousExercises(history, { id: item.id, name: item.name, catalogId: item.id, sets: [] })[0]?.exercise.sets.at(-1);
+    const set = previousExercises(history, {
+      id: item.id,
+      name: item.name,
+      catalogId: item.id,
+      sets: [],
+    })[0]?.exercise.sets.at(-1);
     if (!set) return undefined;
-    return item.equipment === 'BODYWEIGHT' ? `${set.reps}회` : `${formatWeight(set.weight, unit)} × ${set.reps}회`;
+    return item.equipment === 'BODYWEIGHT'
+      ? `${set.reps}회`
+      : `${formatWeight(set.weight, unit)} × ${set.reps}회`;
   };
   const hasConditions = !!(query || bodyPart || equipment || favoritesOnly);
   const conditionLabel = [
@@ -189,9 +203,11 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
     stopSearchFocusRecovery();
     if (exercise.id && selectedIdSet.has(exercise.id)) return;
     const key = (item: typeof exercise) => item.id ?? item.name.trim();
-    setPending((items) => items.some((item) => key(item) === key(exercise))
-      ? items.filter((item) => key(item) !== key(exercise))
-      : [...items, { ...exercise, name: exercise.name.trim() }]);
+    setPending((items) =>
+      items.some((item) => key(item) === key(exercise))
+        ? items.filter((item) => key(item) !== key(exercise))
+        : [...items, { ...exercise, name: exercise.name.trim() }],
+    );
   }
   function confirmSelection() {
     if (choosing.current || !pending.length) return;
@@ -206,9 +222,16 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
   }
 
   return (
-    <Modal visible={visible} animationType={Platform.OS === 'web' ? 'none' : 'slide'} onRequestClose={close}>
+    <Modal
+      visible={visible}
+      animationType={Platform.OS === 'web' ? 'none' : 'slide'}
+      onRequestClose={close}
+    >
       <SafeAreaView style={s.page} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          style={s.page}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           {detail ? (
             <ExerciseDetail
               exercise={detail}
@@ -272,7 +295,11 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                         }}
                         onBlur={(event) =>
                           handleSearchBlur(
-                            (event.nativeEvent as typeof event.nativeEvent & { relatedTarget?: unknown }).relatedTarget,
+                            (
+                              event.nativeEvent as typeof event.nativeEvent & {
+                                relatedTarget?: unknown;
+                              }
+                            ).relatedTarget,
                           )
                         }
                       />
@@ -297,13 +324,25 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                         selected={favoritesOnly}
                         onPress={() => setFavoritesOnly((v) => !v)}
                       />
-                      <Chip label="전체" selected={!bodyPart} onPress={() => setBodyPart(undefined)} />
+                      <Chip
+                        label="전체"
+                        selected={!bodyPart}
+                        onPress={() => setBodyPart(undefined)}
+                      />
                       {(Object.entries(bodyParts) as [BodyPart, string][]).map(([value, label]) => (
-                        <Chip key={value} label={label} selected={bodyPart === value} onPress={() => setBodyPart(value)} />
+                        <Chip
+                          key={value}
+                          label={label}
+                          selected={bodyPart === value}
+                          onPress={() => setBodyPart(value)}
+                        />
                       ))}
                     </ChipRow>
                     <View style={s.resultHeader}>
-                      <Text testID="exercise-result-count" style={[text.captionBold, s.secondary, { flex: 1 }]}>
+                      <Text
+                        testID="exercise-result-count"
+                        style={[text.captionBold, s.secondary, { flex: 1 }]}
+                      >
                         {conditionLabel ? `${conditionLabel} · ` : ''}검색 결과 {results.length}개
                       </Text>
                       {hasConditions && (
@@ -321,8 +360,12 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                           revealError();
                         }}
                       >
-                        <Text style={[text.captionBold, { color: tokens.color.danger.default }]}>{error.title}</Text>
-                        <Text style={[text.label, { color: tokens.color.danger.default }]}>{error.body}</Text>
+                        <Text style={[text.captionBold, { color: tokens.color.danger.default }]}>
+                          {error.title}
+                        </Text>
+                        <Text style={[text.label, { color: tokens.color.danger.default }]}>
+                          {error.body}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -344,8 +387,19 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                 )}
                 ListEmptyComponent={
                   <View style={s.empty}>
-                    <EmptyCard icon="search" title="일치하는 종목이 없어요" body="검색어나 조건을 바꾸거나 직접 입력해 주세요." />
-                    {hasConditions && <Button title="조건 초기화" variant="soft" size="md" onPress={resetConditions} />}
+                    <EmptyCard
+                      icon="search"
+                      title="일치하는 종목이 없어요"
+                      body="검색어나 조건을 바꾸거나 직접 입력해 주세요."
+                    />
+                    {hasConditions && (
+                      <Button
+                        title="조건 초기화"
+                        variant="soft"
+                        size="md"
+                        onPress={resetConditions}
+                      />
+                    )}
                   </View>
                 }
                 ListFooterComponent={
@@ -371,7 +425,12 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                             setCustomName('');
                           }}
                         />
-                        <Button title="직접 입력 취소" size="md" variant="soft" onPress={() => setCustom(false)} />
+                        <Button
+                          title="직접 입력 취소"
+                          size="md"
+                          variant="soft"
+                          onPress={() => setCustom(false)}
+                        />
                       </View>
                     ) : (
                       <Button
@@ -385,21 +444,26 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
                         }}
                       />
                     )}
-                    {pending.filter((item) => !item.id).map((item) => (
-                      <Text key={item.name} style={[text.label, s.secondary]}>
-                        직접 입력: {item.name}
-                      </Text>
-                    ))}
+                    {pending
+                      .filter((item) => !item.id)
+                      .map((item) => (
+                        <Text key={item.name} style={[text.label, s.secondary]}>
+                          직접 입력: {item.name}
+                        </Text>
+                      ))}
                     <Pressable
                       accessibilityRole="link"
                       style={s.sourceLink}
                       onPress={() => {
-                        void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(() =>
-                          reportError('출처 링크를 열지 못했어요', '잠시 후 다시 시도해 주세요.'),
+                        void Linking.openURL('https://github.com/yuhonas/free-exercise-db').catch(
+                          () =>
+                            reportError('출처 링크를 열지 못했어요', '잠시 후 다시 시도해 주세요.'),
                         );
                       }}
                     >
-                      <Text style={[text.label, s.muted]}>동작 사진 · Free Exercise DB · Unlicense · 사진 출처 보기</Text>
+                      <Text style={[text.label, s.muted]}>
+                        동작 사진 · Free Exercise DB · Unlicense · 사진 출처 보기
+                      </Text>
                     </Pressable>
                   </View>
                 }
@@ -412,20 +476,37 @@ export function ExercisePicker({ visible, title = '종목 추가', history = [],
             </>
           )}
           {/* 항상 mount되는 Picker와 분리해 닫을 때 예약을 취소하고 재개방 때 알림 서명을 초기화합니다. */}
-          {visible && <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />}
+          {visible && (
+            <ExerciseResultAnnouncement signature={resultSignature} count={results.length} />
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
-      <BottomSheet visible={showEquipment} title="장비로 고르기" onClose={() => setShowEquipment(false)}>
+      <BottomSheet
+        visible={showEquipment}
+        title="장비로 고르기"
+        onClose={() => setShowEquipment(false)}
+      >
         <ChipRow wrap>
           <Chip label="전체" selected={!equipment} onPress={() => setEquipment(undefined)} />
           {(Object.entries(equipmentLabels) as [Equipment, string][]).map(([value, label]) => (
-            <Chip key={value} label={label} selected={equipment === value} onPress={() => setEquipment(value)} />
+            <Chip
+              key={value}
+              label={label}
+              selected={equipment === value}
+              onPress={() => setEquipment(value)}
+            />
           ))}
         </ChipRow>
         <View style={s.sheetFoot}>
-          <Text style={[text.label, s.secondary, { flex: 1 }]}>{equipment ? `${equipmentLabels[equipment]} 선택됨` : '전체 장비'}</Text>
+          <Text style={[text.label, s.secondary, { flex: 1 }]}>
+            {equipment ? `${equipmentLabels[equipment]} 선택됨` : '전체 장비'}
+          </Text>
           {!!equipment && (
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setEquipment(undefined)}>
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => setEquipment(undefined)}
+            >
               <Text style={[text.label, s.link]}>초기화</Text>
             </Pressable>
           )}
@@ -463,7 +544,11 @@ function ExerciseListItem({
   return (
     <View style={s.exercise}>
       {/* 상세 보기와 선택을 형제 버튼으로 분리하여 이미지 터치가 선택으로 전파되지 않도록 합니다. */}
-      <Pressable accessibilityRole="button" accessibilityLabel={`${item.name} 이미지와 상세 설명`} onPress={() => onDetail(item)}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name} 이미지와 상세 설명`}
+        onPress={() => onDetail(item)}
+      >
         <ExerciseMedia exercise={item} size={44} onMissingChange={updateMissing} />
       </Pressable>
       <Pressable
@@ -478,7 +563,13 @@ function ExerciseListItem({
         <View style={s.exerciseInfo}>
           <Text style={[text.bodyBold, { color: tokens.color.text.primary }]}>{item.name}</Text>
           <Text style={[text.label, s.secondary]}>
-            {[bodyParts[item.bodyPart], equipmentLabels[item.equipment], last && `지난번 ${last}`, mediaMissing && '동작 사진 없음', alreadyAdded && '추가됨']
+            {[
+              bodyParts[item.bodyPart],
+              equipmentLabels[item.equipment],
+              last && `지난번 ${last}`,
+              mediaMissing && '동작 사진 없음',
+              alreadyAdded && '추가됨',
+            ]
               .filter(Boolean)
               .join(' · ')}
           </Text>
@@ -494,68 +585,12 @@ function ExerciseListItem({
         onPress={onFavorite}
         style={s.star}
       >
-        <AppIcon name="star" filled={favorite} color={favorite ? '#F5B800' : tokens.color.text.muted} />
+        <AppIcon
+          name="star"
+          filled={favorite}
+          color={favorite ? '#F5B800' : tokens.color.text.muted}
+        />
       </Pressable>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: tokens.color.bg.default },
-  star: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
-  head: { paddingHorizontal: tokens.size.screenPadding, width: '100%', maxWidth: size.contentMax, alignSelf: 'center' },
-  scroll: { flex: 1, minHeight: 0 },
-  list: {
-    paddingHorizontal: tokens.size.screenPadding,
-    paddingBottom: tokens.space[16],
-    width: '100%',
-    maxWidth: size.contentMax,
-    alignSelf: 'center',
-  },
-  listHead: { gap: tokens.space[12], paddingTop: tokens.space[8], paddingBottom: tokens.space[4] },
-  search: {
-    minHeight: 48,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.color.bg.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space[8],
-    paddingHorizontal: tokens.space[16],
-  },
-  searchInput: {
-    ...text.bodyMedium,
-    color: tokens.color.text.primary,
-    flex: 1,
-    minWidth: 0,
-    minHeight: 48,
-    outlineWidth: 0,
-    outlineStyle: 'solid',
-  },
-  resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  secondary: { color: tokens.color.text.secondary },
-  muted: { color: tokens.color.text.muted },
-  link: { color: tokens.color.text.secondary, textDecorationLine: 'underline' },
-  errorNotice: {
-    backgroundColor: tokens.color.danger.surface,
-    borderRadius: tokens.radius.md,
-    padding: tokens.space[12],
-    gap: 2,
-  },
-  exercise: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
-  exerciseBody: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
-  exerciseInfo: { flex: 1, minWidth: 0, gap: 2 },
-  empty: { gap: tokens.space[12], paddingTop: tokens.space[8] },
-  footer: { gap: tokens.space[12], paddingTop: tokens.space[16] },
-  custom: { gap: tokens.space[8] },
-  sourceLink: { minHeight: 32, justifyContent: 'center' },
-  dock: {
-    paddingHorizontal: tokens.size.screenPadding,
-    paddingTop: tokens.space[8],
-    paddingBottom: tokens.space[8],
-    width: '100%',
-    maxWidth: size.contentMax,
-    alignSelf: 'center',
-  },
-  sheetFoot: { flexDirection: 'row', alignItems: 'center' },
-  announcement: { position: 'absolute', width: 1, height: 1, overflow: 'hidden' },
-});

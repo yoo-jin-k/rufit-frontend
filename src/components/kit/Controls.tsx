@@ -3,7 +3,6 @@ import { useState, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { AppIcon, type IconName } from '../AppIcon';
 import { text, tokens } from '../../theme/tokens';
+import { s } from './Controls.styles';
 
 const c = tokens.color;
 
@@ -61,14 +61,7 @@ export function TextField({
   return (
     <View style={[s.field, style]}>
       {!!label && <Text style={s.label}>{label}</Text>}
-      <View
-        style={[
-          s.box,
-          multiline && s.multiline,
-          focused && s.boxFocus,
-          !!error && s.boxError,
-        ]}
-      >
+      <View style={[s.box, multiline && s.multiline, focused && s.boxFocus, !!error && s.boxError]}>
         {icon && <AppIcon name={icon} color={value ? c.text.primary : c.text.muted} />}
         <TextInput
           {...inputProps}
@@ -104,7 +97,10 @@ export function TextField({
         )}
       </View>
       {!!message && (
-        <Text accessibilityLiveRegion={error ? 'polite' : undefined} style={[s.helper, !!error && s.helperError]}>
+        <Text
+          accessibilityLiveRegion={error ? 'polite' : undefined}
+          style={[s.helper, !!error && s.helperError]}
+        >
           {message}
         </Text>
       )}
@@ -134,7 +130,9 @@ export function Chip({
       hitSlop={4}
       style={[s.chip, selected && s.chipOn]}
     >
-      <Text style={[text.captionBold, { color: selected ? c.text.inverse : c.text.primary }]}>{label}</Text>
+      <Text style={[text.captionBold, { color: selected ? c.text.inverse : c.text.primary }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -143,7 +141,12 @@ export function Chip({
 export function ChipRow({ children, wrap = false }: { children: ReactNode; wrap?: boolean }) {
   if (wrap) return <View style={[s.chipRow, s.chipWrap]}>{children}</View>;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow} style={s.chipScroll}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={s.chipRow}
+      style={s.chipScroll}
+    >
       {children}
     </ScrollView>
   );
@@ -174,7 +177,9 @@ export function Segmented<T extends string>({
             onPress={() => onChange(item.value)}
             style={[s.segmentItem, on && s.segmentOn]}
           >
-            <Text style={[text.captionBold, { color: on ? c.text.inverse : c.text.secondary }]}>{item.label}</Text>
+            <Text style={[text.captionBold, { color: on ? c.text.inverse : c.text.secondary }]}>
+              {item.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -229,7 +234,9 @@ export function CheckMark({
         checked && s.checkOn,
       ]}
     >
-      {checked && <AppIcon name="check" size={box * 0.7} color={c.text.inverse} strokeWidth={2.2} />}
+      {checked && (
+        <AppIcon name="check" size={box * 0.7} color={c.text.inverse} strokeWidth={2.2} />
+      )}
     </View>
   );
 }
@@ -260,89 +267,10 @@ export function CheckRow({
       style={s.checkRow}
     >
       <CheckMark checked={checked} shape={shape} />
-      <Text style={[bold ? text.calloutBold : text.callout, { color: c.text.primary, flex: 1 }]}>{label}</Text>
+      <Text style={[bold ? text.calloutBold : text.callout, { color: c.text.primary, flex: 1 }]}>
+        {label}
+      </Text>
       {right}
     </Pressable>
   );
 }
-
-const s = StyleSheet.create({
-  field: { gap: tokens.space[8], width: '100%' },
-  label: { ...text.label, color: c.text.secondary },
-  box: {
-    minHeight: tokens.size.input,
-    borderWidth: 1,
-    borderColor: c.line.input,
-    borderRadius: tokens.radius.md,
-    backgroundColor: c.bg.default,
-    paddingHorizontal: tokens.space[16],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space[12],
-  },
-  multiline: { alignItems: 'flex-start', paddingVertical: tokens.space[12], minHeight: 112 },
-  boxFocus: { borderColor: c.text.primary },
-  boxError: { borderColor: c.danger.default },
-  input: {
-    ...text.bodyMedium,
-    flex: 1,
-    minWidth: 0,
-    color: c.text.primary,
-    paddingVertical: 0,
-    outlineWidth: 0,
-  } as object,
-  inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
-  trailing: { ...text.caption, color: c.text.muted },
-  helper: { ...text.label, color: c.text.secondary },
-  helperError: { color: c.danger.default },
-  chip: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: tokens.radius.full,
-    borderWidth: 1,
-    borderColor: c.line.input,
-    backgroundColor: c.bg.default,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
-  chipRow: { flexDirection: 'row', gap: tokens.space[8], alignItems: 'center' },
-  chipWrap: { flexWrap: 'wrap' },
-  chipScroll: { flexGrow: 0, marginHorizontal: -tokens.size.screenPadding, paddingHorizontal: tokens.size.screenPadding },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.md,
-    padding: 4,
-    gap: 4,
-  },
-  segmentItem: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: tokens.radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentOn: { backgroundColor: c.bg.inverse },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: c.bg.disabled,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleOn: { backgroundColor: c.bg.inverse },
-  knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: c.bg.default },
-  knobOn: { alignSelf: 'flex-end' },
-  dimmed: { opacity: 0.5 },
-  check: {
-    borderWidth: 1.5,
-    borderColor: c.line.strong,
-    backgroundColor: c.bg.default,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], minHeight: tokens.size.touch },
-});

@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
-import { colors, radius, spacing, typography } from '../../theme/tokens';
-import { localSaveView, saveAnnouncement, saveStatusVisible, type LocalSaveInput } from './localSaveView';
+
+import {
+  localSaveView,
+  saveAnnouncement,
+  saveStatusVisible,
+  type LocalSaveInput,
+} from './localSaveView';
+import { s } from './LocalSaveStatus.styles';
 
 // 저장 중에도 같은 위치에서 읽기/쓰기 실패 맥락과 재시도 버튼을 유지합니다.
 export function LocalSaveStatus({
@@ -53,15 +59,3 @@ export function LocalSaveStatus({
     </View>
   );
 }
-const s = StyleSheet.create({
-  status: { gap: spacing.sm },
-  warning: {
-    padding: spacing.lg,
-    borderRadius: radius.status,
-    backgroundColor: colors.dangerSurface,
-  },
-  title: { ...typography.button, color: colors.danger },
-  normal: { ...typography.caption, color: colors.textSecondary },
-  description: { ...typography.caption, color: colors.text },
-  announcement: { position: 'absolute', width: 1, height: 1, overflow: 'hidden' },
-});

@@ -164,7 +164,7 @@ test('로그인 계정으로 저장하며 전송 실패에도 글을 유지하�
   let saved = false,
     closed = 0;
   const session = {
-    scope: { server: "test", accountId: "me" },
+    scope: { server: 'test', accountId: 'me' },
     isActive: () => true,
     api: {
       directorySettings: async () => ({ memberId: 'me' }),

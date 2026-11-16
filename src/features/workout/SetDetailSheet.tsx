@@ -3,19 +3,43 @@
  * 누르는 즉시 저장하고, 같은 자각도를 다시 누르면 지웁니다.
  */
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { BottomSheet } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import { RPE_VALUES, SET_TYPES, type SetType, type WorkoutSet } from './model';
+import { s } from './SetDetailSheet.styles';
 
 const c = tokens.color;
 
-export const setTypeInfo: Record<SetType, { mark: string; label: string; color: string; note: string }> = {
-  NORMAL: { mark: '', label: '일반 세트', color: c.text.secondary, note: '기록과 추천의 기준이 되는 세트예요.' },
-  WARMUP: { mark: 'W', label: '웜업 세트', color: '#C99A00', note: '가벼운 무게로 몸을 푸는 세트예요. 최고 기록·추천 계산에서 빠져요.' },
-  DROP: { mark: 'D', label: '드롭 세트', color: '#7A5AF8', note: '쉬지 않고 무게를 줄여 이어 하는 세트예요.' },
-  FAILURE: { mark: 'F', label: '실패 세트', color: c.danger.default, note: '더 이상 반복할 수 없을 때까지 한 세트예요.' },
+export const setTypeInfo: Record<
+  SetType,
+  { mark: string; label: string; color: string; note: string }
+> = {
+  NORMAL: {
+    mark: '',
+    label: '일반 세트',
+    color: c.text.secondary,
+    note: '기록과 추천의 기준이 되는 세트예요.',
+  },
+  WARMUP: {
+    mark: 'W',
+    label: '웜업 세트',
+    color: '#C99A00',
+    note: '가벼운 무게로 몸을 푸는 세트예요. 최고 기록·추천 계산에서 빠져요.',
+  },
+  DROP: {
+    mark: 'D',
+    label: '드롭 세트',
+    color: '#7A5AF8',
+    note: '쉬지 않고 무게를 줄여 이어 하는 세트예요.',
+  },
+  FAILURE: {
+    mark: 'F',
+    label: '실패 세트',
+    color: c.danger.default,
+    note: '더 이상 반복할 수 없을 때까지 한 세트예요.',
+  },
 };
 
 /** RPE는 "몇 회 더 할 수 있었는지"로 고르면 쉬워요. */
@@ -28,7 +52,12 @@ const rpeNotes: Record<number, string> = {
   10: '한계 · 더는 못 함',
 };
 const rpeColors: Record<number, string> = {
-  5: '#D7F5EA', 6: '#D7F5EA', 7: '#FBF3C8', 8: '#FDE3CC', 9: '#FDDCDC', 10: '#FBC9C9',
+  5: '#D7F5EA',
+  6: '#D7F5EA',
+  7: '#FBF3C8',
+  8: '#FDE3CC',
+  9: '#FDDCDC',
+  10: '#FBC9C9',
 };
 
 export function SetDetailSheet({
@@ -48,10 +77,20 @@ export function SetDetailSheet({
   const [note, setNote] = useState<'type' | 'rpe' | null>(null);
   const type = set.setType ?? 'NORMAL';
   return (
-    <BottomSheet visible title="세트 타입" subtitle={`${exerciseName} · ${/^\d+$/.test(label) ? `${label}세트` : setTypeInfo[type].label}`} onClose={onClose}>
+    <BottomSheet
+      visible
+      title="세트 타입"
+      subtitle={`${exerciseName} · ${/^\d+$/.test(label) ? `${label}세트` : setTypeInfo[type].label}`}
+      onClose={onClose}
+    >
       <View style={s.head}>
         <Text style={[text.captionBold, { color: c.text.secondary, flex: 1 }]}>종류</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="세트 종류 설명 보기" hitSlop={8} onPress={() => setNote(note === 'type' ? null : 'type')}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="세트 종류 설명 보기"
+          hitSlop={8}
+          onPress={() => setNote(note === 'type' ? null : 'type')}
+        >
           <AppIcon name="help" color={c.text.muted} size={18} />
         </Pressable>
       </View>
@@ -72,7 +111,9 @@ export function SetDetailSheet({
               <Text style={[text.bodyBold, { color: on ? c.text.inverse : info.color, width: 18 }]}>
                 {info.mark || (option === type ? label : '#')}
               </Text>
-              <Text style={[text.bodyBold, { color: on ? c.text.inverse : c.text.primary }]}>{info.label}</Text>
+              <Text style={[text.bodyBold, { color: on ? c.text.inverse : c.text.primary }]}>
+                {info.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -88,8 +129,15 @@ export function SetDetailSheet({
       )}
 
       <View style={s.head}>
-        <Text style={[text.captionBold, { color: c.text.secondary, flex: 1 }]}>운동 자각도 (RPE)</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="운동 자각도 설명 보기" hitSlop={8} onPress={() => setNote(note === 'rpe' ? null : 'rpe')}>
+        <Text style={[text.captionBold, { color: c.text.secondary, flex: 1 }]}>
+          운동 자각도 (RPE)
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="운동 자각도 설명 보기"
+          hitSlop={8}
+          onPress={() => setNote(note === 'rpe' ? null : 'rpe')}
+        >
           <AppIcon name="help" color={c.text.muted} size={18} />
         </Pressable>
       </View>
@@ -118,35 +166,18 @@ export function SetDetailSheet({
       {note === 'rpe' ? (
         <View style={{ gap: 4 }}>
           {RPE_VALUES.map((value) => (
-            <Text key={value} style={[text.label, { color: c.text.secondary }]}>{value}: {rpeNotes[value]}</Text>
+            <Text key={value} style={[text.label, { color: c.text.secondary }]}>
+              {value}: {rpeNotes[value]}
+            </Text>
           ))}
         </View>
       ) : (
         <Text style={[text.label, { color: c.text.muted }]}>
-          {set.rpe ? `${set.rpe} · ${rpeNotes[set.rpe]} (다시 누르면 지워요)` : '세트를 마친 뒤 얼마나 힘들었는지 골라 주세요.'}
+          {set.rpe
+            ? `${set.rpe} · ${rpeNotes[set.rpe]} (다시 누르면 지워요)`
+            : '세트를 마친 뒤 얼마나 힘들었는지 골라 주세요.'}
         </Text>
       )}
     </BottomSheet>
   );
 }
-
-const s = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space[8] },
-  type: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space[8],
-    paddingHorizontal: tokens.space[16],
-    borderRadius: tokens.radius.md,
-    backgroundColor: c.bg.surface,
-  },
-  typeOn: { backgroundColor: c.bg.inverse },
-  scale: { flexDirection: 'row', justifyContent: 'space-between' },
-  rpeRow: { flexDirection: 'row', gap: tokens.space[8] },
-  rpe: { flex: 1, minHeight: 44, borderRadius: tokens.radius.sm, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
-  rpeOn: { borderColor: c.text.primary },
-});

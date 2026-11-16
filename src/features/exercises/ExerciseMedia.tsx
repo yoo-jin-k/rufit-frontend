@@ -8,6 +8,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { tokens } from '../../theme/tokens';
 import type { CatalogExercise } from './catalog';
 import { exerciseAnimations, exerciseImages } from './images';
+import { s } from './ExerciseMedia.styles';
 
 export function ExerciseMedia({
   exercise,
@@ -64,17 +65,3 @@ export function ExerciseMedia({
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  picture: { borderRadius: tokens.radius.md, backgroundColor: tokens.color.line.input, overflow: 'hidden' },
-  expanded: { width: '100%', aspectRatio: 362 / 200, borderRadius: tokens.radius.xl },
-  // 구매한 GIF의 흰 배경과 이어지도록 회색 대신 흰색을 깔아 줍니다.
-  animation: { backgroundColor: tokens.color.bg.default },
-  fill: { width: '100%', height: '100%' },
-  fallback: {
-    borderRadius: tokens.radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: tokens.color.line.input,
-  },
-});

@@ -2,5 +2,9 @@
 import { Modal, type ModalProps } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 export function AppModal({ children, ...props }: ModalProps) {
-  return <Modal {...props}><SafeAreaProvider>{children}</SafeAreaProvider></Modal>;
+  return (
+    <Modal {...props}>
+      <SafeAreaProvider>{children}</SafeAreaProvider>
+    </Modal>
+  );
 }

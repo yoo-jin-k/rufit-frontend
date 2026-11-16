@@ -9,9 +9,13 @@ export function useBodyWeight(refresh?: unknown) {
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(weightStorageKey)
-      .then((raw) => { if (active) setValue(latestBodyKg(decodeWeight(raw))); })
+      .then((raw) => {
+        if (active) setValue(latestBodyKg(decodeWeight(raw)));
+      })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [refresh]);
   return value;
 }

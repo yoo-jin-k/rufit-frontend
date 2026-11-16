@@ -56,7 +56,12 @@ export const tokens = {
 
 /** 글자 간격 -1%를 크기별 픽셀 값으로 바꿉니다. Figma 텍스트 스타일과 같은 계산입니다. */
 const tracking = (fontSize: number, percent = -1) => (fontSize * percent) / 100;
-const style = (fontSize: number, weight: '400' | '500' | '700', lineHeight: number, percent = -1) => ({
+const style = (
+  fontSize: number,
+  weight: '400' | '500' | '700',
+  lineHeight: number,
+  percent = -1,
+) => ({
   fontSize,
   fontWeight: weight,
   lineHeight: Math.round(fontSize * lineHeight),
@@ -115,7 +120,12 @@ export const spacing = {
   bottom: 32,
   touch: 48,
 };
-export const radius = { button: tokens.radius.lg, input: tokens.radius.md, status: tokens.radius.xl, card: tokens.radius.xl };
+export const radius = {
+  button: tokens.radius.lg,
+  input: tokens.radius.md,
+  status: tokens.radius.xl,
+  card: tokens.radius.xl,
+};
 export const typography = {
   title: { fontSize: f.titleL, lineHeight: 36, fontWeight: '700' },
   timer: { fontSize: f.display, lineHeight: 43, fontWeight: '700' },

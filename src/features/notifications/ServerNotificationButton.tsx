@@ -1,7 +1,7 @@
 import { AppModal as Modal } from '../../components/AppModal';
 import { ServerPostDetail } from '../posts/ServerPosts';
 import { useRef, useState } from 'react';
-import {  Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';

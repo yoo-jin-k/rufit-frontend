@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
-import { colors, spacing, typography } from '../../theme/tokens';
+
 import { setInputStyles as fieldStyles } from './SetInput.styles';
 import { parseRestInput } from './restSettingView';
+import { s } from './RestSetting.styles';
 
 export const formatRest = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -114,8 +115,3 @@ export function RestSetting({
     </View>
   );
 }
-const s = StyleSheet.create({
-  section: { gap: spacing.sm },
-  label: { ...typography.body, color: colors.text },
-  description: { ...typography.caption, color: colors.textSecondary },
-});

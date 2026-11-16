@@ -35,14 +35,8 @@ import { StartWorkoutSheet } from './StartWorkoutSheet';
 import { workoutFromTemplate } from './startSheetModel';
 import { fillRemainingSets, recommendSet } from './setEditorModel';
 import { WorkoutSession, type SessionActions } from './WorkoutSession';
-import { text, tokens } from '../../theme/tokens';
-import {
-  AppState,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+
+import { AppState, Platform, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { ExercisePicker } from '../exercises/ExercisePicker';
 import { findCatalogExercise } from '../exercises/catalog';
@@ -66,6 +60,7 @@ import { recommendedRest } from '../exercises/recommendedRest';
 import { restTimerView } from './timerView';
 import { LocalSaveStatus } from './LocalSaveStatus';
 import { saveStatusVisible } from './localSaveView';
+import { s } from './WorkoutScreen.styles';
 let counter = 0;
 const nextId = () => `${Date.now()}-${++counter}`;
 export function WorkoutScreen({
@@ -130,7 +125,9 @@ export function WorkoutScreen({
   const [restoredDraft, setRestoredDraft] = useState<JournalDraft | null>(null);
   const draftScope = session ? `${session.scope.server}:${session.scope.accountId}` : 'guest';
   const [journalWorkout, setJournalWorkout] = useState<Workout | null>(null);
-  const [savedJournal, setSavedJournal] = useState<{ journal: Journal; account: boolean } | null>(null);
+  const [savedJournal, setSavedJournal] = useState<{ journal: Journal; account: boolean } | null>(
+    null,
+  );
   const [completionMonth, setCompletionMonth] = useState<string | null>(null);
   const [manualDate, setManualDate] = useState<string | null>(null);
   const [showWeight, setShowWeight] = useState(false);
@@ -144,10 +141,20 @@ export function WorkoutScreen({
   const [error, setError] = useState('');
   useEffect(() => {
     let active = true;
-    void journalDraftStorage.load(draftScope).then(draft => {
-      if (active && draft) { setRestoredDraft(draft); setJournalWorkout(draft.workout); }
-    }).catch(() => { if (active) setError('작성 중인 오운완을 불러오지 못했습니다. 기존 자료는 보존했습니다.'); });
-    return () => { active = false; };
+    void journalDraftStorage
+      .load(draftScope)
+      .then((draft) => {
+        if (active && draft) {
+          setRestoredDraft(draft);
+          setJournalWorkout(draft.workout);
+        }
+      })
+      .catch(() => {
+        if (active) setError('작성 중인 오운완을 불러오지 못했습니다. 기존 자료는 보존했습니다.');
+      });
+    return () => {
+      active = false;
+    };
   }, [draftScope]);
   const [now, setNow] = useState(Date.now);
   const [startSoon, setStartSoon] = useState(false);
@@ -161,17 +168,22 @@ export function WorkoutScreen({
   // 로그인 창이 내려가는 중에 시트를 띄우면 iOS에서 무시되므로 잠시 뒤에 엽니다.
   useEffect(() => {
     if (!startSoon) return;
-    const timer = setTimeout(() => {
-      setStartSoon(false);
-      setShowStart(true);
-    }, Platform.OS === 'ios' ? 600 : 0);
+    const timer = setTimeout(
+      () => {
+        setStartSoon(false);
+        setShowStart(true);
+      },
+      Platform.OS === 'ios' ? 600 : 0,
+    );
     return () => clearTimeout(timer);
   }, [startSoon]);
   function beginWorkout(source?: Workout) {
     setShowStart(false);
     if (workout && workout.finishedAt === undefined) return;
     const now = Date.now();
-    setWorkout(source ? workoutFromTemplate(source, nextId(), now, nextId) : startWorkout(nextId(), now));
+    setWorkout(
+      source ? workoutFromTemplate(source, nextId(), now, nextId) : startWorkout(nextId(), now),
+    );
     setNow(now);
     setError('');
     // 빈 운동은 바로 종목을 고르고, 불러온 운동은 종목이 채워져 있으므로 기록 화면을 보여 줍니다.
@@ -193,7 +205,8 @@ export function WorkoutScreen({
   }, []);
   // 운동이 흐르는 동안 30초마다, 그리고 화면을 벗어날 때 켜져 있던 시각을 남깁니다.
   // 앱을 완전히 껐다 켜면 이 시각에 멈춘 상태로 복구됩니다. 다른 앱으로 잠깐 전환해도 운동은 계속 흐릅니다.
-  const running = ready && !!workout && workout.finishedAt === undefined && workout.pausedAt === undefined;
+  const running =
+    ready && !!workout && workout.finishedAt === undefined && workout.pausedAt === undefined;
   useEffect(() => {
     if (!running) return;
     void markWorkoutActive(Date.now());
@@ -235,7 +248,7 @@ export function WorkoutScreen({
   // 종료 요청은 상단에서 처리하며 미완료 세트 확인은 스크롤 위치와 무관하게 표시합니다.
   function requestFinish() {
     // 완료 세트가 없는 운동은 기록을 만들지 않고 종료할 수 있습니다.
-    if (!workout?.exercises.some(e => e.sets.some(set => set.completed))) {
+    if (!workout?.exercises.some((e) => e.sets.some((set) => set.completed))) {
       setConfirmEmpty(true);
       return;
     }
@@ -288,7 +301,8 @@ export function WorkoutScreen({
     },
     onAddSet: (exerciseId, afterSetId) => act((w) => addSet(w, exerciseId, nextId(), afterSetId)),
     onRemoveSet: (exerciseId, setId) => act((w) => removeSet(w, exerciseId, setId)),
-    onSetDetail: (exerciseId, setId, detail) => act((w) => setSetDetail(w, exerciseId, setId, detail)),
+    onSetDetail: (exerciseId, setId, detail) =>
+      act((w) => setSetDetail(w, exerciseId, setId, detail)),
     onFillRemaining: (exerciseId, setId) => {
       if (!workout) return 0;
       try {
@@ -306,7 +320,9 @@ export function WorkoutScreen({
     onLoadPrevious: setLoadExerciseId,
     onAddExercise: () => setShowPicker(true),
     onTogglePause: () =>
-      act((w) => (w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()))),
+      act((w) =>
+        w.pausedAt !== undefined ? resumeWorkout(w, Date.now()) : pauseWorkout(w, Date.now()),
+      ),
     onFinish: requestFinish,
     onAdjustRest: (seconds) => {
       adjustRest(seconds);
@@ -319,270 +335,294 @@ export function WorkoutScreen({
     },
     onSkipRest: skipRest,
   };
-  const friends = session ? <ServerWorkoutFriends session={session} live={live} /> : <WorkoutFriends enabled={__DEV__} />;
+  const friends = session ? (
+    <ServerWorkoutFriends session={session} live={live} />
+  ) : (
+    <WorkoutFriends enabled={__DEV__} />
+  );
   return (
     <UnitProvider session={session}>
-    <FavoritesProvider session={session}>
-    <View style={s.page}>
-      <View style={s.page}>
-        {tab === 'workout' ? (
-          !!workout && !finished ? (
-            <WorkoutSession
-              workout={workout}
-              history={history}
-              now={now}
-              ready={ready}
-              rest={rest ?? null}
-              restView={restView}
-              restSecondsFor={(exercise) => restFor(exercise).seconds}
-              restSourceFor={(exercise) => restFor(exercise).source}
-              commonRest={defaultRest ?? undefined}
-              status={state !== 'saved' ? status : undefined}
-              error={error}
-              actions={sessionActions}
+      <FavoritesProvider session={session}>
+        <View style={s.page}>
+          <View style={s.page}>
+            {tab === 'workout' ? (
+              !!workout && !finished ? (
+                <WorkoutSession
+                  workout={workout}
+                  history={history}
+                  now={now}
+                  ready={ready}
+                  rest={rest ?? null}
+                  restView={restView}
+                  restSecondsFor={(exercise) => restFor(exercise).seconds}
+                  restSourceFor={(exercise) => restFor(exercise).source}
+                  commonRest={defaultRest ?? undefined}
+                  status={state !== 'saved' ? status : undefined}
+                  error={error}
+                  actions={sessionActions}
+                />
+              ) : (
+                <WorkoutHome
+                  history={history}
+                  ready={ready}
+                  now={now}
+                  journals={profile.value.journals}
+                  headerActions={<NotificationButton />}
+                  friends={friends}
+                  status={
+                    <>
+                      {state !== 'saved' && status}
+                      {!!error && (
+                        <Text accessibilityRole="alert" style={s.error}>
+                          {error}
+                        </Text>
+                      )}
+                    </>
+                  }
+                  onStart={() => setShowStart(true)}
+                  onManual={setManualDate}
+                  onJournal={setJournalWorkout}
+                  onDelete={deleteWorkout}
+                />
+              )
+            ) : tab === 'analysis' ? (
+              <AnalysisScreen
+                key={`${showStrength}-${showWeight}`}
+                now={now}
+                history={history}
+                onStrength={() => setShowStrength(true)}
+                onWeight={() => setShowWeight(true)}
+              />
+            ) : tab === 'profile' ? (
+              <ProfileScreen
+                key={`${session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}:${journalRevision}`}
+                initialJournalSource={journalDestination}
+                session={session}
+                now={now}
+                history={history}
+                profile={profile}
+                onJournal={setJournalWorkout}
+              />
+            ) : (
+              <SettingsScreen
+                live={session ? live : undefined}
+                onServerHistory={session?.isActive() ? () => setServerHistory(true) : undefined}
+                defaultRest={defaultRest}
+                onRest={saveDefaultRest}
+                nickname={profile.value.nickname}
+                history={history}
+                onProfile={() => setTab('profile')}
+                authLabel={authLabel}
+                onAuth={() => {
+                  if (workout && !finished) act((w) => pauseWorkout(w, Date.now()));
+                  onOpenAuth?.();
+                }}
+              />
+            )}
+            {tab !== 'workout' &&
+              saveStatusVisible({ state, ready, retryPending, unsavedAfterFailure }) && (
+                <View style={s.dock}>
+                  <LocalSaveStatus
+                    state={state}
+                    ready={ready}
+                    unsavedAfterFailure={unsavedAfterFailure}
+                    retryPending={retryPending}
+                    onRetry={retry}
+                  />
+                </View>
+              )}
+            <BottomSheet
+              visible={confirmEmpty}
+              title="운동을 끝낼까요?"
+              subtitle="완료한 세트가 없어요. 시간만 저장하거나 기록 없이 끝낼 수 있어요."
+              onClose={() => setConfirmEmpty(false)}
+            >
+              <Button
+                title="시간 기록 저장하고 종료"
+                onPress={() => {
+                  try {
+                    completeWorkout(false, true);
+                  } catch (cause) {
+                    setError(cause instanceof Error ? cause.message : '종료하지 못했습니다.');
+                  }
+                }}
+              />
+              <Button
+                title="기록 없이 종료"
+                variant="secondary"
+                onPress={() => {
+                  setWorkout(null);
+                  setConfirmEmpty(false);
+                  setError('');
+                }}
+              />
+              <Button title="계속하기" variant="soft" onPress={() => setConfirmEmpty(false)} />
+            </BottomSheet>
+            {/* 운동 진행 화면은 집중을 위해 하단 메뉴를 숨깁니다(Figma 03 섹션). */}
+            {!(tab === 'workout' && !!workout && !finished) && (
+              <BottomNavigation value={tab} onChange={setTab} />
+            )}
+            {serverHistory && session?.isActive() && (
+              <ServerHistoryScreen
+                key={`${session.scope.server}:${session.scope.accountId}`}
+                session={session}
+                history={history}
+                onChanged={() => setNow(Date.now())}
+                onClose={() => setServerHistory(false)}
+              />
+            )}
+            {restExercise && (
+              <RestTimerSheet
+                key={restExercise.id}
+                name={restExercise.name}
+                seconds={restFor(restExercise).seconds}
+                recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
+                onClose={() => setRestSettingsId(null)}
+                onApply={(seconds, all) => {
+                  applyRest(restExercise, seconds, all);
+                  setNow(Date.now());
+                }}
+              />
+            )}
+            <ConfirmDialog
+              visible={confirmFinish}
+              title="운동을 끝낼까요?"
+              message={`완료하지 않은 세트 ${total - completed}개는 기록에 남지 않아요`}
+              cancelLabel="계속하기"
+              confirmLabel="종료하기"
+              onCancel={() => setConfirmFinish(false)}
+              onConfirm={() => {
+                try {
+                  completeWorkout(true);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
+                  setConfirmFinish(false);
+                }
+              }}
             />
-          ) : (
-            <WorkoutHome
-              history={history}
-              ready={ready}
-              now={now}
-              journals={profile.value.journals}
-              headerActions={<NotificationButton />}
-              friends={friends}
-              status={
-                <>
-                  {state !== 'saved' && status}
-                  {!!error && (
-                    <Text accessibilityRole="alert" style={s.error}>
-                      {error}
-                    </Text>
-                  )}
-                </>
+            {journalWorkout && (
+              <JournalComposer
+                key={session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}
+                session={session}
+                workout={journalWorkout}
+                nickname={profile.value.nickname}
+                restoredDraft={
+                  restoredDraft?.workout.id === journalWorkout.id ? restoredDraft : null
+                }
+                initial={profile.value.journals.find((j) => j.workoutId === journalWorkout.id)}
+                onClose={() => {
+                  setJournalWorkout(null);
+                  setRestoredDraft(null);
+                }}
+                onSave={async (j, accountSaved) => {
+                  if (!accountSaved) await profile.save(upsertJournal(profile.value, j));
+                  // 프로필에서 저장해도 목록을 다시 조회하고 선택한 저장 위치를 표시합니다.
+                  setJournalDestination(accountSaved ? 'account' : 'device');
+                  setJournalRevision((value) => value + 1);
+                  // 저장 완료 화면(03-18)에서 프로필로 갈지 홈으로 갈지 고릅니다.
+                  setSavedJournal({ journal: j, account: !!accountSaved });
+                }}
+              />
+            )}
+            <JournalSaved
+              journal={savedJournal?.journal ?? null}
+              accountSaved={!!savedJournal?.account}
+              onProfile={() => {
+                setSavedJournal(null);
+                setTab('profile');
+              }}
+              onHome={() => {
+                setSavedJournal(null);
+                setTab('workout');
+              }}
+            />
+            <MonthlyCompletion
+              progress={
+                completionMonth && finished && state === 'saved'
+                  ? monthlyProgress(history, completionMonth)
+                  : null
               }
-              onStart={() => setShowStart(true)}
-              onManual={setManualDate}
-              onJournal={setJournalWorkout}
-              onDelete={deleteWorkout}
+              workout={workout}
+              onJournal={() => {
+                setCompletionMonth(null);
+                if (workout) setJournalWorkout(workout);
+              }}
+              onClose={() => setCompletionMonth(null)}
             />
-          )
-        ) : tab === 'analysis' ? (
-          <AnalysisScreen
-            key={`${showStrength}-${showWeight}`}
-            now={now}
-            history={history}
-            onStrength={() => setShowStrength(true)}
-            onWeight={() => setShowWeight(true)}
-          />
-        ) : tab === 'profile' ? (
-          <ProfileScreen
-            key={`${session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}:${journalRevision}`}
-            initialJournalSource={journalDestination}
-            session={session}
-            now={now}
-            history={history}
-            profile={profile}
-            onJournal={setJournalWorkout}
-          />
-        ) : (
-          <SettingsScreen
-            live={session ? live : undefined}
-            onServerHistory={session?.isActive() ? () => setServerHistory(true) : undefined}
-            defaultRest={defaultRest}
-            onRest={saveDefaultRest}
-            nickname={profile.value.nickname}
-            history={history}
-            onProfile={() => setTab('profile')}
-            authLabel={authLabel}
-            onAuth={() => {
-              if (workout && !finished) act(w => pauseWorkout(w, Date.now()));
-              onOpenAuth?.();
-            }}
-          />
-        )}
-        {tab !== 'workout' && saveStatusVisible({ state, ready, retryPending, unsavedAfterFailure }) && (
-          <View style={s.dock}>
-            <LocalSaveStatus
-              state={state}
-              ready={ready}
-              unsavedAfterFailure={unsavedAfterFailure}
-              retryPending={retryPending}
-              onRetry={retry}
+            {manualDate && (
+              <ManualWorkoutScreen
+                initialDate={manualDate}
+                history={history}
+                onClose={() => setManualDate(null)}
+                onSave={(record) => {
+                  addManualWorkout(record);
+                  setManualDate(null);
+                }}
+              />
+            )}
+            <Modal
+              visible={showWeight}
+              animationType="slide"
+              onRequestClose={() => setShowWeight(false)}
+            >
+              {showWeight && <BodyWeightScreen onClose={() => setShowWeight(false)} />}
+            </Modal>
+            <Modal
+              visible={showStrength}
+              animationType="slide"
+              onRequestClose={() => setShowStrength(false)}
+            >
+              {showStrength && <StrengthScreen onClose={() => setShowStrength(false)} />}
+            </Modal>
+            {workout?.exercises.find((exercise) => exercise.id === loadExerciseId) && (
+              <PreviousSets
+                history={history}
+                target={workout.exercises.find((exercise) => exercise.id === loadExerciseId)!}
+                onClose={() => setLoadExerciseId(null)}
+                onLoad={(source, replace) => {
+                  change((current) =>
+                    importPreviousSets(current, loadExerciseId!, source, nextId, replace),
+                  );
+                }}
+              />
+            )}
+            <StartWorkoutSheet
+              visible={showStart && tab === 'workout' && (!workout || finished)}
+              history={history}
+              onClose={() => setShowStart(false)}
+              onEmpty={() => beginWorkout()}
+              onLoad={(source) => beginWorkout(source)}
+            />
+            <ExercisePicker
+              visible={showPicker}
+              history={history}
+              selectedIds={
+                workout?.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : [])) ?? []
+              }
+              onClose={() => setShowPicker(false)}
+              onSelect={(exercises) =>
+                change((w) =>
+                  exercises.reduce((current, exercise) => {
+                    // 새 종목의 첫 세트에는 추천 무게·횟수를 미리 넣어 바로 기록할 수 있게 합니다.
+                    const id = nextId();
+                    const added = addExercise(current, id, exercise.name, exercise.id);
+                    const created = added.exercises.at(-1)!;
+                    const pick = recommendSet(
+                      history,
+                      created,
+                      findCatalogExercise(exercise.id)?.equipment,
+                    );
+                    return updateSet(added, id, created.sets[0]!.id, {
+                      weight: pick.weight,
+                      reps: pick.reps,
+                    });
+                  }, w),
+                )
+              }
             />
           </View>
-        )}
-        <BottomSheet
-          visible={confirmEmpty}
-          title="운동을 끝낼까요?"
-          subtitle="완료한 세트가 없어요. 시간만 저장하거나 기록 없이 끝낼 수 있어요."
-          onClose={() => setConfirmEmpty(false)}
-        >
-          <Button title="시간 기록 저장하고 종료" onPress={() => {
-            try { completeWorkout(false, true); } catch (cause) { setError(cause instanceof Error ? cause.message : '종료하지 못했습니다.'); }
-          }} />
-          <Button title="기록 없이 종료" variant="secondary" onPress={() => {
-            setWorkout(null); setConfirmEmpty(false); setError('');
-          }} />
-          <Button title="계속하기" variant="soft" onPress={() => setConfirmEmpty(false)} />
-        </BottomSheet>
-        {/* 운동 진행 화면은 집중을 위해 하단 메뉴를 숨깁니다(Figma 03 섹션). */}
-        {!(tab === 'workout' && !!workout && !finished) && <BottomNavigation value={tab} onChange={setTab} />}
-        {serverHistory && session?.isActive() && (
-          <ServerHistoryScreen
-            key={`${session.scope.server}:${session.scope.accountId}`}
-            session={session}
-            history={history}
-            onChanged={() => setNow(Date.now())}
-            onClose={() => setServerHistory(false)}
-          />
-        )}
-        {restExercise && (
-          <RestTimerSheet
-            key={restExercise.id}
-            name={restExercise.name}
-            seconds={restFor(restExercise).seconds}
-            recommended={recommendedRest(findCatalogExercise(restExercise.catalogId)) ?? 90}
-            onClose={() => setRestSettingsId(null)}
-            onApply={(seconds, all) => {
-              applyRest(restExercise, seconds, all);
-              setNow(Date.now());
-            }}
-          />
-        )}
-        <ConfirmDialog
-          visible={confirmFinish}
-          title="운동을 끝낼까요?"
-          message={`완료하지 않은 세트 ${total - completed}개는 기록에 남지 않아요`}
-          cancelLabel="계속하기"
-          confirmLabel="종료하기"
-          onCancel={() => setConfirmFinish(false)}
-          onConfirm={() => {
-            try {
-              completeWorkout(true);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : '다시 시도해 주세요.');
-              setConfirmFinish(false);
-            }
-          }}
-        />
-        {journalWorkout && (
-          <JournalComposer
-            key={session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}
-            session={session}
-            workout={journalWorkout}
-            nickname={profile.value.nickname}
-            restoredDraft={restoredDraft?.workout.id === journalWorkout.id ? restoredDraft : null}
-            initial={profile.value.journals.find((j) => j.workoutId === journalWorkout.id)}
-            onClose={() => { setJournalWorkout(null); setRestoredDraft(null); }}
-            onSave={async (j, accountSaved) => {
-              if (!accountSaved) await profile.save(upsertJournal(profile.value, j));
-              // 프로필에서 저장해도 목록을 다시 조회하고 선택한 저장 위치를 표시합니다.
-              setJournalDestination(accountSaved ? 'account' : 'device');
-              setJournalRevision((value) => value + 1);
-              // 저장 완료 화면(03-18)에서 프로필로 갈지 홈으로 갈지 고릅니다.
-              setSavedJournal({ journal: j, account: !!accountSaved });
-            }}
-          />
-        )}
-        <JournalSaved
-          journal={savedJournal?.journal ?? null}
-          accountSaved={!!savedJournal?.account}
-          onProfile={() => {
-            setSavedJournal(null);
-            setTab('profile');
-          }}
-          onHome={() => {
-            setSavedJournal(null);
-            setTab('workout');
-          }}
-        />
-        <MonthlyCompletion
-          progress={
-            completionMonth && finished && state === 'saved'
-              ? monthlyProgress(history, completionMonth)
-              : null
-          }
-          workout={workout}
-          onJournal={() => {
-            setCompletionMonth(null);
-            if (workout) setJournalWorkout(workout);
-          }}
-          onClose={() => setCompletionMonth(null)}
-        />
-        {manualDate && (
-          <ManualWorkoutScreen
-            initialDate={manualDate}
-            history={history}
-            onClose={() => setManualDate(null)}
-            onSave={(record) => {
-              addManualWorkout(record);
-              setManualDate(null);
-            }}
-          />
-        )}
-        <Modal
-          visible={showWeight}
-          animationType="slide"
-          onRequestClose={() => setShowWeight(false)}
-        >
-          {showWeight && (
-            <BodyWeightScreen onClose={() => setShowWeight(false)} />
-          )}
-        </Modal>
-        <Modal
-          visible={showStrength}
-          animationType="slide"
-          onRequestClose={() => setShowStrength(false)}
-        >
-          {showStrength && (
-            <StrengthScreen onClose={() => setShowStrength(false)} />
-          )}
-        </Modal>
-        {workout?.exercises.find((exercise) => exercise.id === loadExerciseId) && (
-          <PreviousSets
-            history={history}
-            target={workout.exercises.find((exercise) => exercise.id === loadExerciseId)!}
-            onClose={() => setLoadExerciseId(null)}
-            onLoad={(source, replace) => {
-              change((current) =>
-                importPreviousSets(current, loadExerciseId!, source, nextId, replace),
-              );
-            }}
-          />
-        )}
-        <StartWorkoutSheet
-          visible={showStart && tab === 'workout' && (!workout || finished)}
-          history={history}
-          onClose={() => setShowStart(false)}
-          onEmpty={() => beginWorkout()}
-          onLoad={(source) => beginWorkout(source)}
-        />
-        <ExercisePicker
-          visible={showPicker}
-          history={history}
-          selectedIds={workout?.exercises.flatMap((e) => (e.catalogId ? [e.catalogId] : [])) ?? []}
-          onClose={() => setShowPicker(false)}
-          onSelect={(exercises) =>
-            change((w) =>
-              exercises.reduce((current, exercise) => {
-                // 새 종목의 첫 세트에는 추천 무게·횟수를 미리 넣어 바로 기록할 수 있게 합니다.
-                const id = nextId();
-                const added = addExercise(current, id, exercise.name, exercise.id);
-                const created = added.exercises.at(-1)!;
-                const pick = recommendSet(history, created, findCatalogExercise(exercise.id)?.equipment);
-                return updateSet(added, id, created.sets[0]!.id, { weight: pick.weight, reps: pick.reps });
-              }, w),
-            )
-          }
-        />
-      </View>
-    </View>
-    </FavoritesProvider>
+        </View>
+      </FavoritesProvider>
     </UnitProvider>
   );
 }
-
-const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: tokens.color.bg.default },
-  error: { ...text.caption, color: tokens.color.danger.default },
-  dock: { paddingHorizontal: tokens.size.screenPadding, paddingVertical: tokens.space[8], backgroundColor: tokens.color.bg.default },
-});

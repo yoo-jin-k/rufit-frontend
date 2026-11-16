@@ -3,7 +3,7 @@
  * 이 기록은 현재 기기에 저장되며 서버와 자동 동기화되지 않습니다.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '../../components/Button';
 import { Segmented, TextField } from '../../components/kit/Controls';
@@ -12,12 +12,29 @@ import { EmptyCard } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import { DateField } from '../calendar/DateField';
 import { formatDay, formatNumber } from '../workout/recordFormat';
-import { decode, labels, lifts, measurement, storageKey, today, total, upsert, type Lift, type Measurement } from './model';
+import {
+  decode,
+  labels,
+  lifts,
+  measurement,
+  storageKey,
+  today,
+  total,
+  upsert,
+  type Lift,
+  type Measurement,
+} from './model';
 import { TrendChart } from './TrendChart';
+import { s } from './StrengthScreen.styles';
 
 const c = tokens.color;
 const empty = (): Record<Lift, string> => ({ bench: '', squat: '', deadlift: '' });
-const shortLabels: Record<Lift | 'total', string> = { total: '합계', bench: '벤치', squat: '스쿼트', deadlift: '데드' };
+const shortLabels: Record<Lift | 'total', string> = {
+  total: '합계',
+  bench: '벤치',
+  squat: '스쿼트',
+  deadlift: '데드',
+};
 const md = (date: string) => formatDay(date, 'compact').replace(/ .$/, '');
 
 /** 변화량을 '+12.5kg', '−1.2kg'처럼 부호와 함께 씁니다. */
@@ -48,7 +65,10 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
         }
       })
       .catch(() => {
-        if (active) setError('기록을 불러오지 못했습니다. 기존 데이터는 보존했습니다. 닫은 뒤 다시 열어 주세요.');
+        if (active)
+          setError(
+            '기록을 불러오지 못했습니다. 기존 데이터는 보존했습니다. 닫은 뒤 다시 열어 주세요.',
+          );
       });
     return () => {
       active = false;
@@ -57,7 +77,15 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
   function selectDate(value: string) {
     setDate(value);
     const record = records.find((r) => r.date === value);
-    setInput(record ? { bench: String(record.bench), squat: String(record.squat), deadlift: String(record.deadlift) } : empty());
+    setInput(
+      record
+        ? {
+            bench: String(record.bench),
+            squat: String(record.squat),
+            deadlift: String(record.deadlift),
+          }
+        : empty(),
+    );
     setNotice('');
     setError('');
   }
@@ -93,10 +121,30 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
   if (editing)
     return (
       <Screen
-        header={<NavBar title="삼대 기록 입력" leading="close" onLeading={() => !busy && setEditing(false)} />}
-        footer={<Button title="저장" accessibilityLabel="저장하기" loading={busy} disabled={!ready} onPress={() => void save()} />}
+        header={
+          <NavBar
+            title="삼대 기록 입력"
+            leading="close"
+            onLeading={() => !busy && setEditing(false)}
+          />
+        }
+        footer={
+          <Button
+            title="저장"
+            accessibilityLabel="저장하기"
+            loading={busy}
+            disabled={!ready}
+            onPress={() => void save()}
+          />
+        }
       >
-        <DateField label="측정 날짜" accessibilityLabel="측정 날짜" value={date} onChange={selectDate} disabled={!ready || busy} />
+        <DateField
+          label="측정 날짜"
+          accessibilityLabel="측정 날짜"
+          value={date}
+          onChange={selectDate}
+          disabled={!ready || busy}
+        />
         {lifts.map((lift) => (
           <TextField
             key={lift}
@@ -118,9 +166,15 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
           </Text>
         </View>
         <Text style={[text.label, { color: c.text.muted }]}>
-          {existing ? '같은 날짜에 다시 저장하면 기존 기록을 고쳐요.' : '무게는 kg, 소수 둘째 자리까지 입력할 수 있어요.'}
+          {existing
+            ? '같은 날짜에 다시 저장하면 기존 기록을 고쳐요.'
+            : '무게는 kg, 소수 둘째 자리까지 입력할 수 있어요.'}
         </Text>
-        {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
+        {!!error && (
+          <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
+            {error}
+          </Text>
+        )}
       </Screen>
     );
   return (
@@ -129,10 +183,23 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
         <NavBar
           title="삼대 측정"
           onLeading={onClose}
-          trailing={records.length ? <IconButton icon="plus" label="측정 기록 추가" onPress={() => edit(today())} /> : undefined}
+          trailing={
+            records.length ? (
+              <IconButton icon="plus" label="측정 기록 추가" onPress={() => edit(today())} />
+            ) : undefined
+          }
         />
       }
-      footer={!records.length && <Button title="첫 기록 입력" accessibilityLabel="측정 기록 추가" disabled={!ready} onPress={() => edit(today())} />}
+      footer={
+        !records.length && (
+          <Button
+            title="첫 기록 입력"
+            accessibilityLabel="측정 기록 추가"
+            disabled={!ready}
+            onPress={() => edit(today())}
+          />
+        )
+      }
     >
       {!records.length ? (
         <EmptyCard
@@ -146,13 +213,17 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
           <>
             <Segmented
               label="그래프 종목"
-              items={(['total', ...lifts] as const).map((key) => ({ value: key, label: shortLabels[key] }))}
+              items={(['total', ...lifts] as const).map((key) => ({
+                value: key,
+                label: shortLabels[key],
+              }))}
               value={series}
               onChange={setSeries}
             />
             <View style={{ gap: 2 }}>
               <Text style={[text.caption, { color: c.text.secondary }]}>
-                {md(latest.date)} · {series === 'total' ? '벤치 + 스쿼트 + 데드리프트' : labels[series]}
+                {md(latest.date)} ·{' '}
+                {series === 'total' ? '벤치 + 스쿼트 + 데드리프트' : labels[series]}
               </Text>
               <View style={s.headline}>
                 <Text style={[text.titleL, { color: c.text.primary, flex: 1 }]}>
@@ -182,13 +253,20 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
                   onPress={() => edit(record.date)}
                   style={[s.row, i > 0 && s.rowLine]}
                 >
-                  <Text style={[text.bodyMedium, { color: c.text.primary, flex: 1 }]}>{md(record.date)}</Text>
+                  <Text style={[text.bodyMedium, { color: c.text.primary, flex: 1 }]}>
+                    {md(record.date)}
+                  </Text>
                   {series === 'total' && (
                     <Text style={[text.label, { color: c.text.muted }]}>
                       {record.bench} · {record.squat} · {record.deadlift}
                     </Text>
                   )}
-                  <Text style={[text.bodyBold, { color: c.text.primary, minWidth: 64, textAlign: 'right' }]}>
+                  <Text
+                    style={[
+                      text.bodyBold,
+                      { color: c.text.primary, minWidth: 64, textAlign: 'right' },
+                    ]}
+                  >
                     {formatNumber(valueOf(record))} kg
                   </Text>
                 </Pressable>
@@ -197,22 +275,19 @@ export function StrengthScreen({ onClose }: { onClose: () => void }) {
           </>
         )
       )}
-      {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
-      {!!notice && <Text accessibilityLiveRegion="polite" style={[text.caption, { color: c.text.secondary }]}>{notice}</Text>}
-      <Text style={[text.label, { color: c.text.muted }]}>이 기기에 저장됩니다. 다른 기기와 자동 동기화되지 않습니다.</Text>
+      {!!error && (
+        <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
+          {error}
+        </Text>
+      )}
+      {!!notice && (
+        <Text accessibilityLiveRegion="polite" style={[text.caption, { color: c.text.secondary }]}>
+          {notice}
+        </Text>
+      )}
+      <Text style={[text.label, { color: c.text.muted }]}>
+        이 기기에 저장됩니다. 다른 기기와 자동 동기화되지 않습니다.
+      </Text>
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  sum: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.md,
-    padding: tokens.space[16],
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headline: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 52 },
-  rowLine: { borderTopWidth: 1, borderColor: c.line.default },
-});

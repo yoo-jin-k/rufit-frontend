@@ -32,7 +32,11 @@ export const weightless = (equipment?: Equipment) => equipment === 'BODYWEIGHT';
  * 고른 세트와 그 뒤 세트 중 아직 완료하지 않은 세트에 같은 무게·횟수를 넣습니다.
  * 앞 세트와 이미 완료한 세트는 그대로 둡니다.
  */
-export function fillRemainingSets(workout: Workout, exerciseId: string, setId: string): { workout: Workout; count: number } {
+export function fillRemainingSets(
+  workout: Workout,
+  exerciseId: string,
+  setId: string,
+): { workout: Workout; count: number } {
   if (workout.finishedAt !== undefined) throw new Error('종료한 운동은 수정할 수 없습니다.');
   const exercise = workout.exercises.find((e) => e.id === exerciseId);
   const start = exercise?.sets.findIndex((set) => set.id === setId) ?? -1;
@@ -45,7 +49,10 @@ export function fillRemainingSets(workout: Workout, exerciseId: string, setId: s
     return index === start ? set : { ...set, weight: source.weight, reps: source.reps };
   });
   return {
-    workout: { ...workout, exercises: workout.exercises.map((e) => (e.id === exerciseId ? { ...e, sets } : e)) },
+    workout: {
+      ...workout,
+      exercises: workout.exercises.map((e) => (e.id === exerciseId ? { ...e, sets } : e)),
+    },
     count,
   };
 }
@@ -58,7 +65,7 @@ export function setHistory(history: Workout[], exercise: Exercise, limit = 5) {
 /** 지난 기록에서 같은 순서의 세트, 없으면 마지막 세트를 '최근' 값으로 씁니다. */
 export function recentSet(history: Workout[], exercise: Exercise, index: number) {
   const last = previousExercises(history, exercise)[0]?.exercise;
-  return last ? last.sets[index] ?? last.sets.at(-1) : undefined;
+  return last ? (last.sets[index] ?? last.sets.at(-1)) : undefined;
 }
 
 /** 처음 하는 종목의 시작값입니다. 빈 바·가벼운 덤벨처럼 자세를 익히기 쉬운 무게로 둡니다. */
@@ -71,7 +78,12 @@ const starters: Record<Equipment, { weight: number; reps: number }> = {
   OTHER: { weight: 5, reps: 10 },
 };
 const increments: Record<Equipment, number> = {
-  BARBELL: 2.5, DUMBBELL: 2, MACHINE: 5, CABLE: 2.5, BODYWEIGHT: 0, OTHER: 2.5,
+  BARBELL: 2.5,
+  DUMBBELL: 2,
+  MACHINE: 5,
+  CABLE: 2.5,
+  BODYWEIGHT: 0,
+  OTHER: 2.5,
 };
 /** 이 횟수를 넘기면 다음에는 무게를 한 단계 올리고 횟수를 낮춥니다. */
 const REP_CEILING = 12;
@@ -84,7 +96,11 @@ export type Recommendation = { weight: string; reps: string; basis: 'history' | 
  * - 지난 기록이 있으면 그때 가장 무거운 세트에서 횟수를 1회 늘립니다. 12회를 넘기면 무게를 한 단계 올리고 8회로 낮춥니다.
  * - 처음 하는 종목은 장비별 시작값을 씁니다.
  */
-export function recommendSet(history: Workout[], exercise: Exercise, equipment?: Equipment): Recommendation {
+export function recommendSet(
+  history: Workout[],
+  exercise: Exercise,
+  equipment?: Equipment,
+): Recommendation {
   const kind = equipment ?? 'OTHER';
   const last = previousExercises(history, exercise)[0]?.exercise;
   // 웜업 세트는 실제 작업 무게가 아니므로 추천 계산에서 뺍니다.
@@ -93,13 +109,20 @@ export function recommendSet(history: Workout[], exercise: Exercise, equipment?:
     const start = starters[kind];
     return { weight: formatWeight(start.weight), reps: String(start.reps), basis: 'starter' };
   }
-  const top = sets.reduce((best, set) => (Number(set.weight) > Number(best.weight) ? set : best), sets[0]!);
+  const top = sets.reduce(
+    (best, set) => (Number(set.weight) > Number(best.weight) ? set : best),
+    sets[0]!,
+  );
   const reps = Number(top.reps) + 1;
   const step = increments[kind];
   if (reps > REP_CEILING && step > 0) {
     return { weight: stepWeight(top.weight, step), reps: String(REP_RESET), basis: 'history' };
   }
-  return { weight: weightless(kind) ? '0' : top.weight, reps: String(Math.min(reps, MAX_REPS)), basis: 'history' };
+  return {
+    weight: weightless(kind) ? '0' : top.weight,
+    reps: String(Math.min(reps, MAX_REPS)),
+    basis: 'history',
+  };
 }
 
 export const recommendationNote =

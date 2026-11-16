@@ -1,9 +1,23 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { buttonStyles as styles } from './Button.styles';
 import { tokens } from '../theme/tokens';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'danger' | 'kakao' | 'apple' | 'google';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'soft'
+  | 'danger'
+  | 'kakao'
+  | 'apple'
+  | 'google';
 export type ButtonSize = 'lg' | 'md' | 'sm';
 
 // 밝은 바탕 버튼은 검정 글자, 어두운 바탕 버튼은 흰 글자를 씁니다.
@@ -61,7 +75,9 @@ export function Button({
         size !== 'lg' && styles[size],
         compact && styles.compact,
         kind !== 'primary' && styles[kind],
-        state.pressed && !blocked && (dark ? styles.lightPressed : kind === 'primary' && styles.pressed),
+        state.pressed &&
+          !blocked &&
+          (dark ? styles.lightPressed : kind === 'primary' && styles.pressed),
         showDisabled && styles.disabled,
         style,
       ]}

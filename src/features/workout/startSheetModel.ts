@@ -18,19 +18,27 @@ const dayOf = (w: Workout) => w.recordDate ?? localDay(w.startedAt);
 /** 카드에 보여 줄 요약입니다. 부위는 종목 목록에 있는 종목만 셉니다. */
 export function startCard(workout: Workout) {
   const exercises = workout.exercises.filter((e) => e.sets.length > 0);
-  const parts = [...new Set(exercises.flatMap((e) => {
-    const item = findCatalogExercise(e.catalogId);
-    return item ? [bodyParts[item.bodyPart]] : [];
-  }))];
-  const minutes = workout.entryMode === 'manual'
-    ? null
-    : Math.floor(elapsedWorkoutMs(workout, workout.finishedAt ?? workout.startedAt) / 60000);
+  const parts = [
+    ...new Set(
+      exercises.flatMap((e) => {
+        const item = findCatalogExercise(e.catalogId);
+        return item ? [bodyParts[item.bodyPart]] : [];
+      }),
+    ),
+  ];
+  const minutes =
+    workout.entryMode === 'manual'
+      ? null
+      : Math.floor(elapsedWorkoutMs(workout, workout.finishedAt ?? workout.startedAt) / 60000);
   return {
     day: dayOf(workout),
     parts: parts.length ? parts.join(', ') : '운동',
     meta: `${exercises.length}종목${minutes === null ? '' : ` · ${formatMinutes(minutes)}`}`,
     rows: exercises.map((e) => {
-      const top = e.sets.reduce((best, set) => (Number(set.weight) || 0) > (Number(best.weight) || 0) ? set : best, e.sets[0]!);
+      const top = e.sets.reduce(
+        (best, set) => ((Number(set.weight) || 0) > (Number(best.weight) || 0) ? set : best),
+        e.sets[0]!,
+      );
       return {
         id: e.id,
         name: e.name,
@@ -52,7 +60,12 @@ function formatMinutes(minutes: number) {
  * 고른 운동의 종목·세트(무게·횟수)를 복사해 새 운동을 시작합니다. 완료 표시와 원본 기록은 바꾸지 않습니다.
  * 세트가 없는 종목은 건너뛰고, 한 운동의 최대 세트 수를 넘지 않게 자릅니다.
  */
-export function workoutFromTemplate(source: Workout, id: string, now: number, nextId: () => string): Workout {
+export function workoutFromTemplate(
+  source: Workout,
+  id: string,
+  now: number,
+  nextId: () => string,
+): Workout {
   let remaining = MAX_WORKOUT_SETS;
   const exercises = source.exercises.flatMap((exercise) => {
     if (!exercise.sets.length || remaining <= 0) return [];
@@ -65,7 +78,14 @@ export function workoutFromTemplate(source: Workout, id: string, now: number, ne
       ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
     }));
     remaining -= sets.length;
-    return [{ id: exerciseId, name: exercise.name, ...(exercise.catalogId ? { catalogId: exercise.catalogId } : {}), sets }];
+    return [
+      {
+        id: exerciseId,
+        name: exercise.name,
+        ...(exercise.catalogId ? { catalogId: exercise.catalogId } : {}),
+        sets,
+      },
+    ];
   });
   return { id, startedAt: now, exercises };
 }

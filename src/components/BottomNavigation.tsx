@@ -1,8 +1,9 @@
 /** 화면 변경만 담당합니다. 운동 저장 훅은 상위에 유지되어 탭 전환으로 기록이 초기화되지 않습니다. */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon, type IconName } from './AppIcon';
-import { size, text, tokens } from '../theme/tokens';
+import { tokens } from '../theme/tokens';
+import { s } from './BottomNavigation.styles';
 export type MainTab = 'workout' | 'analysis' | 'profile' | 'settings';
 const tabs: { id: MainTab; label: string; icon: IconName }[] = [
   { id: 'workout', label: '운동', icon: 'dumbbell' },
@@ -33,7 +34,10 @@ export function BottomNavigation({
               onPress={() => onChange(t.id)}
               style={s.item}
             >
-              <AppIcon name={t.icon} color={on ? tokens.color.text.primary : tokens.color.text.muted} />
+              <AppIcon
+                name={t.icon}
+                color={on ? tokens.color.text.primary : tokens.color.text.muted}
+              />
               <Text style={[s.label, on && s.active]}>{t.label}</Text>
             </Pressable>
           );
@@ -42,17 +46,3 @@ export function BottomNavigation({
     </SafeAreaView>
   );
 }
-const s = StyleSheet.create({
-  border: { borderTopWidth: 1, borderColor: tokens.color.line.default, backgroundColor: tokens.color.bg.default },
-  bar: { flexDirection: 'row', width: '100%', maxWidth: size.contentMax, alignSelf: 'center' },
-  item: {
-    flex: 1,
-    minHeight: tokens.size.tabbar,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingTop: 6,
-  },
-  label: { ...text.tab, color: tokens.color.text.muted },
-  active: { fontWeight: '700', color: tokens.color.text.primary },
-});

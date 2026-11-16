@@ -4,7 +4,9 @@ import { prepareJournalPhoto } from './prepareJournalPhoto';
 
 export class CameraPermissionError extends Error {
   constructor() {
-    super('카메라 권한이 꺼져 있습니다. 아이폰 설정에서 루핏의 카메라 권한을 켜 주세요. 앨범에서 사진을 선택하거나 사진 없이도 저장할 수 있습니다.');
+    super(
+      '카메라 권한이 꺼져 있습니다. 아이폰 설정에서 루핏의 카메라 권한을 켜 주세요. 앨범에서 사진을 선택하거나 사진 없이도 저장할 수 있습니다.',
+    );
   }
 }
 
@@ -13,8 +15,7 @@ export async function pickJournalPhotos(camera: boolean, remaining: number): Pro
   if (remaining <= 0) return [];
   if (camera && Platform.OS !== 'web') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted)
-      throw new CameraPermissionError();
+    if (!permission.granted) throw new CameraPermissionError();
   }
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],

@@ -11,20 +11,56 @@ export function JournalGallery({ photos }: { photos: string[] }) {
     setIndex(next);
     scroll.current?.scrollTo({ x: next * width, animated: true });
   }
-  return <View style={{ gap: 12 }} onLayout={(event) => {
-    const nextWidth = event.nativeEvent.layout.width;
-    setWidth(nextWidth);
-    scroll.current?.scrollTo({ x: index * nextWidth, animated: false });
-  }}>
-    <ScrollView ref={scroll} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-      onMomentumScrollEnd={(event) => { if (width) setIndex(Math.max(0, Math.min(photos.length - 1, Math.round(event.nativeEvent.contentOffset.x / width)))); }}>
-      {width > 0 && photos.map((photo, i) => <Image key={i} source={{ uri: photo }}
-        accessibilityLabel={`오운완 사진 ${i + 1}`} accessible resizeMode="contain" style={{ width, height: width }} />)}
-    </ScrollView>
-    {photos.length > 1 && <View style={[ui.row, { justifyContent: 'space-between' }]}>
-      <Button title="이전" secondary disabled={index === 0} onPress={() => go(index - 1)} />
-      <Text style={ui.muted}>{index + 1} / {photos.length}</Text>
-      <Button title="다음" secondary disabled={index === photos.length - 1} onPress={() => go(index + 1)} />
-    </View>}
-  </View>;
+  return (
+    <View
+      style={{ gap: 12 }}
+      onLayout={(event) => {
+        const nextWidth = event.nativeEvent.layout.width;
+        setWidth(nextWidth);
+        scroll.current?.scrollTo({ x: index * nextWidth, animated: false });
+      }}
+    >
+      <ScrollView
+        ref={scroll}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(event) => {
+          if (width)
+            setIndex(
+              Math.max(
+                0,
+                Math.min(photos.length - 1, Math.round(event.nativeEvent.contentOffset.x / width)),
+              ),
+            );
+        }}
+      >
+        {width > 0 &&
+          photos.map((photo, i) => (
+            <Image
+              key={i}
+              source={{ uri: photo }}
+              accessibilityLabel={`오운완 사진 ${i + 1}`}
+              accessible
+              resizeMode="contain"
+              style={{ width, height: width }}
+            />
+          ))}
+      </ScrollView>
+      {photos.length > 1 && (
+        <View style={[ui.row, { justifyContent: 'space-between' }]}>
+          <Button title="이전" secondary disabled={index === 0} onPress={() => go(index - 1)} />
+          <Text style={ui.muted}>
+            {index + 1} / {photos.length}
+          </Text>
+          <Button
+            title="다음"
+            secondary
+            disabled={index === photos.length - 1}
+            onPress={() => go(index + 1)}
+          />
+        </View>
+      )}
+    </View>
+  );
 }

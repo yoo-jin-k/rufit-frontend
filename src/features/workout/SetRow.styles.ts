@@ -1,0 +1,92 @@
+import { StyleSheet } from 'react-native';
+import { tokens } from '../../theme/tokens';
+
+const c = tokens.color;
+
+/** SetRow의 정적 스타일입니다. 웹과 네이티브에서 같은 토큰과 수치를 사용합니다. */
+export const s = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[8],
+    minHeight: 36,
+    paddingHorizontal: tokens.space[8],
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[8],
+    minHeight: 46,
+    paddingHorizontal: tokens.space[8],
+    borderRadius: tokens.radius.md,
+  },
+  rowCurrent: { backgroundColor: c.bg.surface },
+  center: { textAlign: 'center' },
+  muted: { color: c.text.muted },
+  setCol: { width: 28, alignItems: 'center' },
+  prevCol: { flex: 1, minWidth: 0 },
+  kgCol: { width: 60 },
+  repsCol: { width: 52 },
+  checkCol: { width: 36, alignItems: 'center' },
+  cell: {
+    height: 36,
+    borderRadius: tokens.radius.sm,
+    textAlign: 'center',
+    color: c.text.primary,
+    padding: 0,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  cellFocus: { borderColor: c.text.primary },
+  cellButton: { alignItems: 'center', justifyContent: 'center' },
+  cellError: { borderColor: c.danger.default },
+  check: {
+    width: 36,
+    height: 36,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderColor: c.line.input,
+    backgroundColor: c.bg.default,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCurrent: { borderColor: c.line.strong },
+  checkOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
+  allCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderColor: c.line.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  allCheckOn: { backgroundColor: c.bg.inverse, borderColor: c.bg.inverse },
+  trash: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  error: { color: c.danger.default, paddingLeft: 44, paddingTop: 2 },
+  countRow: { flexDirection: 'row', gap: tokens.space[8], marginTop: tokens.space[8] },
+  countBox: {
+    minHeight: tokens.size.buttonMd,
+    borderRadius: tokens.radius.xl,
+    backgroundColor: c.bg.surface,
+  },
+  countStepper: {
+    flex: 1.6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  countButton: {
+    width: tokens.size.touch,
+    height: tokens.size.buttonMd,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countLabel: { color: c.text.secondary, flexShrink: 1, textAlign: 'center' },
+  countLoad: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: tokens.space[12],
+  },
+});

@@ -3,8 +3,21 @@
  * 읽기에 실패한 기록을 빈 기록으로 대체하지 않으며, 기존 저장 자료를 보존합니다.
  */
 import { validDate } from '../strength/model.ts';
-import { pauseWorkout, finishTimeOnlyWorkout, finishWorkout, RPE_VALUES, SET_TYPES, type Workout } from './model.ts';
-export type LocalRest = { workoutId: string; exerciseId: string; setId: string; endsAt: number; pausedAt?: number };
+import {
+  pauseWorkout,
+  finishTimeOnlyWorkout,
+  finishWorkout,
+  RPE_VALUES,
+  SET_TYPES,
+  type Workout,
+} from './model.ts';
+export type LocalRest = {
+  workoutId: string;
+  exerciseId: string;
+  setId: string;
+  endsAt: number;
+  pausedAt?: number;
+};
 export type WorkoutArchive = {
   schemaVersion: 3;
   current: Workout | null;
@@ -113,7 +126,8 @@ export function decodeArchive(raw: string | null): WorkoutArchive {
         !finite(rest.endsAt) ||
         !Number.isSafeInteger(rest.endsAt) ||
         (rest.pausedAt !== undefined &&
-          (!finite(rest.pausedAt) || !Number.isSafeInteger(rest.pausedAt) ||
+          (!finite(rest.pausedAt) ||
+            !Number.isSafeInteger(rest.pausedAt) ||
             rest.pausedAt < ((value.current as Workout | null)?.startedAt ?? Infinity))) ||
         !restMatches(rest as LocalRest, value.current as Workout | null)))
   )
@@ -160,9 +174,10 @@ export function createWorkoutStorage(storage: Storage, pauseOnLoad = false) {
       if (!pauseOnLoad || !raw) return archive;
       const savedAt: unknown = JSON.parse(raw).savedAt;
       const activeAt = Number(await storage.getItem(activeKey).catch(() => null));
-      return pauseRestoredWorkout(archive, restoredPauseTime(
-        typeof savedAt === 'number' ? savedAt : Date.now(), activeAt, Date.now(),
-      ));
+      return pauseRestoredWorkout(
+        archive,
+        restoredPauseTime(typeof savedAt === 'number' ? savedAt : Date.now(), activeAt, Date.now()),
+      );
     },
     /** 진행 중인 운동이 화면에 켜져 있음을 기록합니다. 실패해도 마지막 저장 시각으로 멈추므로 기록은 잃지 않습니다. */
     touch(now: number) {
@@ -179,18 +194,31 @@ export function createWorkoutStorage(storage: Storage, pauseOnLoad = false) {
 
 /** 같은 종료 요청의 재전달은 무시하고, 현재 운동과 이력·휴식을 한 저장본으로 갱신합니다. */
 export function finishArchivedWorkout(
-  archive: WorkoutArchive, workoutId: string, now: number, discardIncomplete = false, timeOnly = false,
+  archive: WorkoutArchive,
+  workoutId: string,
+  now: number,
+  discardIncomplete = false,
+  timeOnly = false,
 ): WorkoutArchive {
   const current = archive.current;
   if (!current || current.id !== workoutId || current.finishedAt !== undefined) return archive;
-  return remember(archive, timeOnly ? finishTimeOnlyWorkout(current, now) : finishWorkout(current, now, discardIncomplete));
+  return remember(
+    archive,
+    timeOnly ? finishTimeOnlyWorkout(current, now) : finishWorkout(current, now, discardIncomplete),
+  );
 }
 
 /** 선택한 완료 기록만 제거하고 진행 중 운동과 별도 오운완 게시물은 유지합니다. */
 export function removeArchivedWorkout(archive: WorkoutArchive, id: string): WorkoutArchive {
-  if (!archive.history.some(w => w.id === id)) return archive;
-  return { ...archive, history: archive.history.filter(w => w.id !== id),
-    current: archive.current?.id === id && archive.current.finishedAt !== undefined ? null : archive.current };
+  if (!archive.history.some((w) => w.id === id)) return archive;
+  return {
+    ...archive,
+    history: archive.history.filter((w) => w.id !== id),
+    current:
+      archive.current?.id === id && archive.current.finishedAt !== undefined
+        ? null
+        : archive.current,
+  };
 }
 
 /**
@@ -205,7 +233,8 @@ export function restoredPauseTime(savedAt: number, activeAt: number, now: number
 /** 재로그인·앱 재실행으로 복구한 운동은 앱을 끈 시점에 멈추고 명시적으로 재개합니다. */
 export function pauseRestoredWorkout(archive: WorkoutArchive, savedAt: number): WorkoutArchive {
   const workout = archive.current;
-  if (!workout || workout.finishedAt !== undefined || workout.pausedAt !== undefined) return archive;
+  if (!workout || workout.finishedAt !== undefined || workout.pausedAt !== undefined)
+    return archive;
   const safeTime = Math.max(workout.startedAt + (workout.pausedDurationMs ?? 0), savedAt);
   return { ...archive, current: pauseWorkout(workout, safeTime), rest: null };
 }

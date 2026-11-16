@@ -1,6 +1,6 @@
 import { AppModal as Modal } from '../../components/AppModal';
 import { useState } from 'react';
-import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RufitSession } from '../../api/session';
 import { Button } from '../../components/Button';
@@ -9,6 +9,7 @@ import { ui } from '../../components/ScreenLayout';
 import { colors } from '../../theme/tokens';
 import { ServerFriendsScreen } from '../profile/ServerFriendsScreen';
 import type { useServerLive } from './useServerLive';
+import { s } from './ServerWorkoutFriends.styles';
 
 /** 달력 아래와 운동 중 화면에서 같은 서버 상태를 표시합니다. 전송 성공 후에만 보냄으로 표시합니다. */
 export function ServerWorkoutFriends({
@@ -26,12 +27,18 @@ export function ServerWorkoutFriends({
       {/* 44pt 터치 영역은 유지하되 위아래 여백을 줄여 아래 안내 문구가 제목에 붙도록 합니다. */}
       <View style={[s.row, { flexWrap: 'nowrap', marginVertical: -10 }]}>
         {/* 새로고침 아이콘이 제목 오른쪽 끝에 붙도록 줄바꿈 없이 배치합니다. */}
-        <Text style={[ui.heading, { flex: 1 }]}>지금 운동 중 {live.data ? `${members.length}명` : ''}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="지금 운동 중 새로고침"
-          accessibilityState={{ disabled: live.busy }} disabled={live.busy}
+        <Text style={[ui.heading, { flex: 1 }]}>
+          지금 운동 중 {live.data ? `${members.length}명` : ''}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="지금 운동 중 새로고침"
+          accessibilityState={{ disabled: live.busy }}
+          disabled={live.busy}
           hitSlop={8}
           style={{ minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' }}
-          onPress={() => void live.refresh()}>
+          onPress={() => void live.refresh()}
+        >
           <AppIcon name="refresh" size={22} color={live.busy ? colors.muted : colors.text} />
         </Pressable>
       </View>
@@ -90,15 +97,3 @@ export function ServerWorkoutFriends({
     </View>
   );
 }
-const s = StyleSheet.create({
-  card: { gap: 12 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  flex: { flex: 1, minWidth: 100 },
-  profile: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 44 },
-});

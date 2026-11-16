@@ -106,10 +106,15 @@ test('종료 시 미완료 세트 제외는 확인이 필요하다', () => {
   assert.throws(() => updateSet(partial, 'other', 'other-1', { completed: true }));
 });
 
-
 test('시간만 기록한 운동도 저장·복구하고 선택한 기록만 삭제한다', () => {
   const draft = addExercise(startWorkout('time-only', 1000), 'e', '스쿼트');
-  const saved = finishArchivedWorkout(remember(emptyArchive(), draft), draft.id, 61000, false, true);
+  const saved = finishArchivedWorkout(
+    remember(emptyArchive(), draft),
+    draft.id,
+    61000,
+    false,
+    true,
+  );
   assert.equal(saved.history.length, 1);
   assert.equal(saved.history[0].exercises.length, 0);
   assert.equal(elapsedWorkoutMs(saved.history[0], 90000), 60000);

@@ -15,8 +15,16 @@ export const buttonStyles = StyleSheet.create({
     minWidth: 0,
   },
   fullWidth: { width: '100%' },
-  md: { minHeight: tokens.size.buttonMd, borderRadius: tokens.radius.md, paddingHorizontal: tokens.space[16] },
-  sm: { minHeight: tokens.size.buttonSm, borderRadius: tokens.radius.md, paddingHorizontal: tokens.space[12] },
+  md: {
+    minHeight: tokens.size.buttonMd,
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.space[16],
+  },
+  sm: {
+    minHeight: tokens.size.buttonSm,
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: tokens.space[12],
+  },
   compact: { paddingHorizontal: tokens.space[4] },
   secondary: { backgroundColor: c.bg.default, borderWidth: 1, borderColor: c.line.input },
   soft: { backgroundColor: c.bg.surface },

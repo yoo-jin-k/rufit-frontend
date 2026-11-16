@@ -9,5 +9,7 @@ test('기존 체중 기록은 키 없이 유지하고 새 키는 저장 후 다�
   assert.deepEqual(records, [old, { date: '2026-10-02', weight: 71.2, height: 170.5 }]);
   for (const height of ['0', '301', '-1', 'abc', '170.123'])
     assert.throws(() => weightRecord('2026-10-02', '71', '2026-10-03', height));
-  assert.throws(() => decodeWeight(JSON.stringify({ version: 1, records: [{ ...old, height: -10 }] })));
+  assert.throws(() =>
+    decodeWeight(JSON.stringify({ version: 1, records: [{ ...old, height: -10 }] })),
+  );
 });

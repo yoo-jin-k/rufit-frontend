@@ -6,7 +6,7 @@
  * 무게는 kg·lbs 중 고른 단위로 보여 주고 입력받되, 저장은 언제나 kg로 합니다.
  */
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/kit/Surfaces';
@@ -20,8 +20,17 @@ import {
   stepReps,
   type Recommendation,
 } from './setEditorModel';
-import { displayWeight, formatWeight, otherUnitHint, stepWeightIn, toKg, unitLabel, weightSteps } from '../units/model';
+import {
+  displayWeight,
+  formatWeight,
+  otherUnitHint,
+  stepWeightIn,
+  toKg,
+  unitLabel,
+  weightSteps,
+} from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
+import { s } from './SetEditorSheet.styles';
 
 const c = tokens.color;
 
@@ -61,10 +70,13 @@ export function SetEditorSheet({
   const u = unitLabel(unit);
   const recent = recentSet(history, exercise, index);
   const records = showHistory ? setHistory(history, exercise) : [];
-  const label = (w: string, r: string) => (noWeight ? `${r}회` : `${formatWeight(w, unit)} × ${r}회`);
+  const label = (w: string, r: string) =>
+    noWeight ? `${r}회` : `${formatWeight(w, unit)} × ${r}회`;
   const apply = (source: Pick<WorkoutSet, 'weight' | 'reps'>) => {
     setTyping(null);
-    onChange(noWeight ? { weight: '0', reps: source.reps } : { weight: source.weight, reps: source.reps });
+    onChange(
+      noWeight ? { weight: '0', reps: source.reps } : { weight: source.weight, reps: source.reps },
+    );
   };
   const step = (delta: number) => {
     setTyping(null);
@@ -77,7 +89,11 @@ export function SetEditorSheet({
           <View style={s.field}>
             <View style={s.unitRow}>
               <Text style={[text.captionBold, { color: c.text.secondary }]}>무게</Text>
-              <View style={s.unitToggle} accessibilityRole="radiogroup" accessibilityLabel="무게 단위">
+              <View
+                style={s.unitToggle}
+                accessibilityRole="radiogroup"
+                accessibilityLabel="무게 단위"
+              >
                 {(['KG', 'LB'] as const).map((option) => (
                   <Pressable
                     key={option}
@@ -86,10 +102,20 @@ export function SetEditorSheet({
                     accessibilityState={{ checked: unit === option }}
                     aria-checked={unit === option}
                     hitSlop={6}
-                    onPress={() => { setTyping(null); setUnit(option); }}
+                    onPress={() => {
+                      setTyping(null);
+                      setUnit(option);
+                    }}
                     style={[s.unitOption, unit === option && s.unitOptionOn]}
                   >
-                    <Text style={[text.label, { color: unit === option ? c.text.primary : c.text.muted }]}>{unitLabel(option)}</Text>
+                    <Text
+                      style={[
+                        text.label,
+                        { color: unit === option ? c.text.primary : c.text.muted },
+                      ]}
+                    >
+                      {unitLabel(option)}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
@@ -103,12 +129,23 @@ export function SetEditorSheet({
               selectTextOnFocus
               placeholder="0"
               placeholderTextColor={c.text.disabled}
-              onChangeText={(value) => { setTyping(value); onChange({ weight: toKg(value, unit) }); }}
+              onChangeText={(value) => {
+                setTyping(value);
+                onChange({ weight: toKg(value, unit) });
+              }}
               onBlur={() => setTyping(null)}
             />
             <Text style={[text.label, s.hint]}>{otherUnitHint(set.weight, unit)}</Text>
-            <Stepper label={`${small}${u}`} name={`무게 ${small}${u}`} onStep={(sign) => step(sign * small)} />
-            <Stepper label={`${large}${u}`} name={`무게 ${large}${u}`} onStep={(sign) => step(sign * large)} />
+            <Stepper
+              label={`${small}${u}`}
+              name={`무게 ${small}${u}`}
+              onStep={(sign) => step(sign * small)}
+            />
+            <Stepper
+              label={`${large}${u}`}
+              name={`무게 ${large}${u}`}
+              onStep={(sign) => step(sign * large)}
+            />
           </View>
         )}
         <View style={s.field}>
@@ -127,39 +164,65 @@ export function SetEditorSheet({
             onChangeText={(reps) => onChange({ reps })}
           />
           <Text style={[text.label, s.hint]} />
-          <Stepper label="1회" name="횟수 1회" onStep={(sign) => onChange({ reps: stepReps(set.reps, sign) })} />
-          <Stepper label="5회" name="횟수 5회" onStep={(sign) => onChange({ reps: stepReps(set.reps, sign * 5) })} />
+          <Stepper
+            label="1회"
+            name="횟수 1회"
+            onStep={(sign) => onChange({ reps: stepReps(set.reps, sign) })}
+          />
+          <Stepper
+            label="5회"
+            name="횟수 5회"
+            onStep={(sign) => onChange({ reps: stepReps(set.reps, sign * 5) })}
+          />
         </View>
       </View>
 
       {showHistory ? (
         <View style={s.history}>
           <View style={s.historyHead}>
-            <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>선택한 기록을 지금 세트에 넣어요</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="이전 기록 닫기" hitSlop={10} onPress={() => setShowHistory(false)}>
+            <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>
+              선택한 기록을 지금 세트에 넣어요
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="이전 기록 닫기"
+              hitSlop={10}
+              onPress={() => setShowHistory(false)}
+            >
               <AppIcon name="close" color={c.text.secondary} />
             </Pressable>
           </View>
           <ScrollView style={{ maxHeight: 220 }} contentContainerStyle={{ gap: tokens.space[12] }}>
             {!records.length && (
-              <Text style={[text.caption, { color: c.text.secondary }]}>이 종목의 이전 기록이 아직 없어요</Text>
+              <Text style={[text.caption, { color: c.text.secondary }]}>
+                이 종목의 이전 기록이 아직 없어요
+              </Text>
             )}
             {records.map(({ record, exercise: past }) => {
               const day = record.recordDate ?? localDay(record.startedAt);
               const [y, m, d] = day.split('-').map(Number);
               return (
                 <View key={`${record.id}:${past.id}`} style={{ gap: 2 }}>
-                  <Text style={[text.label, { color: c.text.muted }]}>{`${y}년 ${m}월 ${d}일`}</Text>
+                  <Text
+                    style={[text.label, { color: c.text.muted }]}
+                  >{`${y}년 ${m}월 ${d}일`}</Text>
                   {past.sets.map((row, i) => (
                     <Pressable
                       key={row.id}
                       accessibilityRole="button"
                       accessibilityLabel={`${m}월 ${d}일 ${i + 1}세트 ${label(row.weight, row.reps)} 넣기`}
                       onPress={() => apply(row)}
-                      style={({ pressed }) => [s.historyRow, pressed && { backgroundColor: c.bg.default }]}
+                      style={({ pressed }) => [
+                        s.historyRow,
+                        pressed && { backgroundColor: c.bg.default },
+                      ]}
                     >
                       <Text style={[text.caption, s.historyIndex]}>{i + 1}</Text>
-                      {!noWeight && <Text style={[text.bodyBold, s.historyValue]}>{formatWeight(row.weight, unit)}</Text>}
+                      {!noWeight && (
+                        <Text style={[text.bodyBold, s.historyValue]}>
+                          {formatWeight(row.weight, unit)}
+                        </Text>
+                      )}
                       <Text style={[text.bodyBold, s.historyValue]}>{row.reps}회</Text>
                       <Text style={[text.label, { color: c.text.secondary }]}>넣기</Text>
                     </Pressable>
@@ -174,7 +237,11 @@ export function SetEditorSheet({
           <View style={s.chipRow}>
             <Text style={[text.caption, s.chipLabel]}>최근</Text>
             {recent ? (
-              <Chip label={label(recent.weight, recent.reps)} name={`최근 기록 ${label(recent.weight, recent.reps)} 넣기`} onPress={() => apply(recent)} />
+              <Chip
+                label={label(recent.weight, recent.reps)}
+                name={`최근 기록 ${label(recent.weight, recent.reps)} 넣기`}
+                onPress={() => apply(recent)}
+              />
             ) : (
               <Text style={[text.caption, { color: c.text.muted }]}>기록 없음</Text>
             )}
@@ -191,7 +258,12 @@ export function SetEditorSheet({
           </View>
           <View style={s.chipRow}>
             <Text style={[text.caption, s.chipLabel]}>추천</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="추천 기준 보기" hitSlop={8} onPress={() => setShowNote((v) => !v)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="추천 기준 보기"
+              hitSlop={8}
+              onPress={() => setShowNote((v) => !v)}
+            >
               <AppIcon name="help" color={c.text.muted} size={16} />
             </Pressable>
             <Chip
@@ -200,27 +272,62 @@ export function SetEditorSheet({
               onPress={() => apply(recommendation)}
             />
           </View>
-          {showNote && <Text style={[text.label, { color: c.text.secondary }]}>{recommendationNote}</Text>}
+          {showNote && (
+            <Text style={[text.label, { color: c.text.secondary }]}>{recommendationNote}</Text>
+          )}
         </View>
       )}
 
-      {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
+      {!!error && (
+        <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
+          {error}
+        </Text>
+      )}
       <View style={s.actions}>
-        <Button title="남은 세트 통일" variant="secondary" style={s.action} onPress={onFillRemaining} />
-        <Button title={set.completed ? '완료 취소' : '세트 완료'} style={s.action} onPress={onComplete} />
+        <Button
+          title="남은 세트 통일"
+          variant="secondary"
+          style={s.action}
+          onPress={onFillRemaining}
+        />
+        <Button
+          title={set.completed ? '완료 취소' : '세트 완료'}
+          style={s.action}
+          onPress={onComplete}
+        />
       </View>
     </BottomSheet>
   );
 }
 
-function Stepper({ label, name, onStep }: { label: string; name: string; onStep(sign: 1 | -1): void }) {
+function Stepper({
+  label,
+  name,
+  onStep,
+}: {
+  label: string;
+  name: string;
+  onStep(sign: 1 | -1): void;
+}) {
   return (
     <View style={s.stepper}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${name} 빼기`} hitSlop={6} onPress={() => onStep(-1)} style={s.stepButton}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${name} 빼기`}
+        hitSlop={6}
+        onPress={() => onStep(-1)}
+        style={s.stepButton}
+      >
         <Text style={[text.titleM, { color: c.text.secondary }]}>−</Text>
       </Pressable>
       <Text style={[text.callout, { color: c.text.primary }]}>{label}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${name} 더하기`} hitSlop={6} onPress={() => onStep(1)} style={s.stepButton}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${name} 더하기`}
+        hitSlop={6}
+        onPress={() => onStep(1)}
+        style={s.stepButton}
+      >
         <Text style={[text.titleM, { color: c.text.secondary }]}>+</Text>
       </Pressable>
     </View>
@@ -229,51 +336,13 @@ function Stepper({ label, name, onStep }: { label: string; name: string; onStep(
 
 function Chip({ label, name, onPress }: { label: string; name: string; onPress(): void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={name} onPress={onPress} style={({ pressed }) => [s.chip, pressed && { opacity: 0.7 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      onPress={onPress}
+      style={({ pressed }) => [s.chip, pressed && { opacity: 0.7 }]}
+    >
       <Text style={[text.captionBold, { color: c.text.primary }]}>{label}</Text>
     </Pressable>
   );
 }
-
-const s = StyleSheet.create({
-  fields: { flexDirection: 'row', gap: tokens.space[16] },
-  field: { flex: 1, gap: tokens.space[8] },
-  unitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: tokens.space[8], minHeight: 28 },
-  unitToggle: { flexDirection: 'row', borderRadius: tokens.radius.sm, backgroundColor: c.bg.surface, padding: 2 },
-  unitOption: { paddingHorizontal: tokens.space[8], paddingVertical: 2, borderRadius: 6 },
-  unitOptionOn: { backgroundColor: c.bg.default },
-  hint: { color: c.text.muted, textAlign: 'center', minHeight: 18 },
-  value: {
-    color: c.text.primary,
-    textAlign: 'center',
-    paddingVertical: tokens.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: c.line.input,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 44,
-    borderRadius: tokens.radius.full,
-    backgroundColor: c.bg.surface,
-  },
-  stepButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  chipRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8] },
-  chipLabel: { color: c.text.secondary, width: 28 },
-  chip: {
-    paddingHorizontal: tokens.space[12],
-    minHeight: 32,
-    justifyContent: 'center',
-    borderRadius: tokens.radius.full,
-    backgroundColor: c.bg.surface,
-  },
-  more: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 2 },
-  history: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.md, padding: tokens.space[16], gap: tokens.space[12] },
-  historyHead: { flexDirection: 'row', alignItems: 'center' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 40, borderRadius: tokens.radius.sm, paddingHorizontal: tokens.space[4] },
-  historyIndex: { width: 20, color: c.text.muted },
-  historyValue: { flex: 1, color: c.text.primary },
-  actions: { flexDirection: 'row', gap: tokens.space[8] },
-  action: { flex: 1 },
-});

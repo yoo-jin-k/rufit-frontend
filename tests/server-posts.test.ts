@@ -380,9 +380,20 @@ test('게시물 조회 실패는 로딩을 종료하고 안내 후 앱 복귀 �
   const native = createRequire(`${process.cwd()}/package.json`)('react-native-web');
   const load = nativeWebLoader({
     '../../components/ScreenLayout': { ui: {} },
-    'react-native': { ...native, AppState: { currentState: 'active', addEventListener: (_: string, listener: (state: string) => void) => {
-      foreground = listener; return { remove() { foreground = undefined; } };
-    } } },
+    'react-native': {
+      ...native,
+      AppState: {
+        currentState: 'active',
+        addEventListener: (_: string, listener: (state: string) => void) => {
+          foreground = listener;
+          return {
+            remove() {
+              foreground = undefined;
+            },
+          };
+        },
+      },
+    },
   });
   const { ServerPostList } = load('src/features/posts/ServerPosts.tsx') as {
     ServerPostList: ComponentType<Record<string, unknown>>;
@@ -396,7 +407,7 @@ test('게시물 조회 실패는 로딩을 종료하고 안내 후 앱 복귀 �
   const session = {
     isActive: () => true,
     api: {
-      directorySettings: async () => ({ memberId: "me" }),
+      directorySettings: async () => ({ memberId: 'me' }),
       posts: async () => {
         if (++attempts === 1) throw new ApiError(404, 'NOT_FOUND', '찾을 수 없습니다.');
         return { items: [], total: 0, hasNext: false };

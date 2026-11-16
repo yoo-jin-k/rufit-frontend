@@ -3,7 +3,7 @@
  * 운동한 날은 검정 체크(월간은 검정 원), 오늘은 파란 테두리, 선택한 날은 테두리 상자로 표시합니다.
  */
 import { useMemo, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { EmptyCard } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
@@ -12,6 +12,7 @@ import { WorkoutRecordCard } from '../workout/WorkoutRecordCard';
 import { formatDay } from '../workout/recordFormat';
 import { calendarDays, localDay, shiftMonth, workoutsByDay } from './model';
 import { monthlyProgress } from './monthlyProgress';
+import { s } from './WorkoutCalendar.styles';
 
 const c = tokens.color;
 const weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
@@ -59,31 +60,59 @@ export function WorkoutCalendar({
       {expanded ? (
         <View style={s.block}>
           <View style={s.rowBetween}>
-            <Pressable accessibilityRole="button" accessibilityLabel="오늘 날짜로 이동" onPress={() => select(today)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="오늘 날짜로 이동"
+              onPress={() => select(today)}
+            >
               <Text style={[text.bodyBold, { color: c.text.primary }]}>
                 {Number(month.slice(0, 4))}년 {Number(month.slice(5, 7))}월
               </Text>
             </Pressable>
             <View style={s.arrows}>
-              <Pressable accessibilityRole="button" accessibilityLabel="이전 달" onPress={() => move(-1)} style={s.arrow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="이전 달"
+                onPress={() => move(-1)}
+                style={s.arrow}
+              >
                 <AppIcon name="chevron-left" />
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="다음 달" onPress={() => move(1)} style={s.arrow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="다음 달"
+                onPress={() => move(1)}
+                style={s.arrow}
+              >
                 <AppIcon name="chevron-right" />
               </Pressable>
             </View>
           </View>
-          <MonthGrid month={month} today={today} selected={selected} grouped={grouped} onSelect={select} />
+          <MonthGrid
+            month={month}
+            today={today}
+            selected={selected}
+            grouped={grouped}
+            onSelect={select}
+          />
         </View>
       ) : (
         <View style={s.block}>
           <View style={s.rowBetween}>
             <Text style={[text.bodyBold, { color: c.text.primary, flex: 1 }]}>
-              {week.includes(today) ? '이번 주' : `${formatDay(week[0], 'compact').replace(/ .$/, '')} 주`}
+              {week.includes(today)
+                ? '이번 주'
+                : `${formatDay(week[0], 'compact').replace(/ .$/, '')} 주`}
             </Text>
             <Text style={[text.caption, { color: c.text.secondary }]}>{weekCount}일 운동</Text>
           </View>
-          <WeekStrip days={week} today={today} selected={selected} grouped={grouped} onSelect={select} />
+          <WeekStrip
+            days={week}
+            today={today}
+            selected={selected}
+            grouped={grouped}
+            onSelect={select}
+          />
         </View>
       )}
       {!monthly && (
@@ -126,19 +155,32 @@ export function DayRecords({
   return (
     <View style={s.block}>
       <View style={s.rowBetween}>
-        <Text accessibilityRole="header" style={[text.headline, { color: c.text.primary, flex: 1 }]}>
+        <Text
+          accessibilityRole="header"
+          style={[text.headline, { color: c.text.primary, flex: 1 }]}
+        >
           {formatDay(day)}
         </Text>
-        {!!records.length && <Text style={[text.caption, { color: c.text.secondary }]}>{records.length}개 운동</Text>}
+        {!!records.length && (
+          <Text style={[text.caption, { color: c.text.secondary }]}>{records.length}개 운동</Text>
+        )}
       </View>
       {!ready ? (
         <Text style={[text.caption, { color: c.text.secondary }]}>기록을 불러오고 있어요.</Text>
       ) : records.length ? (
         records.map((w) => (
-          <WorkoutRecordCard key={w.id} workout={w} onPress={onOpenRecord && (() => onOpenRecord(w))} />
+          <WorkoutRecordCard
+            key={w.id}
+            workout={w}
+            onPress={onOpenRecord && (() => onOpenRecord(w))}
+          />
         ))
       ) : (
-        <EmptyCard icon="calendar" title="이날은 기록이 없어요" body="운동했다면 지금 기록해도 돼요" />
+        <EmptyCard
+          icon="calendar"
+          title="이날은 기록이 없어요"
+          body="운동했다면 지금 기록해도 돼요"
+        />
       )}
     </View>
   );
@@ -151,7 +193,9 @@ export function MonthProgressCard({ history, month }: { history: Workout[]; mont
     <View style={{ gap: tokens.space[12] }}>
       <View style={s.progress}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[text.label, { color: c.text.secondary }]}>{Number(month.slice(5))}월 달성률</Text>
+          <Text style={[text.label, { color: c.text.secondary }]}>
+            {Number(month.slice(5))}월 달성률
+          </Text>
           <Text style={[text.captionBold, { color: c.text.primary }]}>
             {progress.totalDays}일 중 {progress.workoutDays}일 운동
           </Text>
@@ -161,7 +205,9 @@ export function MonthProgressCard({ history, month }: { history: Workout[]; mont
           <Text style={[text.caption, { color: c.text.secondary }]}> %</Text>
         </Text>
       </View>
-      <Text style={[text.label, { color: c.text.muted }]}>날짜를 누르면 그날 기록을 볼 수 있어요</Text>
+      <Text style={[text.label, { color: c.text.muted }]}>
+        날짜를 누르면 그날 기록을 볼 수 있어요
+      </Text>
     </View>
   );
 }
@@ -201,7 +247,12 @@ export function WeekStrip({
               {done ? (
                 <AppIcon name="check" size={18} color={c.text.inverse} strokeWidth={2} />
               ) : (
-                <Text style={[isToday ? text.captionBold : text.caption, { color: isToday ? c.text.primary : c.text.muted }]}>
+                <Text
+                  style={[
+                    isToday ? text.captionBold : text.caption,
+                    { color: isToday ? c.text.primary : c.text.muted },
+                  ]}
+                >
                   {Number(d.slice(-2))}
                 </Text>
               )}
@@ -277,44 +328,3 @@ export function MonthGrid({
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  wrap: { gap: tokens.space[12] },
-  block: { gap: 10 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  arrows: { flexDirection: 'row', marginRight: -10 },
-  arrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  toggle: { minHeight: 28, alignItems: 'center', justifyContent: 'center', marginTop: -6 },
-  week: { flexDirection: 'row', justifyContent: 'space-between' },
-  weekDay: {
-    width: 44,
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  weekSelected: { borderColor: c.text.primary },
-  weekCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  plain: { backgroundColor: c.bg.default, borderWidth: 1, borderColor: c.line.input },
-  done: { backgroundColor: c.bg.inverse },
-  todayRing: { backgroundColor: c.bg.default, borderWidth: 1.5, borderColor: c.accent.default },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accent.default },
-  hidden: { opacity: 0 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  weekday: { width: '14.2857%', textAlign: 'center', color: c.text.muted, paddingVertical: 8 },
-  monthCell: { width: '14.2857%', height: 48, alignItems: 'center', justifyContent: 'center' },
-  ring: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'transparent' },
-  ringOn: { borderColor: c.text.primary },
-  monthCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  progress: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[16],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-});
-

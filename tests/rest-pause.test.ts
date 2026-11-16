@@ -1,11 +1,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addExercise, startWorkout, updateSet, elapsedWorkoutMs } from '../src/features/workout/model.ts';
-import { emptyArchive, remember, decodeArchive, finishArchivedWorkout } from '../src/features/workout/storage.ts';
-import { completeWithRest, pauseLocalRest, resumeLocalRest, adjustLocalRest, applyRestSettings } from '../src/features/workout/localRest.ts';
+import {
+  addExercise,
+  startWorkout,
+  updateSet,
+  elapsedWorkoutMs,
+} from '../src/features/workout/model.ts';
+import {
+  emptyArchive,
+  remember,
+  decodeArchive,
+  finishArchivedWorkout,
+} from '../src/features/workout/storage.ts';
+import {
+  completeWithRest,
+  pauseLocalRest,
+  resumeLocalRest,
+  adjustLocalRest,
+  applyRestSettings,
+} from '../src/features/workout/localRest.ts';
 import { restTimerView } from '../src/features/workout/timerView.ts';
 function fixture() {
-  const w = updateSet(addExercise(startWorkout('rest-test', 0), 'e', '테스트'), 'e', 'e-1', { weight: '20', reps: '10' });
+  const w = updateSet(addExercise(startWorkout('rest-test', 0), 'e', '테스트'), 'e', 'e-1', {
+    weight: '20',
+    reps: '10',
+  });
   return completeWithRest(remember(emptyArchive(), w), 'e', 'e-1', true, 1000);
 }
 test('휴식 정지 상태를 복구하고 시간을 조절해도 운동 경과 시간은 계속 흐릅니다', () => {
@@ -31,7 +50,9 @@ test('정지 중 설정 적용은 새 시간으로 시작하고 운동 완료는
 test('잘못된 정지 시각은 복구하지 않습니다', () => {
   const archive = fixture();
   for (const pausedAt of [null, '1000', -1, 1.5]) {
-    assert.throws(() => decodeArchive(JSON.stringify({ ...archive, rest: { ...archive.rest, pausedAt } })));
+    assert.throws(() =>
+      decodeArchive(JSON.stringify({ ...archive, rest: { ...archive.rest, pausedAt } })),
+    );
   }
   assert.throws(() => resumeLocalRest(pauseLocalRest(archive, 11000), 10000));
 });

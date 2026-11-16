@@ -4,8 +4,20 @@ import { PanResponder, Text, View } from 'react-native';
 import { text, tokens } from '../../theme/tokens';
 import { setDragStyles } from './SetDrag.styles';
 import type { WorkoutSet } from './model';
-export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, labels, labelColor, onTapNumber, children }: {
-  sets: WorkoutSet[]; disabled: boolean; name: string;
+export function SortableSets({
+  sets,
+  disabled,
+  name,
+  onMove,
+  onDraggingChange,
+  labels,
+  labelColor,
+  onTapNumber,
+  children,
+}: {
+  sets: WorkoutSet[];
+  disabled: boolean;
+  name: string;
   onMove(id: string, target: number): void;
   onDraggingChange?(dragging: boolean): void;
   /** 번호 칸 표시(1, W, D, F)입니다. 없으면 1부터 셉니다. */
@@ -29,56 +41,99 @@ export function SortableSets({ sets, disabled, name, onMove, onDraggingChange, l
       const bounds = layouts[set.id];
       if (!bounds) return;
       const next = Math.abs(center - bounds.y - bounds.height / 2);
-      if (next < distance) { target = index; distance = next; }
+      if (next < distance) {
+        target = index;
+        distance = next;
+      }
     });
     if (target !== sets.findIndex((set) => set.id === id)) onMove(id, target);
   }
-  return <View style={{ gap: 2 }}>
-    {sets.map((set, index) => {
-      const handle = <DragNumber
-        disabled={disabled}
-        onStart={() => onDraggingChange?.(true)}
-        onDrag={(dy) => setDrag({ id: set.id, dy })}
-        onDrop={(dy) => drop(set.id, dy)}
-        onCancel={() => { setDrag(null); onDraggingChange?.(false); }}
-        onTap={onTapNumber ? () => onTapNumber(set, index) : undefined}
-        accessibilityRole="adjustable"
-        accessibilityLabel={`${name} ${index + 1}세트 순서 이동`}
-        accessibilityValue={{ min: 1, max: sets.length, now: index + 1 }}
-        aria-valuemin={1} aria-valuemax={sets.length} aria-valuenow={index + 1}
-        accessibilityHint={onTapNumber
-          ? '누르면 세트 종류와 자각도를 고릅니다. 위아래로 끌면 순서를 바꿉니다.'
-          : '위아래로 끌어 순서를 바꿉니다. 접근성 증가·감소 동작으로도 이동할 수 있습니다.'}
-        accessibilityActions={[
-          { name: 'increment', label: '아래로 이동' },
-          { name: 'decrement', label: '위로 이동' },
-          ...(onTapNumber ? [{ name: 'activate', label: '세트 종류·자각도' }] : []),
-        ]}
-        onAccessibilityAction={(event) => {
-          if (event.nativeEvent.actionName === 'activate') { onTapNumber?.(set, index); return; }
-          const target = index + (event.nativeEvent.actionName === 'increment' ? 1 : -1);
-          if (!disabled && target >= 0 && target < sets.length) onMove(set.id, target);
-        }}
-        style={[setDragStyles.handle, { width: 28, minHeight: 44, alignItems: 'center', justifyContent: 'center' }]}
-      ><Text style={[text.bodyBold, { color: labelColor?.(set) ?? tokens.color.text.primary }]}>{labels?.[index] ?? index + 1}</Text></DragNumber>;
-      return <View key={set.id}
-        onLayout={(event) => {
-          const { y, height } = event.nativeEvent.layout;
-          setLayouts((current) => current[set.id]?.y === y && current[set.id]?.height === height
-            ? current : { ...current, [set.id]: { y, height } });
-        }}
-        style={{ zIndex: drag?.id === set.id ? 10 : 0, backgroundColor: drag?.id === set.id ? tokens.color.bg.default : undefined, transform: [{ translateY: drag?.id === set.id ? drag.dy : 0 }] }}
-      >{children(set, index, handle)}</View>;
-    })}
-  </View>;
+  return (
+    <View style={{ gap: 2 }}>
+      {sets.map((set, index) => {
+        const handle = (
+          <DragNumber
+            disabled={disabled}
+            onStart={() => onDraggingChange?.(true)}
+            onDrag={(dy) => setDrag({ id: set.id, dy })}
+            onDrop={(dy) => drop(set.id, dy)}
+            onCancel={() => {
+              setDrag(null);
+              onDraggingChange?.(false);
+            }}
+            onTap={onTapNumber ? () => onTapNumber(set, index) : undefined}
+            accessibilityRole="adjustable"
+            accessibilityLabel={`${name} ${index + 1}세트 순서 이동`}
+            accessibilityValue={{ min: 1, max: sets.length, now: index + 1 }}
+            aria-valuemin={1}
+            aria-valuemax={sets.length}
+            aria-valuenow={index + 1}
+            accessibilityHint={
+              onTapNumber
+                ? '누르면 세트 종류와 자각도를 고릅니다. 위아래로 끌면 순서를 바꿉니다.'
+                : '위아래로 끌어 순서를 바꿉니다. 접근성 증가·감소 동작으로도 이동할 수 있습니다.'
+            }
+            accessibilityActions={[
+              { name: 'increment', label: '아래로 이동' },
+              { name: 'decrement', label: '위로 이동' },
+              ...(onTapNumber ? [{ name: 'activate', label: '세트 종류·자각도' }] : []),
+            ]}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'activate') {
+                onTapNumber?.(set, index);
+                return;
+              }
+              const target = index + (event.nativeEvent.actionName === 'increment' ? 1 : -1);
+              if (!disabled && target >= 0 && target < sets.length) onMove(set.id, target);
+            }}
+            style={[
+              setDragStyles.handle,
+              { width: 28, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+            ]}
+          >
+            <Text
+              style={[text.bodyBold, { color: labelColor?.(set) ?? tokens.color.text.primary }]}
+            >
+              {labels?.[index] ?? index + 1}
+            </Text>
+          </DragNumber>
+        );
+        return (
+          <View
+            key={set.id}
+            onLayout={(event) => {
+              const { y, height } = event.nativeEvent.layout;
+              setLayouts((current) =>
+                current[set.id]?.y === y && current[set.id]?.height === height
+                  ? current
+                  : { ...current, [set.id]: { y, height } },
+              );
+            }}
+            style={{
+              zIndex: drag?.id === set.id ? 10 : 0,
+              backgroundColor: drag?.id === set.id ? tokens.color.bg.default : undefined,
+              transform: [{ translateY: drag?.id === set.id ? drag.dy : 0 }],
+            }}
+          >
+            {children(set, index, handle)}
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 /** 핸들의 responder를 유지하여 드래그 중 재렌더링되어도 이동 거리가 초기화되지 않도록 합니다. */
-class DragNumber extends Component<React.ComponentProps<typeof View> & {
-  disabled?: boolean;
-  onStart(): void; onDrag(dy: number): void; onDrop(dy: number): void; onCancel(): void;
-  onTap?(): void;
-}> {
+class DragNumber extends Component<
+  React.ComponentProps<typeof View> & {
+    disabled?: boolean;
+    onStart(): void;
+    onDrag(dy: number): void;
+    onDrop(dy: number): void;
+    onCancel(): void;
+    onTap?(): void;
+  }
+> {
   private pan = PanResponder.create({
     onStartShouldSetPanResponder: () => !this.props.disabled,
     onMoveShouldSetPanResponder: (_, gesture) => !this.props.disabled && Math.abs(gesture.dy) > 4,
@@ -93,7 +148,15 @@ class DragNumber extends Component<React.ComponentProps<typeof View> & {
     onPanResponderTerminationRequest: () => false,
   });
   render() {
-    const { onStart: _start, onDrag: _drag, onDrop: _drop, onCancel: _cancel, onTap: _tap, disabled: _disabled, ...props } = this.props;
+    const {
+      onStart: _start,
+      onDrag: _drag,
+      onDrop: _drop,
+      onCancel: _cancel,
+      onTap: _tap,
+      disabled: _disabled,
+      ...props
+    } = this.props;
     return <View {...props} {...this.pan.panHandlers} />;
   }
 }

@@ -57,7 +57,8 @@ export function useNicknameAvailability(
       session.api
         .nicknameAvailability(trimmed)
         .then((value) => {
-          if (active) setResult({ nickname: trimmed, status: value.available ? 'available' : 'taken' });
+          if (active)
+            setResult({ nickname: trimmed, status: value.available ? 'available' : 'taken' });
         })
         .catch(() => {
           if (active) setResult({ nickname: trimmed, status: 'error' });

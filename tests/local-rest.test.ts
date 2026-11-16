@@ -176,16 +176,24 @@ test('전체 체크는 모든 세트와 연동되고 잘못된 입력이 있으�
   const original = archive();
   const valid = remember(original, addSet(original.current!, 'e', 'second', 'e-1'));
   const done = completeAllWithRest(valid, 'e', true, 1000);
-  assert.equal(done.current!.exercises[0].sets.every((set) => set.completed), true);
+  assert.equal(
+    done.current!.exercises[0].sets.every((set) => set.completed),
+    true,
+  );
   assert.equal(done.rest?.setId, 'second');
   const undone = completeAllWithRest(done, 'e', false, 2000);
-  assert.equal(undone.current!.exercises[0].sets.some((set) => set.completed), false);
+  assert.equal(
+    undone.current!.exercises[0].sets.some((set) => set.completed),
+    false,
+  );
   assert.equal(undone.rest, null);
   const invalid = remember(original, addSet(original.current!, 'e', 'blank'));
   assert.throws(() => completeAllWithRest(invalid, 'e', true, 1000));
-  assert.equal(invalid.current!.exercises[0].sets.some((set) => set.completed), false);
+  assert.equal(
+    invalid.current!.exercises[0].sets.some((set) => set.completed),
+    false,
+  );
 });
-
 
 test('휴식 설정은 선택한 종목에만 적용하고 전체 적용은 기존 예외도 변경합니다', () => {
   let a = completeWithRest(archive(), 'e', 'e-1', true, 1000);
@@ -207,9 +215,9 @@ test('휴식 설정은 선택한 종목에만 적용하고 전체 적용은 기�
   assert.deepEqual(decodeArchive(JSON.stringify(recommended)), recommended);
   assert.equal(applyRestSettings(a, e, 0, false, 5000).rest, null);
   assert.equal(applyRestSettings(a, other, 30, false, 5000).rest!.endsAt, a.rest!.endsAt);
-  for (const invalid of [-1, 3601, NaN, 2.5]) assert.throws(() => applyRestSettings(a, e, invalid, true, 5000));
+  for (const invalid of [-1, 3601, NaN, 2.5])
+    assert.throws(() => applyRestSettings(a, e, invalid, true, 5000));
 });
-
 
 test('종목 제거는 다른 종목과 과거 기록을 유지하고 대상 휴식을 해제합니다', () => {
   let a = completeWithRest(archive(), 'e', 'e-1', true, 1000);

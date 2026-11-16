@@ -38,7 +38,10 @@ const bundledImages: Record<string, ImageSourcePropType> = {
 };
 
 /** 종목 정지 사진입니다. 구매한 그림이 있으면 그것을, 없으면 기본 그림을 씁니다. */
-export const exerciseImages: Record<string, ImageSourcePropType> = { ...bundledImages, ...licensed.licensedImages };
+export const exerciseImages: Record<string, ImageSourcePropType> = {
+  ...bundledImages,
+  ...licensed.licensedImages,
+};
 /** 종목 동작 GIF입니다. 상세 화면의 큰 사진 자리에서만 씁니다. */
 export const exerciseAnimations: Record<string, ImageSourcePropType> = licensed.licensedAnimations;
 export const hasExerciseImage = (id: string) => exerciseImages[id] !== undefined;

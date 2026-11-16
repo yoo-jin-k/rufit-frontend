@@ -94,14 +94,28 @@ export function setDefaultRest(archive: WorkoutArchive, seconds: number | null):
 }
 
 /** 한 종목의 전체 체크를 한 번의 저장으로 처리합니다. 검증 실패 시 일부 세트만 완료되지 않습니다. */
-export function completeAllWithRest(archive: WorkoutArchive, exerciseId: string, completed: boolean, now: number): WorkoutArchive {
+export function completeAllWithRest(
+  archive: WorkoutArchive,
+  exerciseId: string,
+  completed: boolean,
+  now: number,
+): WorkoutArchive {
   const exercise = archive.current?.exercises.find((item) => item.id === exerciseId);
   if (!exercise?.sets.length) throw new Error('완료할 세트가 없습니다.');
-  return exercise.sets.reduce((current, set) => completeWithRest(current, exerciseId, set.id, completed, now), archive);
+  return exercise.sets.reduce(
+    (current, set) => completeWithRest(current, exerciseId, set.id, completed, now),
+    archive,
+  );
 }
 
 /** 설정 창에서 선택한 범위에 적용합니다. 실행 중인 대상 휴식은 선택한 시간으로 다시 시작합니다. */
-export function applyRestSettings(archive: WorkoutArchive, exercise: Exercise, seconds: number | null, all: boolean, now: number): WorkoutArchive {
+export function applyRestSettings(
+  archive: WorkoutArchive,
+  exercise: Exercise,
+  seconds: number | null,
+  all: boolean,
+  now: number,
+): WorkoutArchive {
   if (!Number.isSafeInteger(now)) throw new Error('휴식 시각을 확인해 주세요.');
   let next = setPersonalRest(archive, exercise, seconds);
   if (all) {
@@ -109,7 +123,11 @@ export function applyRestSettings(archive: WorkoutArchive, exercise: Exercise, s
     next = { ...next, personalRest: seconds === null ? {} : { 'defaults:rest': seconds } };
   } else if (seconds === null) {
     // 공통 설정이 있어도 이 종목의 권장값을 명시적으로 선택할 수 있습니다.
-    next = setPersonalRest(next, exercise, recommendedRest(findCatalogExercise(exercise.catalogId)) ?? 90);
+    next = setPersonalRest(
+      next,
+      exercise,
+      recommendedRest(findCatalogExercise(exercise.catalogId)) ?? 90,
+    );
   }
   if (next.rest && (all || next.rest.exerciseId === exercise.id)) {
     const target = next.current?.exercises.find((item) => item.id === next.rest?.exerciseId);

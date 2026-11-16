@@ -3,7 +3,11 @@ import { createServer } from 'node:http';
 import test from 'node:test';
 import { ApiError } from '../src/api/client.ts';
 import { createAuthApi, type AuthApi } from '../src/features/auth/authApi.ts';
-import { AuthCoordinator, isTransientAuthFailure, parseHandoffUrl } from '../src/features/auth/authCoordinator.ts';
+import {
+  AuthCoordinator,
+  isTransientAuthFailure,
+  parseHandoffUrl,
+} from '../src/features/auth/authCoordinator.ts';
 import type { SessionStore } from '../src/features/auth/secureSessionStore.ts';
 import type { SessionTokens, StoredSession } from '../src/features/auth/types.ts';
 
@@ -34,7 +38,9 @@ function memoryStore(): SessionStore & { value: StoredSession | null; clears: nu
       this.value = null;
       this.clears++;
     },
-    async load() { return this.value; },
+    async load() {
+      return this.value;
+    },
     async hasSavedSession() {
       return this.value !== null;
     },
@@ -624,17 +630,37 @@ test('logout 서버 응답이 제한 시간을 넘으면 로컬 로그아웃을 
   });
 });
 
-
 function restoreSetup() {
   const store = memoryStore();
-  store.value = { schemaVersion: 1, server: 'https://api.example.com', provider: 'GOOGLE',
-    account: tokens.account, sessionId: tokens.sessionId, accessTokenExpiresAt: tokens.accessTokenExpiresAt,
-    refreshToken: tokens.refreshToken, refreshTokenExpiresAt: tokens.refreshTokenExpiresAt };
+  store.value = {
+    schemaVersion: 1,
+    server: 'https://api.example.com',
+    provider: 'GOOGLE',
+    account: tokens.account,
+    sessionId: tokens.sessionId,
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+    refreshToken: tokens.refreshToken,
+    refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+  };
   let calls = 0;
-  const api: AuthApi = { server: 'https://api.example.com', refresh: async () => { calls++; return tokens; },
-    startLogin: async () => { throw new Error('복원에서 호출하면 안 됩니다.'); },
-    exchange: async () => { throw new Error('복원에서 호출하면 안 됩니다.'); }, logout: async () => {} };
-  const coordinator = new AuthCoordinator({ api, store, createPkce: async () => ({ verifier, challenge }),
+  const api: AuthApi = {
+    server: 'https://api.example.com',
+    refresh: async () => {
+      calls++;
+      return tokens;
+    },
+    startLogin: async () => {
+      throw new Error('복원에서 호출하면 안 됩니다.');
+    },
+    exchange: async () => {
+      throw new Error('복원에서 호출하면 안 됩니다.');
+    },
+    logout: async () => {},
+  };
+  const coordinator = new AuthCoordinator({
+    api,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
     browser: { open: async () => ({ type: 'cancel' }) },
     fetch: async () => new Response(JSON.stringify({ id: tokens.account.id }), { status: 200 }),
   });
@@ -664,11 +690,20 @@ test('로그인 복원을 취소한 뒤 도착한 응답은 세션을 되살리�
   const setup = restoreSetup();
   let complete!: (value: SessionTokens) => void;
   let started!: () => void;
-  const ready = new Promise<void>((resolve) => { started = resolve; });
-  setup.api.refresh = () => { started(); return new Promise((resolve) => { complete = resolve; }); };
+  const ready = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  setup.api.refresh = () => {
+    started();
+    return new Promise((resolve) => {
+      complete = resolve;
+    });
+  };
   const pending = setup.coordinator.restore();
   await ready;
-  setup.coordinator.cancelLogin(); complete(tokens); await pending;
+  setup.coordinator.cancelLogin();
+  complete(tokens);
+  await pending;
   assert.equal(setup.coordinator.getSession(), null);
   assert.equal(setup.coordinator.getState().kind, 'signed-out');
 });
@@ -680,32 +715,58 @@ test('이메일 로그인과 연결 요청은 인증 경계를 지키고 같은 
     const path = new URL(String(url)).pathname;
     const headers = new Headers(init?.headers);
     seen.push({ path, auth: headers.get('Authorization') });
-    const value = path === '/api/v1/auth/email/login' ? tokens
-      : path === '/api/v1/me' ? { id: tokens.account.id }
-      : path === '/api/v1/account/login-methods' ? { email: 'test@example.test', providers: ['KAKAO'] }
-      : path === '/api/v1/account/email-link-requests' ? { requestId: attemptId, expiresAt: '2099-01-01T00:10:00Z' }
-      : null;
-    return new Response(value === null ? null : JSON.stringify(value), { status: value === null ? 204 : 200 });
+    const value =
+      path === '/api/v1/auth/email/login'
+        ? tokens
+        : path === '/api/v1/me'
+          ? { id: tokens.account.id }
+          : path === '/api/v1/account/login-methods'
+            ? { email: 'test@example.test', providers: ['KAKAO'] }
+            : path === '/api/v1/account/email-link-requests'
+              ? { requestId: attemptId, expiresAt: '2099-01-01T00:10:00Z' }
+              : null;
+    return new Response(value === null ? null : JSON.stringify(value), {
+      status: value === null ? 204 : 200,
+    });
   };
   const store = memoryStore();
-  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
-    fetch: transport, store, createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  const coordinator = new AuthCoordinator({
+    api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
+    fetch: transport,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) },
+  });
   await coordinator.emailLogin('test@example.test', 'test password only');
   assert.equal(coordinator.getState().kind, 'signed-in');
   assert.equal(store.value?.provider, 'EMAIL');
   assert.equal(JSON.stringify(store.value).includes('test password only'), false);
-  assert.deepEqual(await coordinator.loginMethods(), { email: 'test@example.test', providers: ['KAKAO'] });
+  assert.deepEqual(await coordinator.loginMethods(), {
+    email: 'test@example.test',
+    providers: ['KAKAO'],
+  });
   await coordinator.emailRequest('another@example.test', 'LINK');
-  assert.equal(seen.find(r => r.path.endsWith('/email/login'))?.auth, null);
-  assert.equal(seen.find(r => r.path.endsWith('/email-link-requests'))?.auth, `Bearer ${tokens.accessToken}`);
+  assert.equal(seen.find((r) => r.path.endsWith('/email/login'))?.auth, null);
+  assert.equal(
+    seen.find((r) => r.path.endsWith('/email-link-requests'))?.auth,
+    `Bearer ${tokens.accessToken}`,
+  );
 });
 
 test('이메일 로그인 중 취소하면 늦은 응답으로 계정을 되살리지 않는다', async () => {
   let resolve!: (response: Response) => void;
-  const transport: typeof fetch = () => new Promise<Response>(done => { resolve = done; });
+  const transport: typeof fetch = () =>
+    new Promise<Response>((done) => {
+      resolve = done;
+    });
   const store = memoryStore();
-  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
-    fetch: transport, store, createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  const coordinator = new AuthCoordinator({
+    api: createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: transport }),
+    fetch: transport,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) },
+  });
   const pending = coordinator.emailLogin('test@example.test', 'test password only');
   coordinator.cancelLogin();
   resolve(new Response(JSON.stringify(tokens), { status: 200 }));
@@ -714,57 +775,104 @@ test('이메일 로그인 중 취소하면 늦은 응답으로 계정을 되살�
   assert.equal(store.value, null);
 });
 
-
 test('로그아웃 상태의 연결 방법 조회는 동기 예외로 화면을 중단하지 않는다', async () => {
-  const coordinator = new AuthCoordinator({ api: createAuthApi({ baseUrl: 'https://api.rufit.test' }),
-    store: memoryStore(), createPkce: async () => ({ verifier, challenge }), browser: { open: async () => ({ type: 'cancel' }) } });
+  const coordinator = new AuthCoordinator({
+    api: createAuthApi({ baseUrl: 'https://api.rufit.test' }),
+    store: memoryStore(),
+    createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) },
+  });
   let pending!: Promise<unknown>;
-  assert.doesNotThrow(() => { pending = coordinator.loginMethods(); });
+  assert.doesNotThrow(() => {
+    pending = coordinator.loginMethods();
+  });
   await assert.rejects(pending, /로그인이 필요/);
 });
 
 test('연결 인증 충돌에서만 카카오 이메일을 표시하고 미제공 상태를 구분합니다', async () => {
   for (const [fields, expected] of [
-    [{ verifiedKakaoEmail: 'member@example.test' }, /방금 인증한 카카오계정 이메일: member@example.test/],
+    [
+      { verifiedKakaoEmail: 'member@example.test' },
+      /방금 인증한 카카오계정 이메일: member@example.test/,
+    ],
     [{ verifiedKakaoEmail: '123456789' }, /이미 가입되었거나/],
     [{ kakaoEmailUnavailable: true }, /이메일이 제공되지 않아/],
     [{ verifiedKakaoMemberId: '123456789' }, /이미 가입되었거나/],
   ] as const) {
-    const api = createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: async () =>
-      new Response(JSON.stringify({ code: 'LOGIN_METHOD_CONFLICT', ...fields }),
-        { status: 409, headers: { 'Content-Type': 'application/problem+json' } }) });
-    await assert.rejects(api.account.finishLink(attemptId, handoff, verifier, 'test-access'), expected);
-    await assert.rejects(api.account.login('member@example.test', 'unused-password'),
-      error => error instanceof Error && !error.message.includes('member@example.test'));
+    const api = createAuthApi({
+      baseUrl: 'https://api.rufit.test',
+      fetch: async () =>
+        new Response(JSON.stringify({ code: 'LOGIN_METHOD_CONFLICT', ...fields }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/problem+json' },
+        }),
+    });
+    await assert.rejects(
+      api.account.finishLink(attemptId, handoff, verifier, 'test-access'),
+      expected,
+    );
+    await assert.rejects(
+      api.account.login('member@example.test', 'unused-password'),
+      (error) => error instanceof Error && !error.message.includes('member@example.test'),
+    );
   }
 });
 
 test('기존 계정 통합은 명시적 확인과 현재 인증으로만 별도 경로에 요청합니다', async () => {
   const calls: { url: string; authorization: string | null; body: unknown }[] = [];
-  const api=createAuthApi({ baseUrl: 'https://api.rufit.test', fetch: async (url, options) => {
-    calls.push({ url: String(url), authorization: new Headers(options?.headers).get('Authorization'), body: JSON.parse(String(options?.body)) });
-    return new Response(null,{status:204});
-  }});
-  await api.account.finishMerge(attemptId,handoff,verifier,'test-access');
-  assert.equal(calls[0].url,'https://api.rufit.test/api/v1/account/social-merge-exchanges');
-  assert.equal(calls[0].authorization,'Bearer test-access');
-  assert.deepEqual(calls[0].body,{attemptId,handoffCode:handoff,codeVerifier:verifier,confirmMerge:true});
+  const api = createAuthApi({
+    baseUrl: 'https://api.rufit.test',
+    fetch: async (url, options) => {
+      calls.push({
+        url: String(url),
+        authorization: new Headers(options?.headers).get('Authorization'),
+        body: JSON.parse(String(options?.body)),
+      });
+      return new Response(null, { status: 204 });
+    },
+  });
+  await api.account.finishMerge(attemptId, handoff, verifier, 'test-access');
+  assert.equal(calls[0].url, 'https://api.rufit.test/api/v1/account/social-merge-exchanges');
+  assert.equal(calls[0].authorization, 'Bearer test-access');
+  assert.deepEqual(calls[0].body, {
+    attemptId,
+    handoffCode: handoff,
+    codeVerifier: verifier,
+    confirmMerge: true,
+  });
 });
 
 // 로그인 유지 회귀 테스트입니다. 서버는 쓴 갱신 토큰이 다시 오면 세션 전체를 폐기하고,
 // 만료·폐기는 401 SESSION_EXPIRED로 알려 줍니다. 이 동작을 가짜 API로 재현합니다.
-const rotated: SessionTokens = { ...tokens, accessToken: 'rotated-access', refreshToken: 'N'.repeat(43) };
-const rotatedAgain: SessionTokens = { ...tokens, accessToken: 'rotated-again', refreshToken: 'M'.repeat(43) };
+const rotated: SessionTokens = {
+  ...tokens,
+  accessToken: 'rotated-access',
+  refreshToken: 'N'.repeat(43),
+};
+const rotatedAgain: SessionTokens = {
+  ...tokens,
+  accessToken: 'rotated-again',
+  refreshToken: 'M'.repeat(43),
+};
 const offline = () => new ApiError(0, 'NETWORK_ERROR', '인증 서버 연결을 확인해 주세요.', true);
 const expired = () => new ApiError(401, 'SESSION_EXPIRED', '로그인 시간이 만료되었습니다.');
 const meOk = async () => new Response(JSON.stringify({ id: tokens.account.id }), { status: 200 });
-const meOffline = async (): Promise<Response> => { throw new TypeError('Network request failed'); };
+const meOffline = async (): Promise<Response> => {
+  throw new TypeError('Network request failed');
+};
 
 function persistenceSetup() {
   const store = memoryStore();
-  store.value = { schemaVersion: 1, server: 'https://api.example.com', provider: 'KAKAO',
-    account: tokens.account, sessionId: tokens.sessionId, accessTokenExpiresAt: tokens.accessTokenExpiresAt,
-    refreshToken: tokens.refreshToken, refreshTokenExpiresAt: tokens.refreshTokenExpiresAt };
+  store.value = {
+    schemaVersion: 1,
+    server: 'https://api.example.com',
+    provider: 'KAKAO',
+    account: tokens.account,
+    sessionId: tokens.sessionId,
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+    refreshToken: tokens.refreshToken,
+    refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+  };
   const used: string[] = [];
   const server = {
     refresh: async (_token: string): Promise<SessionTokens> => rotated,
@@ -772,28 +880,54 @@ function persistenceSetup() {
   };
   const api: AuthApi = {
     server: 'https://api.example.com',
-    refresh: (token) => { used.push(token); return server.refresh(token); },
-    startLogin: async () => { throw new Error('호출하면 안 됩니다.'); },
-    exchange: async () => { throw new Error('호출하면 안 됩니다.'); },
+    refresh: (token) => {
+      used.push(token);
+      return server.refresh(token);
+    },
+    startLogin: async () => {
+      throw new Error('호출하면 안 됩니다.');
+    },
+    exchange: async () => {
+      throw new Error('호출하면 안 됩니다.');
+    },
     logout: async () => {},
   };
-  const coordinator = new AuthCoordinator({ api, store, createPkce: async () => ({ verifier, challenge }),
-    browser: { open: async () => ({ type: 'cancel' }) }, fetch: () => server.me(), refreshRetryMs: 60_000 });
+  const coordinator = new AuthCoordinator({
+    api,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
+    browser: { open: async () => ({ type: 'cancel' }) },
+    fetch: () => server.me(),
+    refreshRetryMs: 60_000,
+  });
   return { store, used, server, coordinator };
 }
 
 test('일시 장애만 저장된 로그인을 유지하는 오류로 분류합니다', () => {
-  for (const error of [offline(), new ApiError(0, 'TIMEOUT', 't'), new ApiError(429, 'RATE_LIMITED', 'r'),
-    new ApiError(500, 'HTTP_ERROR', 's'), new ApiError(503, 'HTTP_ERROR', 's'), new ApiError(200, 'INVALID_RESPONSE', 'i')])
+  for (const error of [
+    offline(),
+    new ApiError(0, 'TIMEOUT', 't'),
+    new ApiError(429, 'RATE_LIMITED', 'r'),
+    new ApiError(500, 'HTTP_ERROR', 's'),
+    new ApiError(503, 'HTTP_ERROR', 's'),
+    new ApiError(200, 'INVALID_RESPONSE', 'i'),
+  ])
     assert.equal(isTransientAuthFailure(error), true, error.code);
-  for (const error of [expired(), new ApiError(401, 'AUTHENTICATION_REQUIRED', 'a'), new ApiError(400, 'INVALID_INPUT', 'i'),
-    new ApiError(200, 'ACCOUNT_CHANGED', 'c'), new Error('로그인 정보가 만료되었습니다.')])
+  for (const error of [
+    expired(),
+    new ApiError(401, 'AUTHENTICATION_REQUIRED', 'a'),
+    new ApiError(400, 'INVALID_INPUT', 'i'),
+    new ApiError(200, 'ACCOUNT_CHANGED', 'c'),
+    new Error('로그인 정보가 만료되었습니다.'),
+  ])
     assert.equal(isTransientAuthFailure(error), false, error.message);
 });
 
 test('재실행 중 네트워크가 끊겨도 저장된 갱신 토큰을 지우지 않고 다음 복원에서 다시 시도합니다', async () => {
   const setup = persistenceSetup();
-  setup.server.refresh = async () => { throw offline(); };
+  setup.server.refresh = async () => {
+    throw offline();
+  };
   await setup.coordinator.restore();
   assert.equal(setup.coordinator.getSession(), null);
   assert.equal(setup.coordinator.getState().kind, 'signed-out');
@@ -808,7 +942,9 @@ test('재실행 중 네트워크가 끊겨도 저장된 갱신 토큰을 지우�
 test('서버 요청 제한·5xx도 일시 장애로 보고 저장된 로그인을 유지합니다', async () => {
   for (const status of [429, 500, 502, 503]) {
     const setup = persistenceSetup();
-    setup.server.refresh = async () => { throw new ApiError(status, 'HTTP_ERROR', '일시 오류'); };
+    setup.server.refresh = async () => {
+      throw new ApiError(status, 'HTTP_ERROR', '일시 오류');
+    };
     await setup.coordinator.restore();
     assert.equal(setup.store.clears, 0, String(status));
     assert.equal(setup.store.value?.refreshToken, tokens.refreshToken, String(status));
@@ -817,7 +953,9 @@ test('서버 요청 제한·5xx도 일시 장애로 보고 저장된 로그인�
 
 test('서버가 세션 만료를 명시하면 저장된 로그인을 지우고 다시 로그인을 안내합니다', async () => {
   const setup = persistenceSetup();
-  setup.server.refresh = async () => { throw expired(); };
+  setup.server.refresh = async () => {
+    throw expired();
+  };
   await setup.coordinator.restore();
   assert.equal(setup.store.value, null);
   assert.equal(setup.coordinator.getSession(), null);
@@ -826,7 +964,9 @@ test('서버가 세션 만료를 명시하면 저장된 로그인을 지우고 �
 
 test('보안 저장소를 일시적으로 읽지 못해도 로그인 정보를 지우지 않습니다', async () => {
   const setup = persistenceSetup();
-  setup.store.load = async () => { throw new Error('기기가 잠겨 있습니다.'); };
+  setup.store.load = async () => {
+    throw new Error('기기가 잠겨 있습니다.');
+  };
   await setup.coordinator.restore();
   assert.equal(setup.store.clears, 0);
   assert.equal(setup.used.length, 0);
@@ -859,7 +999,9 @@ test('재실행 중 토큰 교체 직후 /me가 실패해도 새 토큰을 먼�
 test('실행 중 갱신이 일시 장애로 실패하면 세션과 저장된 로그인을 유지합니다', async () => {
   const setup = persistenceSetup();
   await setup.coordinator.restore();
-  setup.server.refresh = async () => { throw offline(); };
+  setup.server.refresh = async () => {
+    throw offline();
+  };
   await setup.coordinator.refresh();
   assert.equal(setup.coordinator.getState().kind, 'signed-in');
   assert.notEqual(setup.coordinator.getSession(), null);
@@ -871,7 +1013,8 @@ test('실행 중 토큰 교체 후 /me가 실패하면 다음 갱신은 새 갱�
   await setup.coordinator.restore();
   setup.server.refresh = async (token) => {
     if (token === rotated.refreshToken) return rotatedAgain;
-    if (token === rotatedAgain.refreshToken) return { ...rotatedAgain, refreshToken: 'K'.repeat(43) };
+    if (token === rotatedAgain.refreshToken)
+      return { ...rotatedAgain, refreshToken: 'K'.repeat(43) };
     throw expired();
   };
   setup.server.me = meOffline;
@@ -888,7 +1031,9 @@ test('실행 중 토큰 교체 후 /me가 실패하면 다음 갱신은 새 갱�
 test('실행 중 갱신에서 서버가 만료를 명시하면 다시 로그인을 요구합니다', async () => {
   const setup = persistenceSetup();
   await setup.coordinator.restore();
-  setup.server.refresh = async () => { throw expired(); };
+  setup.server.refresh = async () => {
+    throw expired();
+  };
   await setup.coordinator.refresh();
   const state = setup.coordinator.getState();
   assert.equal(state.kind === 'error' && state.reason, 'reauth-required');
@@ -900,7 +1045,10 @@ test('갱신 응답을 기다리는 중 로그아웃하면 늦게 도착한 새 
   const setup = persistenceSetup();
   await setup.coordinator.restore();
   let complete!: (value: SessionTokens) => void;
-  setup.server.refresh = () => new Promise((resolve) => { complete = resolve; });
+  setup.server.refresh = () =>
+    new Promise((resolve) => {
+      complete = resolve;
+    });
   const pending = setup.coordinator.refresh();
   await setup.coordinator.logout();
   complete(rotatedAgain);
@@ -912,7 +1060,9 @@ test('갱신 응답을 기다리는 중 로그아웃하면 늦게 도착한 새 
 
 test('앱이 다시 활성화되면 실패한 복원을 재시도하고 만료가 가까운 접근 토큰만 갱신합니다', async () => {
   const setup = persistenceSetup();
-  setup.server.refresh = async () => { throw offline(); };
+  setup.server.refresh = async () => {
+    throw offline();
+  };
   await setup.coordinator.restore();
   setup.server.refresh = async () => rotated;
   await setup.coordinator.resume();

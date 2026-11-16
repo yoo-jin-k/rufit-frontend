@@ -1,18 +1,9 @@
 import { AppModal as Modal } from '../../components/AppModal';
 /** 주간 달력 아래 친구 목록과 운동 중 받은 응원을 공유합니다. 기존 흑백 토큰만 사용합니다. */
 import { useEffect, useState } from 'react';
-import {
-  AppState,
-
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { AppState, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { text, tokens } from '../../theme/tokens';
+import { tokens } from '../../theme/tokens';
 import { Button } from '../../components/Button';
 import { AppIcon } from '../../components/AppIcon';
 import { TestPhoto } from '../../components/TestPhoto';
@@ -22,6 +13,7 @@ import { getTestProfile } from '../profile/testSocialData';
 import { TestUserProfile } from '../profile/TestUserProfile';
 import { friends, heartbeat, receivedCheers, sendCheer, visibleFriends } from './model';
 import { useCheers } from './useCheers';
+import { s } from './WorkoutFriends.styles';
 export function useWorkoutPresence(workout: string | null, enabled: boolean) {
   const { ready, data, update } = useCheers();
   useEffect(() => {
@@ -153,7 +145,9 @@ export function WorkoutFriends({
       ) : (
         <View style={s.empty}>
           <Text style={[s.name, { fontWeight: '700' }]}>지금 운동 중인 친구가 없어요</Text>
-          <Text style={s.muted}>친구가 운동을 시작하면 여기에서 응원할 수 있어요 · 로컬 테스트</Text>
+          <Text style={s.muted}>
+            친구가 운동을 시작하면 여기에서 응원할 수 있어요 · 로컬 테스트
+          </Text>
         </View>
       )}
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} transparent>
@@ -261,44 +255,3 @@ export function WorkoutFriends({
     </View>
   );
 }
-const s = StyleSheet.create({
-  card: { gap: tokens.space[12] },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  title: { ...text.bodyBold, color: tokens.color.text.primary },
-  muted: { ...text.label, color: tokens.color.text.secondary },
-  name: { ...text.callout, color: tokens.color.text.primary, flexShrink: 1 },
-  member: {
-    width: 160,
-    backgroundColor: tokens.color.bg.surface,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[12],
-    gap: 4,
-  },
-  avatar: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  cheer: {
-    minHeight: 36,
-    paddingHorizontal: 4,
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  empty: { backgroundColor: tokens.color.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: 2 },
-  overlay: { flex: 1, backgroundColor: tokens.color.bg.dim, justifyContent: 'flex-end' },
-  sheet: {
-    width: '100%',
-    maxWidth: 640,
-    alignSelf: 'center',
-    maxHeight: '85%',
-    backgroundColor: tokens.color.bg.default,
-    borderTopLeftRadius: tokens.radius['2xl'],
-    borderTopRightRadius: tokens.radius['2xl'],
-    padding: 20,
-    gap: 16,
-  },
-});

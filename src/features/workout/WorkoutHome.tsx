@@ -3,7 +3,7 @@
  * 하단 '운동 시작하기' 순서입니다. 지난 날짜를 고르면 그날 기록을 보여 주고, 기록이 없으면 하단 버튼이 '과거 기록 추가'로 바뀝니다.
  */
 import { useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import { PageHeader, Screen } from '../../components/kit/Screen';
@@ -17,6 +17,7 @@ import type { Workout } from './model';
 import { completedSets, formatDay } from './recordFormat';
 import { TodayWorkoutCard } from './TodayWorkoutCard';
 import { WorkoutDetail } from './WorkoutDetail';
+import { s } from './WorkoutHome.styles';
 
 const c = tokens.color;
 
@@ -29,7 +30,12 @@ function WeekBars({ days, grouped }: { days: string[]; grouped: Record<string, W
       {counts.map((count, i) => (
         <View
           key={days[i]}
-          style={[s.bar, count ? { height: 8 + Math.round((count / max) * 12), backgroundColor: c.text.primary } : null]}
+          style={[
+            s.bar,
+            count
+              ? { height: 8 + Math.round((count / max) * 12), backgroundColor: c.text.primary }
+              : null,
+          ]}
         />
       ))}
     </View>
@@ -109,15 +115,26 @@ export function WorkoutHome({
       {status}
       {showSummary && (
         <>
-          <TodayWorkoutCard history={history} now={now} journals={journals} onJournal={onJournal} onDelete={onDelete} />
+          <TodayWorkoutCard
+            history={history}
+            now={now}
+            journals={journals}
+            onJournal={onJournal}
+            onDelete={onDelete}
+          />
           <View style={s.tiles}>
             <View style={s.tile}>
-              <Text style={[text.caption, { color: c.text.secondary }]}>{Number(today.slice(5, 7))}월 달성률</Text>
+              <Text style={[text.caption, { color: c.text.secondary }]}>
+                {Number(today.slice(5, 7))}월 달성률
+              </Text>
               <Text style={[text.titleL, { color: c.text.primary }]}>
                 {Math.round(progress.percent)}
                 <Text style={[text.bodyMedium, { color: c.text.secondary }]}> %</Text>
               </Text>
-              <ProgressBar value={progress.percent} label={`${Number(today.slice(5, 7))}월 달성률`} />
+              <ProgressBar
+                value={progress.percent}
+                label={`${Number(today.slice(5, 7))}월 달성률`}
+              />
               <Text style={[text.label, { color: c.text.secondary }]}>
                 {progress.totalDays}일 중 {progress.workoutDays}일
               </Text>
@@ -145,16 +162,3 @@ export function WorkoutHome({
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  tiles: { flexDirection: 'row', gap: tokens.space[12] },
-  tile: {
-    flex: 1,
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[16],
-    gap: tokens.space[8],
-  },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 22, maxWidth: 140 },
-  bar: { width: 12, height: 3, borderRadius: 3, backgroundColor: c.line.default },
-});

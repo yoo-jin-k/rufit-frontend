@@ -15,14 +15,18 @@ import { fileURLToPath } from 'node:url';
 type Entry = { id: string; name: string; image: string | null; gif: string | null };
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
-const source = resolve(process.env.RUFIT_LICENSED_MEDIA_DIR ?? resolve(repo, '../../Rufit_assets/gymvisual/originals'));
+const source = resolve(
+  process.env.RUFIT_LICENSED_MEDIA_DIR ?? resolve(repo, '../../Rufit_assets/gymvisual/originals'),
+);
 const target = resolve(repo, 'assets/licensed/exercises');
 const generated = resolve(repo, 'src/features/exercises/licensedMedia.generated.ts');
 const imageExt = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 // 목록 썸네일(44pt)과 상세 사진(폭 362pt)을 3배 화면에서도 선명하게 보이는 크기입니다.
 const maxImageSide = 1080;
 
-const { exercises } = JSON.parse(await readFile(resolve(repo, 'assets/exercises/licensed-media.json'), 'utf8')) as {
+const { exercises } = JSON.parse(
+  await readFile(resolve(repo, 'assets/exercises/licensed-media.json'), 'utf8'),
+) as {
   exercises: Entry[];
 };
 
@@ -58,17 +62,25 @@ if (hasSource) {
       await copyFile(from, to);
       // 큰 정지 이미지는 macOS 기본 도구(sips)로 줄여 앱 용량을 아낍니다. GIF는 움직임이 깨지지 않게 그대로 둡니다.
       if (kind === 'image' && process.platform === 'darwin') {
-        execFileSync('sips', ['--resampleHeightWidthMax', String(maxImageSide), to], { stdio: 'ignore' });
+        execFileSync('sips', ['--resampleHeightWidthMax', String(maxImageSide), to], {
+          stdio: 'ignore',
+        });
         // 구매한 정지 이미지는 시작·끝 자세가 좌우로 나란히 있어 정사각형 썸네일 가운데가 비어 보입니다.
         // 가로가 세로보다 긴 그림은 왼쪽 절반(시작 자세)만 남깁니다.
-        const info = execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', to], { encoding: 'utf8' });
+        const info = execFileSync('sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', to], {
+          encoding: 'utf8',
+        });
         const width = Number(/pixelWidth: (\d+)/.exec(info)?.[1]);
         const height = Number(/pixelHeight: (\d+)/.exec(info)?.[1]);
         if (width > height) {
           // sips는 오프셋 0 0을 '지정 안 함'으로 보고 가운데를 자르므로 1 1(왼쪽 위 1px)을 줍니다.
-          execFileSync('sips', ['-c', String(height), String(Math.floor(width / 2)), '--cropOffset', '1', '1', to], {
-            stdio: 'ignore',
-          });
+          execFileSync(
+            'sips',
+            ['-c', String(height), String(Math.floor(width / 2)), '--cropOffset', '1', '1', to],
+            {
+              stdio: 'ignore',
+            },
+          );
         }
       }
       const line = `  '${entry.id}': require('../../../assets/licensed/exercises/${name}'),`;
@@ -98,5 +110,8 @@ if (!hasSource) {
   console.log(
     `[media:sync] 정지 이미지 ${images.length}개, GIF ${animations.length}개를 넣었습니다 (${(bytes / 1024 / 1024).toFixed(1)}MB).`,
   );
-  if (missing.length) console.warn(`[media:sync] 찾지 못했거나 형식이 맞지 않는 파일 ${missing.length}개:\n- ${missing.join('\n- ')}`);
+  if (missing.length)
+    console.warn(
+      `[media:sync] 찾지 못했거나 형식이 맞지 않는 파일 ${missing.length}개:\n- ${missing.join('\n- ')}`,
+    );
 }

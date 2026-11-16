@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { displayWeight, formatWeight, otherUnitHint, stepWeightIn, toKg } from '../src/features/units/model.ts';
+import {
+  displayWeight,
+  formatWeight,
+  otherUnitHint,
+  stepWeightIn,
+  toKg,
+} from '../src/features/units/model.ts';
 
 test('kg는 그대로, lb는 kg로 저장했다가 입력한 숫자 그대로 다시 보여 줍니다', () => {
   assert.equal(toKg('60', 'KG'), '60');
@@ -36,7 +42,9 @@ test('증감은 고른 단위로 하고 0~1500kg 안에 둡니다', () => {
 test('총 볼륨과 기록 요약 한 줄도 고른 단위로 씁니다', async () => {
   const { volumeNumber } = await import('../src/features/units/model.ts');
   const { recordMeta } = await import('../src/features/workout/recordFormat.ts');
-  const { addExercise, finishWorkout, startWorkout, updateSet } = await import('../src/features/workout/model.ts');
+  const { addExercise, finishWorkout, startWorkout, updateSet } = await import(
+    '../src/features/workout/model.ts'
+  );
   assert.equal(volumeNumber(2264, 'KG'), '2,264');
   assert.equal(volumeNumber(100, 'LB'), '220');
   let w = addExercise(startWorkout('w', 0), 'e', '스쿼트');

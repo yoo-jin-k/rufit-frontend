@@ -1,0 +1,4 @@
+# 생성물은 SCSS 원본과 디자인 토큰에서만 갱신합니다.
+src/theme/web/*.module.css
+src/theme/web/tokens.generated.scss
+src/**/*.generated.ts

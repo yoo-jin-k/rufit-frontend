@@ -42,7 +42,7 @@ export function loginRecovery(
   if (status.kind !== 'error' || status.action !== 'retry-login') return null;
   return {
     label: status.provider ? '다시 시도' : '다시 로그인',
-    provider: status.provider === 'EMAIL' ? null : status.provider ?? null,
+    provider: status.provider === 'EMAIL' ? null : (status.provider ?? null),
   };
 }
 
@@ -66,4 +66,5 @@ export function providerAccessibilityLabel(provider: SocialProvider) {
 
 export const signedInLocalNotice =
   '운동 기록은 이 기기에 보관돼요. 로그인해도 자동으로 동기화되지 않아요.';
-export const restartLoginNotice = '앱을 다시 열면 저장된 로그인을 확인합니다. 만료되거나 확인에 실패하면 다시 로그인해 주세요.';
+export const restartLoginNotice =
+  '앱을 다시 열면 저장된 로그인을 확인합니다. 만료되거나 확인에 실패하면 다시 로그인해 주세요.';
