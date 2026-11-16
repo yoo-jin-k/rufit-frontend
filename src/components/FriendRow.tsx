@@ -1,14 +1,15 @@
 /** 친구 목록과 알림의 사진·프로필 진입·가로 동작 버튼을 공유합니다. */
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { FriendActions } from './FriendActions';
 import { SocialButton } from './SocialButton';
 import { TestPhoto } from './TestPhoto';
 import { getTestProfile } from '../features/profile/testSocialData';
 import { TestUserProfile } from '../features/profile/TestUserProfile';
 import { useTestFriends } from '../features/profile/useTestFriends';
-import { text, tokens } from '../theme/tokens';
+
 import { Avatar } from './kit/Surfaces';
+import { s } from './FriendRow.styles';
 export function FriendRow({
   actor,
   other,
@@ -95,17 +96,3 @@ export function FriendRow({
     </>
   );
 }
-const s = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], minHeight: 64 },
-  identity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space[12],
-    minHeight: 44,
-  },
-  name: { ...text.bodyBold, color: tokens.color.text.primary },
-  status: { ...text.label, color: tokens.color.text.secondary },
-  buttons: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[8], flexShrink: 0 },
-});

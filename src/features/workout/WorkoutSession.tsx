@@ -4,7 +4,7 @@
  * 하단에는 휴식 막대와 '종목 추가'·'세트 완료' 버튼을 고정합니다. 일시정지 중에는 이어서 하기 안내 카드를 보여 줍니다.
  */
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import { FooterRow, Screen } from '../../components/kit/Screen';
@@ -20,10 +20,22 @@ import {
 import { text, tokens } from '../../theme/tokens';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppModal } from '../../components/AppModal';
-import { bodyParts, equipmentLabels, findCatalogExercise, type CatalogExercise } from '../exercises/catalog';
+import {
+  bodyParts,
+  equipmentLabels,
+  findCatalogExercise,
+  type CatalogExercise,
+} from '../exercises/catalog';
 import { ExerciseDetail } from '../exercises/ExerciseDetail';
 import { ExerciseMedia } from '../exercises/ExerciseMedia';
-import { elapsedWorkoutMs, setLabels, type Exercise, type SetType, type Workout, type WorkoutSet } from './model';
+import {
+  elapsedWorkoutMs,
+  setLabels,
+  type Exercise,
+  type SetType,
+  type Workout,
+  type WorkoutSet,
+} from './model';
 import { previousExercises } from './previousSetModel';
 import { formatRest } from './RestSetting';
 import { RestTimerDock } from './RestTimerDock';
@@ -39,6 +51,7 @@ import { setFieldErrors } from './setRowView';
 import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
 import type { restTimerView } from './timerView';
+import { s } from './WorkoutSession.styles';
 
 const c = tokens.color;
 
@@ -52,7 +65,10 @@ export function clock(seconds: number) {
 
 const done = (e: Exercise) => e.sets.length > 0 && e.sets.every((set) => set.completed);
 const volumeOf = (sets: WorkoutSet[]) =>
-  sets.reduce((sum, set) => sum + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0);
+  sets.reduce(
+    (sum, set) => sum + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0),
+    0,
+  );
 
 /**
  * 종목 사진과 이름·설명 한 줄입니다(Figma ExerciseRow).
@@ -72,7 +88,9 @@ function ExerciseLine({
   exercise?: CatalogExercise;
   onOpenDetail?(exercise: CatalogExercise): void;
 }) {
-  const thumb = exercise ? <ExerciseMedia exercise={exercise} size={44} /> : (
+  const thumb = exercise ? (
+    <ExerciseMedia exercise={exercise} size={44} />
+  ) : (
     <PhotoPlaceholder style={s.thumb} radius={tokens.radius.md} />
   );
   return (
@@ -90,8 +108,12 @@ function ExerciseLine({
         thumb
       )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{name}</Text>
-        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{meta}</Text>
+        <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>
+          {name}
+        </Text>
+        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>
+          {meta}
+        </Text>
       </View>
       {trailing}
     </View>
@@ -99,7 +121,11 @@ function ExerciseLine({
 }
 
 export type SessionActions = {
-  onChangeSet(exerciseId: string, setId: string, patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>): void;
+  onChangeSet(
+    exerciseId: string,
+    setId: string,
+    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>,
+  ): void;
   onCompleteSet(exerciseId: string, setId: string, completed: boolean): void;
   onCompleteAll(exerciseId: string, completed: boolean): void;
   onAddSet(exerciseId: string, afterSetId?: string): void;
@@ -107,7 +133,11 @@ export type SessionActions = {
   /** 고른 세트의 무게·횟수를 그 뒤의 완료하지 않은 세트에 넣고, 바뀐 세트 수를 돌려줍니다. */
   onFillRemaining(exerciseId: string, setId: string): number;
   /** 세트 종류·운동 자각도를 바꿉니다. rpe가 null이면 지웁니다. */
-  onSetDetail(exerciseId: string, setId: string, detail: { setType?: SetType; rpe?: number | null }): void;
+  onSetDetail(
+    exerciseId: string,
+    setId: string,
+    detail: { setType?: SetType; rpe?: number | null },
+  ): void;
   onMoveSet(exerciseId: string, setId: string, target: number): void;
   onRemoveExercise(exerciseId: string): void;
   onRestSettings(exerciseId: string): void;
@@ -159,7 +189,12 @@ export function WorkoutSession({
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
   const { unit } = useWeightUnit();
   const body = useBodyWeight();
-  const calories = workoutCalories(workout, body.kg, now, (id) => findCatalogExercise(id)?.equipment);
+  const calories = workoutCalories(
+    workout,
+    body.kg,
+    now,
+    (id) => findCatalogExercise(id)?.equipment,
+  );
   const [editing, setEditing] = useState<{ exerciseId: string; setId: string } | null>(null);
   const editExercise = workout.exercises.find((e) => e.id === editing?.exerciseId);
   const editIndex = editExercise?.sets.findIndex((set) => set.id === editing?.setId) ?? -1;
@@ -179,7 +214,8 @@ export function WorkoutSession({
         setEditError(errors.weight || errors.reps);
         return;
       }
-      if (noWeight && editSet.weight !== '0') actions.onChangeSet(editExercise.id, editSet.id, { weight: '0' });
+      if (noWeight && editSet.weight !== '0')
+        actions.onChangeSet(editExercise.id, editSet.id, { weight: '0' });
     }
     actions.onCompleteSet(editExercise.id, editSet.id, !editSet.completed);
     setEditing(null);
@@ -188,10 +224,15 @@ export function WorkoutSession({
   // 펼친 종목이 지워졌거나 아직 고르지 않았으면 첫 미완료 종목을 펼칩니다.
   const focus = workout.exercises.find((e) => e.id === focusId) ?? firstOpen;
   const totalSets = workout.exercises.reduce((n, e) => n + e.sets.length, 0);
-  const completedSets = workout.exercises.reduce((n, e) => n + e.sets.filter((set) => set.completed).length, 0);
+  const completedSets = workout.exercises.reduce(
+    (n, e) => n + e.sets.filter((set) => set.completed).length,
+    0,
+  );
   const volume = workout.exercises.reduce((n, e) => n + volumeOf(e.sets), 0);
   const focusIndex = focus ? workout.exercises.indexOf(focus) : -1;
-  const nextOpen = workout.exercises.find((e, i) => i > focusIndex && !done(e)) ?? workout.exercises.find((e) => e !== focus && !done(e));
+  const nextOpen =
+    workout.exercises.find((e, i) => i > focusIndex && !done(e)) ??
+    workout.exercises.find((e) => e !== focus && !done(e));
   const currentSet = focus?.sets.find((set) => !set.completed);
   const menuExercise = workout.exercises.find((e) => e.id === menuId);
   const removeExercise = workout.exercises.find((e) => e.id === removeId);
@@ -201,7 +242,11 @@ export function WorkoutSession({
   }
   function meta(e: Exercise) {
     const item = findCatalogExercise(e.catalogId);
-    return [item && bodyParts[item.bodyPart], item && equipmentLabels[item.equipment], `휴식 ${restSecondsFor(e)}초`]
+    return [
+      item && bodyParts[item.bodyPart],
+      item && equipmentLabels[item.equipment],
+      `휴식 ${restSecondsFor(e)}초`,
+    ]
       .filter(Boolean)
       .join(' · ');
   }
@@ -217,14 +262,22 @@ export function WorkoutSession({
       setToast(errors.weight || errors.reps);
       return;
     }
-    if (noWeight && currentSet.weight !== '0') actions.onChangeSet(focus.id, currentSet.id, { weight: '0' });
+    if (noWeight && currentSet.weight !== '0')
+      actions.onChangeSet(focus.id, currentSet.id, { weight: '0' });
     actions.onCompleteSet(focus.id, currentSet.id, true);
-    if (focus.sets.filter((set) => !set.completed).length === 1) setToast(`${focus.name} ${focus.sets.length}세트를 모두 완료했어요`);
+    if (focus.sets.filter((set) => !set.completed).length === 1)
+      setToast(`${focus.name} ${focus.sets.length}세트를 모두 완료했어요`);
   }
 
   const restExercise = rest ? workout.exercises.find((e) => e.id === rest.exerciseId) : undefined;
   const allDone = workout.exercises.length > 0 && workout.exercises.every(done);
-  const primaryLabel = !focus ? '종목 추가' : currentSet ? '세트 완료' : nextOpen ? '다음 종목' : '운동 종료';
+  const primaryLabel = !focus
+    ? '종목 추가'
+    : currentSet
+      ? '세트 완료'
+      : nextOpen
+        ? '다음 종목'
+        : '운동 종료';
   return (
     <Screen
       edges={['top']}
@@ -249,9 +302,18 @@ export function WorkoutSession({
             onPress={actions.onTogglePause}
             style={[s.round, paused && s.roundOn]}
           >
-            <AppIcon name={paused ? 'play' : 'pause'} color={paused ? c.text.inverse : c.text.primary} />
+            <AppIcon
+              name={paused ? 'play' : 'pause'}
+              color={paused ? c.text.inverse : c.text.primary}
+            />
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="운동 종료" onPress={actions.onFinish} hitSlop={10} style={s.end}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="운동 종료"
+            onPress={actions.onFinish}
+            hitSlop={10}
+            style={s.end}
+          >
             <Text style={[text.captionBold, { color: c.text.secondary }]}>종료</Text>
           </Pressable>
         </View>
@@ -271,13 +333,25 @@ export function WorkoutSession({
           )}
           {!paused && (
             <FooterRow>
-              <Button title="종목 추가" variant="secondary" fullWidth={false} disabled={!ready} onPress={actions.onAddExercise} />
+              <Button
+                title="종목 추가"
+                variant="secondary"
+                fullWidth={false}
+                disabled={!ready}
+                onPress={actions.onAddExercise}
+              />
               <Button
                 title={primaryLabel}
                 fullWidth={false}
                 style={{ flex: 1 }}
                 disabled={!ready}
-                onPress={!focus ? actions.onAddExercise : allDone && !currentSet && !nextOpen ? actions.onFinish : completeCurrent}
+                onPress={
+                  !focus
+                    ? actions.onAddExercise
+                    : allDone && !currentSet && !nextOpen
+                      ? actions.onFinish
+                      : completeCurrent
+                }
               />
             </FooterRow>
           )}
@@ -293,15 +367,34 @@ export function WorkoutSession({
       {paused && (
         <View style={s.pausedCard}>
           <Text style={[text.bodyBold, { color: c.text.primary }]}>운동을 잠시 멈췄어요</Text>
-          <Text style={[text.caption, { color: c.text.secondary }]}>시간은 멈추고, 입력한 세트는 그대로 저장돼 있어요</Text>
+          <Text style={[text.caption, { color: c.text.secondary }]}>
+            시간은 멈추고, 입력한 세트는 그대로 저장돼 있어요
+          </Text>
           <FooterRow>
-            <Button title="이어서 하기" size="sm" fullWidth={false} style={{ flex: 1 }} onPress={actions.onTogglePause} />
-            <Button title="운동 종료" size="sm" variant="secondary" fullWidth={false} style={{ flex: 1 }} onPress={actions.onFinish} />
+            <Button
+              title="이어서 하기"
+              size="sm"
+              fullWidth={false}
+              style={{ flex: 1 }}
+              onPress={actions.onTogglePause}
+            />
+            <Button
+              title="운동 종료"
+              size="sm"
+              variant="secondary"
+              fullWidth={false}
+              style={{ flex: 1 }}
+              onPress={actions.onFinish}
+            />
           </FooterRow>
         </View>
       )}
       {!workout.exercises.length && (
-        <EmptyCard icon="dumbbell" title="어떤 운동부터 할까요?" body="종목을 추가하고 세트를 기록해요" />
+        <EmptyCard
+          icon="dumbbell"
+          title="어떤 운동부터 할까요?"
+          body="종목을 추가하고 세트를 기록해요"
+        />
       )}
       {workout.exercises.map((e) => {
         const prev = previousFor(e);
@@ -324,10 +417,17 @@ export function WorkoutSession({
                     <AppIcon name="check" size={16} color={c.text.inverse} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{e.name}</Text>
+                    <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>
+                      {e.name}
+                    </Text>
                     <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>
                       {finishedCount}/{e.sets.length}세트 완료
-                      {paused ? '' : ` · ${e.sets.map((set) => displayWeight(set.weight, unit)).filter(Boolean).join('·')}${unitLabel(unit)}`}
+                      {paused
+                        ? ''
+                        : ` · ${e.sets
+                            .map((set) => displayWeight(set.weight, unit))
+                            .filter(Boolean)
+                            .join('·')}${unitLabel(unit)}`}
                     </Text>
                   </View>
                   {!paused && <AppIcon name="chevron-right" color={c.text.muted} />}
@@ -336,7 +436,9 @@ export function WorkoutSession({
                 <>
                   <View style={s.openMark} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>{e.name}</Text>
+                    <Text numberOfLines={1} style={[text.bodyBold, { color: c.text.primary }]}>
+                      {e.name}
+                    </Text>
                     <Text style={[text.label, { color: c.text.secondary }]}>
                       {finishedCount}/{e.sets.length}세트 완료
                     </Text>
@@ -362,18 +464,32 @@ export function WorkoutSession({
               onOpenDetail={setDetail}
               meta={meta(e)}
               trailing={
-                <Pressable accessibilityRole="button" accessibilityLabel={`${e.name} 더보기`} onPress={() => setMenuId(e.id)} hitSlop={10} style={s.dots}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${e.name} 더보기`}
+                  onPress={() => setMenuId(e.id)}
+                  hitSlop={10}
+                  style={s.dots}
+                >
                   <AppIcon name="dots" color={c.text.secondary} />
                 </Pressable>
               }
             />
-            <SetHeader name={e.name} unitAware noWeight={noWeightFor(e)} allCompleted={done(e)} onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))} />
+            <SetHeader
+              name={e.name}
+              unitAware
+              noWeight={noWeightFor(e)}
+              allCompleted={done(e)}
+              onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))}
+            />
             <SortableSets
               sets={e.sets}
               name={e.name}
               disabled={false}
               labels={setLabels(e.sets)}
-              labelColor={(set) => (set.setType && set.setType !== 'NORMAL' ? setTypeInfo[set.setType].color : undefined)}
+              labelColor={(set) =>
+                set.setType && set.setType !== 'NORMAL' ? setTypeInfo[set.setType].color : undefined
+              }
               onTapNumber={(set) => setDetailFor({ exerciseId: e.id, setId: set.id })}
               onMove={(setId, target) => actions.onMoveSet(e.id, setId, target)}
             >
@@ -384,9 +500,18 @@ export function WorkoutSession({
                   set={set}
                   index={i}
                   exerciseName={e.name}
-                  previous={prev?.sets[i] ? (noWeightFor(e) ? `${prev.sets[i].reps}회` : `${displayWeight(prev.sets[i].weight, unit)}×${prev.sets[i].reps}`) : undefined}
+                  previous={
+                    prev?.sets[i]
+                      ? noWeightFor(e)
+                        ? `${prev.sets[i].reps}회`
+                        : `${displayWeight(prev.sets[i].weight, unit)}×${prev.sets[i].reps}`
+                      : undefined
+                  }
                   noWeight={noWeightFor(e)}
-                  onEdit={() => { setEditError(''); setEditing({ exerciseId: e.id, setId: set.id }); }}
+                  onEdit={() => {
+                    setEditError('');
+                    setEditing({ exerciseId: e.id, setId: set.id });
+                  }}
                   current={set.id === currentSet?.id}
                   finished={false}
                   onChange={(patch) => actions.onChangeSet(e.id, set.id, patch)}
@@ -412,7 +537,9 @@ export function WorkoutSession({
       {!paused && completedSets > 0 && workout.exercises.some(done) && (
         <View style={s.summary}>
           <Text style={[text.captionBold, { color: c.text.primary, flex: 1 }]}>
-            지금까지 {completedSets}세트 · {formatNumber(Number(displayWeight(String(volume), unit)))}{unitLabel(unit)}
+            지금까지 {completedSets}세트 ·{' '}
+            {formatNumber(Number(displayWeight(String(volume), unit)))}
+            {unitLabel(unit)}
             {calories ? ` · ${formatKcal(calories.total)}` : ''}
           </Text>
           {body.estimated && (
@@ -440,32 +567,67 @@ export function WorkoutSession({
           index={editIndex}
           history={history}
           noWeight={noWeightFor(editExercise)}
-          recommendation={recommendSet(history, editExercise, findCatalogExercise(editExercise.catalogId)?.equipment)}
+          recommendation={recommendSet(
+            history,
+            editExercise,
+            findCatalogExercise(editExercise.catalogId)?.equipment,
+          )}
           error={editError}
-          onChange={(patch) => { setEditError(''); actions.onChangeSet(editExercise.id, editSet.id, patch); }}
+          onChange={(patch) => {
+            setEditError('');
+            actions.onChangeSet(editExercise.id, editSet.id, patch);
+          }}
           onFillRemaining={() => {
             const count = actions.onFillRemaining(editExercise.id, editSet.id);
             setEditing(null);
-            setToast(count ? `${editIndex + 1}세트 값을 뒤 ${count}개 세트에 넣었어요` : '바꿀 남은 세트가 없어요');
+            setToast(
+              count
+                ? `${editIndex + 1}세트 값을 뒤 ${count}개 세트에 넣었어요`
+                : '바꿀 남은 세트가 없어요',
+            );
           }}
           onComplete={completeFromEditor}
           onClose={() => setEditing(null)}
         />
       )}
-      <BottomSheet visible={!!menuExercise} title={menuExercise?.name ?? ''} onClose={() => setMenuId(null)}>
+      <BottomSheet
+        visible={!!menuExercise}
+        title={menuExercise?.name ?? ''}
+        onClose={() => setMenuId(null)}
+      >
         {menuExercise && (
           <ListGroup>
-            <ListRow icon="timer" label="휴식 시간" value={`${restSecondsFor(menuExercise)}초`}
-              onPress={() => { setMenuId(null); actions.onRestSettings(menuExercise.id); }} />
-            <ListRow icon="trash" label="종목 빼기" accessibilityLabel={`${menuExercise.name} 종목 제거`} danger trailing="none"
-              onPress={() => { setMenuId(null); setRemoveId(menuExercise.id); }} />
+            <ListRow
+              icon="timer"
+              label="휴식 시간"
+              value={`${restSecondsFor(menuExercise)}초`}
+              onPress={() => {
+                setMenuId(null);
+                actions.onRestSettings(menuExercise.id);
+              }}
+            />
+            <ListRow
+              icon="trash"
+              label="종목 빼기"
+              accessibilityLabel={`${menuExercise.name} 종목 제거`}
+              danger
+              trailing="none"
+              onPress={() => {
+                setMenuId(null);
+                setRemoveId(menuExercise.id);
+              }}
+            />
           </ListGroup>
         )}
       </BottomSheet>
       <BottomSheet
         visible={restList}
         title="종목별 휴식 시간"
-        subtitle={commonRest !== undefined ? `설정의 공통 휴식 시간: ${commonRest}초` : '종목마다 권장 휴식 시간을 써요'}
+        subtitle={
+          commonRest !== undefined
+            ? `설정의 공통 휴식 시간: ${commonRest}초`
+            : '종목마다 권장 휴식 시간을 써요'
+        }
         onClose={() => setRestList(false)}
       >
         <ListGroup>
@@ -502,50 +664,11 @@ export function WorkoutSession({
       {/* 운동 중에 동작을 다시 확인하는 화면입니다. 이미 추가한 종목이라 '이 종목 추가' 버튼은 없습니다. */}
       <AppModal visible={!!detail} animationType="slide" onRequestClose={() => setDetail(null)}>
         <SafeAreaView style={s.detailPage} edges={['top', 'bottom']}>
-          {detail && <ExerciseDetail exercise={detail} history={history} onClose={() => setDetail(null)} />}
+          {detail && (
+            <ExerciseDetail exercise={detail} history={history} onClose={() => setDetail(null)} />
+          )}
         </SafeAreaView>
       </AppModal>
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], paddingTop: tokens.space[8] },
-  digits: { fontVariant: ['tabular-nums'] },
-  round: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.bg.surface, alignItems: 'center', justifyContent: 'center' },
-  roundOn: { backgroundColor: c.bg.inverse },
-  end: { minHeight: 44, justifyContent: 'center' },
-  exerciseLine: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 68 },
-  thumb: { width: 44, height: 44 },
-  detailPage: { flex: 1, backgroundColor: c.bg.default },
-  dots: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
-  focus: {
-    borderWidth: 1,
-    borderColor: c.line.default,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[16],
-    paddingTop: 0,
-    gap: tokens.space[4],
-  },
-  collapsed: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.xl,
-    paddingHorizontal: tokens.space[12],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: tokens.space[12],
-    minHeight: 68,
-  },
-  collapsedDone: { minHeight: 68, paddingHorizontal: tokens.space[16] },
-  doneMark: { width: 24, height: 24, borderRadius: 12, backgroundColor: c.bg.inverse, alignItems: 'center', justifyContent: 'center' },
-  openMark: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: c.line.strong, backgroundColor: c.bg.default },
-  pausedCard: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: 6 },
-  summary: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.md,
-    paddingHorizontal: tokens.space[16],
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-});

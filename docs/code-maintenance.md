@@ -17,7 +17,7 @@
 | 종목 선택 | `features/exercises/ExercisePicker.tsx`, `catalog.ts` | 검색·필터·선택을 담당합니다. 원본 카탈로그와 화면 표현을 구분합니다. |
 | 로그인 | `features/auth/authCoordinator.ts` 외 | 인증 요청과 세션 상태를 조율합니다. 비밀값을 로그나 일반 저장소에 남기지 않아야 합니다. |
 | 서버 통신 | `src/api`, `features/workout/connectedStorage.ts` | 요청·버전·재시도를 처리합니다. 전송 대기 작업의 식별자와 내용은 재시도 중 유지해야 합니다. |
-| 스타일 | `src/theme/tokens.ts`, `src/theme/web/*.scss` | 공통 토큰과 Sass 원본을 수정한 뒤 `npm run styles`로 생성합니다. 생성된 CSS와 토큰 Sass를 직접 편집하지 않습니다. |
+| 스타일 | `src/theme/tokens.ts`, 화면 옆의 `*.styles.ts`, `src/theme/web/*.scss` | 공통 토큰, 화면별 정적 스타일, 웹 전용 SCSS를 구분합니다. SCSS 수정 후 `npm run styles`로 생성하고, 생성된 CSS와 토큰 Sass는 직접 편집하지 않습니다. |
 
 표에서 `features/`로 시작하는 경로는 모두 `src/features/` 아래에 있습니다.
 
@@ -32,8 +32,19 @@
 - 자명한 대입문을 그대로 설명하거나 구현과 맞지 않는 주석은 추가하지 않습니다.
 - 로컬 변수와 공개 함수 이름은 이번 정리에서 변경하지 않았습니다. API·저장 키·검증 범위도 유지합니다.
 - 포맷터는 Prettier 3.6.2와 저장소의 `.prettierrc.json`을 기준으로 사용합니다. 생성된 `*.module.css`, `tokens.generated.scss`는 대상에서 제외합니다.
-- `src`의 TypeScript/TSX/Sass, `tests`의 TypeScript, `scripts`의 MTS를 정리한 뒤 `npm run styles` 및 `npm run check`를 실행해 주세요.
+- `npm run format`으로 소스·테스트·스크립트를 정리하고 `npm run format:check`로 확인합니다. `npm run check`에도 포맷 검사가 포함됩니다.
+- SCSS 수정 뒤 `npm run styles`를 실행하고, `npm run check`로 포맷·생성물·타입·린트·테스트를 함께 확인해 주세요.
+
+## 스타일 파일 배치
+
+- 화면과 컴포넌트 46개의 정적 `StyleSheet` 정의를 같은 폴더의 `파일명.styles.ts`로 분리했습니다. 플랫폼 공통 스타일을 기능별로 찾을 수 있도록 한 파일에 모두 합치지는 않습니다.
+- 화면 상태, 측정한 폭, 드래그 위치처럼 실행 중에 결정되는 스타일은 해당 컴포넌트에서 계산합니다.
+- `ScreenLayout`의 `ui` 재내보내기를 유지하므로 기존 화면의 import 경로를 바꾸지 않아도 됩니다.
+- 웹 전용 스타일은 `src/theme/web/*.module.scss`가 원본입니다. 빌더가 모든 해당 파일을 자동으로 찾아 CSS를 생성합니다.
+- iOS·Android는 CSS를 적용하지 않으므로 공통 토큰을 사용하는 `StyleSheet`를 유지합니다. 생성 CSS만 수정하면 다음 빌드에 덮어쓰입니다.
 
 ## 검증과 커밋
 
-이번 정리 후 타입·린트·스타일 검사와 전체169개 테스트를 통과했습니다. 커밋 제목은 대상과 변경 목적을 구체적으로 작성하고 본문에는 정리 범위, 유지한 동작, 검증 결과를 남깁니다. 단순히 ‘수정’, ‘정리’, ‘fix’만 적는 메시지는 사용하지 않습니다.
+2026-11-16 검증에서 전체 317개 테스트를 통과했습니다. 이 중 새 SCSS 모듈 자동 생성과 검사 모드의 파일 보존을 검증하는 테스트 1개를 추가했습니다. 웹·iOS·Android 번들 생성도 성공했으며, 실기기 동작 검수와는 구분합니다.
+
+이번 작업에서는 커밋과 푸시를 하지 않습니다. 이후 승인받아 커밋할 때는 제목에 대상과 변경 목적을 쓰고 본문에 정리 범위와 검증 결과를 남깁니다.

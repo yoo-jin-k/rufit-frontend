@@ -4,7 +4,14 @@ export type { SetType };
  * 세트 하나입니다. setType이 없으면 일반 세트, rpe가 없으면 자각도 미입력입니다.
  * 예전 기록과 호환되도록 두 값은 선택 항목으로 둡니다.
  */
-export type WorkoutSet = { id: string; weight: string; reps: string; completed: boolean; setType?: SetType; rpe?: number };
+export type WorkoutSet = {
+  id: string;
+  weight: string;
+  reps: string;
+  completed: boolean;
+  setType?: SetType;
+  rpe?: number;
+};
 export const SET_TYPES: readonly SetType[] = ['NORMAL', 'WARMUP', 'DROP', 'FAILURE'];
 export const RPE_VALUES = [5, 6, 7, 8, 9, 10] as const;
 export type Exercise = { id: string; name: string; catalogId?: string; sets: WorkoutSet[] };
@@ -31,8 +38,8 @@ export function elapsedWorkoutMs(workout: Workout, now: number): number {
   return Math.max(
     0,
     (workout.finishedAt ?? workout.pausedAt ?? now) -
-    workout.startedAt -
-    (workout.pausedDurationMs ?? 0),
+      workout.startedAt -
+      (workout.pausedDurationMs ?? 0),
   );
 }
 // 운동시간을 시:분:초로 표시합니다.
@@ -120,9 +127,9 @@ export function addSet(
       e !== exercise
         ? e
         : {
-          ...e,
-          sets: [...e.sets.slice(0, index + 1), set, ...e.sets.slice(index + 1)],
-        },
+            ...e,
+            sets: [...e.sets.slice(0, index + 1), set, ...e.sets.slice(index + 1)],
+          },
     ),
   };
 }
@@ -165,21 +172,25 @@ export function setSetDetail(
   if (detail.rpe != null && !(RPE_VALUES as readonly number[]).includes(detail.rpe))
     throw new Error('운동 자각도는 5~10 중에서 골라 주세요.');
   let found = false;
-  const exercises = workout.exercises.map((e) => e.id !== exerciseId ? e : {
-    ...e,
-    sets: e.sets.map((s) => {
-      if (s.id !== setId) return s;
-      found = true;
-      const { setType: oldType, rpe: oldRpe, ...rest } = s;
-      const setType = detail.setType ?? oldType;
-      const rpe = detail.rpe === undefined ? oldRpe : detail.rpe ?? undefined;
-      return {
-        ...rest,
-        ...(setType && setType !== 'NORMAL' ? { setType } : {}),
-        ...(rpe !== undefined ? { rpe } : {}),
-      };
-    }),
-  });
+  const exercises = workout.exercises.map((e) =>
+    e.id !== exerciseId
+      ? e
+      : {
+          ...e,
+          sets: e.sets.map((s) => {
+            if (s.id !== setId) return s;
+            found = true;
+            const { setType: oldType, rpe: oldRpe, ...rest } = s;
+            const setType = detail.setType ?? oldType;
+            const rpe = detail.rpe === undefined ? oldRpe : (detail.rpe ?? undefined);
+            return {
+              ...rest,
+              ...(setType && setType !== 'NORMAL' ? { setType } : {}),
+              ...(rpe !== undefined ? { rpe } : {}),
+            };
+          }),
+        },
+  );
   if (!found) throw new Error('세트를 찾을 수 없습니다.');
   return { ...workout, exercises };
 }
@@ -187,7 +198,15 @@ export function setSetDetail(
 /** 세트 번호 칸에 쓸 표시입니다. 웜업 W·드롭 D·실패 F, 일반 세트는 일반 세트끼리 1부터 셉니다. */
 export function setLabels(sets: WorkoutSet[]): string[] {
   let normal = 0;
-  return sets.map((s) => s.setType === 'WARMUP' ? 'W' : s.setType === 'DROP' ? 'D' : s.setType === 'FAILURE' ? 'F' : String(++normal));
+  return sets.map((s) =>
+    s.setType === 'WARMUP'
+      ? 'W'
+      : s.setType === 'DROP'
+        ? 'D'
+        : s.setType === 'FAILURE'
+          ? 'F'
+          : String(++normal),
+  );
 }
 
 export function updateSet(
@@ -237,29 +256,47 @@ export function finishWorkout(workout: Workout, now: number, discardIncomplete =
 }
 
 /** 번호만 다시 매기며 세트 ID·입력값·완료 여부를 유지합니다. 휴식 대상도 기존 ID를 따릅니다. */
-export function moveSet(workout: Workout, exerciseId: string, setId: string, targetIndex: number): Workout {
+export function moveSet(
+  workout: Workout,
+  exerciseId: string,
+  setId: string,
+  targetIndex: number,
+): Workout {
   editable(workout);
   const exercise = workout.exercises.find((item) => item.id === exerciseId);
   const sourceIndex = exercise?.sets.findIndex((set) => set.id === setId) ?? -1;
-  if (!exercise || sourceIndex < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= exercise.sets.length)
+  if (
+    !exercise ||
+    sourceIndex < 0 ||
+    !Number.isInteger(targetIndex) ||
+    targetIndex < 0 ||
+    targetIndex >= exercise.sets.length
+  )
     throw new Error('이동할 세트 위치를 확인해 주세요.');
   const sets = [...exercise.sets];
   const [moving] = sets.splice(sourceIndex, 1);
   sets.splice(targetIndex, 0, moving);
-  return { ...workout, exercises: workout.exercises.map((item) => item.id === exerciseId ? { ...item, sets } : item) };
+  return {
+    ...workout,
+    exercises: workout.exercises.map((item) => (item.id === exerciseId ? { ...item, sets } : item)),
+  };
 }
 
 /** 진행 중인 운동에서 종목을 제거합니다. 다른 종목과 완료한 과거 기록은 수정하지 않습니다. */
 export function removeExercise(workout: Workout, exerciseId: string): Workout {
   editable(workout);
-  if (!workout.exercises.some((exercise) => exercise.id === exerciseId)) throw new Error('종목을 찾을 수 없습니다.');
-  return { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) };
+  if (!workout.exercises.some((exercise) => exercise.id === exerciseId))
+    throw new Error('종목을 찾을 수 없습니다.');
+  return {
+    ...workout,
+    exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId),
+  };
 }
 
 /** 완료 세트가 없는 날도 사용자가 선택하면 시간 기록과 오운완을 남길 수 있습니다. */
 export function finishTimeOnlyWorkout(workout: Workout, now: number): Workout {
   editable(workout);
-  if (workout.exercises.some(e => e.sets.some(s => s.completed)))
+  if (workout.exercises.some((e) => e.sets.some((s) => s.completed)))
     throw new Error('완료한 세트가 있는 운동은 일반 종료를 사용해 주세요.');
   if (!Number.isSafeInteger(now) || now < (workout.pausedAt ?? workout.startedAt))
     throw new Error('종료 시각을 확인해 주세요.');

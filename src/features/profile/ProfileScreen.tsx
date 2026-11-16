@@ -16,7 +16,7 @@ import { countTestFriends, testSelf } from './friendTestModel';
 import { useEffect, useRef, useState } from 'react';
 import type { RufitSession } from '../../api/session';
 import { ServerFriendsScreen } from './ServerFriendsScreen';
-import { Platform, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Image, Pressable, Text, View } from 'react-native';
 import { CheckMark, TextField } from '../../components/kit/Controls';
 import { IconButton, NavBar, PageHeader, Screen } from '../../components/kit/Screen';
 import { EmptyCard } from '../../components/kit/Surfaces';
@@ -32,6 +32,7 @@ import { WorkoutCalendar } from '../calendar/WorkoutCalendar';
 import { FriendsScreen } from './FriendsScreen';
 import type { useProfile } from './useProfile';
 import { useWeightUnit } from '../units/UnitProvider';
+import { ps } from './ProfileScreen.styles';
 const c = tokens.color;
 
 export function ProfileScreen({
@@ -120,7 +121,15 @@ export function ProfileScreen({
     return (
       <Screen
         edges={['top']}
-        header={<NavBar title="프로필 편집" leading="close" onLeading={() => { if (!photoBusy && !profile.busy) setEditing(false); }} />}
+        header={
+          <NavBar
+            title="프로필 편집"
+            leading="close"
+            onLeading={() => {
+              if (!photoBusy && !profile.busy) setEditing(false);
+            }}
+          />
+        }
         footer={
           <Button
             title="저장"
@@ -128,23 +137,38 @@ export function ProfileScreen({
             disabled={photoBusy || nicknameStatus === 'taken' || nicknameStatus === 'short'}
             onPress={async () => {
               try {
-                const next = updateProfileAvatar(updateProfileDetails(profile.value, name, bio, gym), avatar);
+                const next = updateProfileAvatar(
+                  updateProfileDetails(profile.value, name, bio, gym),
+                  avatar,
+                );
                 if (session?.isActive()) {
                   // 친구 검색 공개 여부는 유지하고 닉네임만 같은 계정의 서버 프로필에 반영합니다.
                   const directory = await session.api.directorySettings();
-                  await session.api.updateDirectory({ nickname: next.nickname,
-                    discoverable: directory.discoverable, version: directory.version });
+                  await session.api.updateDirectory({
+                    nickname: next.nickname,
+                    discoverable: directory.discoverable,
+                    version: directory.version,
+                  });
                 }
                 await profile.save(next);
                 setEditing(false);
               } catch (cause) {
-                setError(cause instanceof Error ? cause.message : '저장하지 못했습니다. 다시 시도해 주세요.');
+                setError(
+                  cause instanceof Error
+                    ? cause.message
+                    : '저장하지 못했습니다. 다시 시도해 주세요.',
+                );
               }
             }}
           />
         }
       >
-        <ProfilePhotoEditor photo={avatar} disabled={profile.busy} onChange={setAvatar} onBusy={setPhotoBusy} />
+        <ProfilePhotoEditor
+          photo={avatar}
+          disabled={profile.busy}
+          onChange={setAvatar}
+          onBusy={setPhotoBusy}
+        />
         {/* 입력이 멈추면 자동으로 중복 여부를 확인해 입력칸 바로 아래에 작게 안내합니다. */}
         <TextField
           label="닉네임"
@@ -153,7 +177,11 @@ export function ProfileScreen({
           maxLength={24}
           trailing={`${name.length}/24`}
           helper={nicknameMessage(nicknameStatus) || '친구 검색에 쓰여요'}
-          error={nicknameStatus === 'taken' || nicknameStatus === 'short' ? nicknameMessage(nicknameStatus) : undefined}
+          error={
+            nicknameStatus === 'taken' || nicknameStatus === 'short'
+              ? nicknameMessage(nicknameStatus)
+              : undefined
+          }
         />
         <TextField
           label="한 줄 소개"
@@ -171,7 +199,11 @@ export function ProfileScreen({
           onChangeText={setGym}
           maxLength={60}
         />
-        {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
+        {!!error && (
+          <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
+            {error}
+          </Text>
+        )}
       </Screen>
     );
   const stats = [
@@ -191,7 +223,9 @@ export function ProfileScreen({
     .filter((w) => w.finishedAt !== undefined)
     .sort((a, b) => workoutDay(b).localeCompare(workoutDay(a)) || b.startedAt - a.startedAt);
   const days = [...new Set(sorted.map(workoutDay))];
-  const withoutJournal = sorted.filter((w) => !entries.some((j) => j.workoutId === w.id)).slice(0, 10);
+  const withoutJournal = sorted
+    .filter((w) => !entries.some((j) => j.workoutId === w.id))
+    .slice(0, 10);
   return (
     <Screen
       edges={['top']}
@@ -215,14 +249,25 @@ export function ProfileScreen({
       }
     >
       <View style={ps.me}>
-        <Pressable accessibilityRole="button" accessibilityLabel="프로필 사진 수정" disabled={!profile.ready} onPress={openEditor}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="프로필 사진 수정"
+          disabled={!profile.ready}
+          onPress={openEditor}
+        >
           <ProfileAvatar photo={profile.value.avatar} />
         </Pressable>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text numberOfLines={1} style={[text.headline, { color: c.text.primary }]}>{profile.value.nickname}</Text>
+          <Text numberOfLines={1} style={[text.headline, { color: c.text.primary }]}>
+            {profile.value.nickname}
+          </Text>
           {/* 입력한 항목만 표시하며 긴 소개와 지점명은 화면 너비에 맞춰 줄바꿈합니다. */}
-          {!!profile.value.bio && <Text style={[text.caption, { color: c.text.secondary }]}>{profile.value.bio}</Text>}
-          {!!profile.value.gym && <Text style={[text.label, { color: c.text.muted }]}>{profile.value.gym}</Text>}
+          {!!profile.value.bio && (
+            <Text style={[text.caption, { color: c.text.secondary }]}>{profile.value.bio}</Text>
+          )}
+          {!!profile.value.gym && (
+            <Text style={[text.label, { color: c.text.muted }]}>{profile.value.gym}</Text>
+          )}
         </View>
       </View>
       <View style={ps.stats}>
@@ -231,7 +276,11 @@ export function ProfileScreen({
             key={item.label}
             accessibilityRole="button"
             accessibilityLabel={item.label === '친구' ? '친구 목록' : item.label}
-            onPress={() => (item.label === '친구' ? setFriends(true) : setTab(item.label === '오운완' ? '오운완' : '달력'))}
+            onPress={() =>
+              item.label === '친구'
+                ? setFriends(true)
+                : setTab(item.label === '오운완' ? '오운완' : '달력')
+            }
             style={ps.stat}
           >
             <Text style={[text.bodyBold, { color: c.text.primary }]}>{item.value}</Text>
@@ -240,8 +289,23 @@ export function ProfileScreen({
         ))}
       </View>
       <View style={ps.actions}>
-        <Button title="프로필 편집" variant="soft" size="sm" fullWidth={false} style={{ flex: 1 }} disabled={!profile.ready} onPress={openEditor} />
-        <Button title={`친구 ${typeof friendCount === 'number' ? `${friendCount}명` : ''}`.trim()} variant="soft" size="sm" fullWidth={false} style={{ flex: 1 }} onPress={() => setFriends(true)} />
+        <Button
+          title="프로필 편집"
+          variant="soft"
+          size="sm"
+          fullWidth={false}
+          style={{ flex: 1 }}
+          disabled={!profile.ready}
+          onPress={openEditor}
+        />
+        <Button
+          title={`친구 ${typeof friendCount === 'number' ? `${friendCount}명` : ''}`.trim()}
+          variant="soft"
+          size="sm"
+          fullWidth={false}
+          style={{ flex: 1 }}
+          onPress={() => setFriends(true)}
+        />
       </View>
       <View accessibilityRole="tablist" style={ps.tabs}>
         {['오운완', '전체 기록', '달력'].map((t) => (
@@ -253,7 +317,14 @@ export function ProfileScreen({
             onPress={() => setTab(t)}
             style={[ps.tab, tab === t && ps.tabOn]}
           >
-            <Text style={[tab === t ? text.calloutBold : text.callout, { color: tab === t ? c.text.primary : c.text.muted }]}>{t}</Text>
+            <Text
+              style={[
+                tab === t ? text.calloutBold : text.callout,
+                { color: tab === t ? c.text.primary : c.text.muted },
+              ]}
+            >
+              {t}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -270,18 +341,33 @@ export function ProfileScreen({
           now={now}
           renderDay={(day, records) =>
             records.length ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={`${formatDay(day)} 기록 보기`} onPress={() => setDetail(records[0])} style={ps.daySummary}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${formatDay(day)} 기록 보기`}
+                onPress={() => setDetail(records[0])}
+                style={ps.daySummary}
+              >
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[text.calloutBold, { color: c.text.primary }]}>{formatDay(day)}</Text>
+                  <Text style={[text.calloutBold, { color: c.text.primary }]}>
+                    {formatDay(day)}
+                  </Text>
                   <Text style={[text.label, { color: c.text.secondary }]}>
-                    {records.map((w) => recordTitle(w)).join(', ')} · {recordMeta(records[0], unit).split(' · ').filter((_, i) => i !== 1).join(' · ')}
-                    {records.some((w) => entries.some((j) => j.workoutId === w.id)) ? ' · 오운완 있음' : ''}
+                    {records.map((w) => recordTitle(w)).join(', ')} ·{' '}
+                    {recordMeta(records[0], unit)
+                      .split(' · ')
+                      .filter((_, i) => i !== 1)
+                      .join(' · ')}
+                    {records.some((w) => entries.some((j) => j.workoutId === w.id))
+                      ? ' · 오운완 있음'
+                      : ''}
                   </Text>
                 </View>
                 <AppIcon name="chevron-right" color={c.text.muted} />
               </Pressable>
             ) : (
-              <Text style={[text.caption, { color: c.text.secondary }]}>{formatDay(day)} · 기록이 없어요</Text>
+              <Text style={[text.caption, { color: c.text.secondary }]}>
+                {formatDay(day)} · 기록이 없어요
+              </Text>
             )
           }
         />
@@ -290,35 +376,60 @@ export function ProfileScreen({
           <View style={{ gap: tokens.space[16] }}>
             {days.map((day) => (
               <View key={day} style={{ gap: tokens.space[8] }}>
-                <Text style={[text.captionBold, { color: c.text.secondary }]}>{formatDay(day, 'compact')}</Text>
-                {sorted.filter((w) => workoutDay(w) === day).map((w) => {
-                  const journal = entries.find((j) => j.workoutId === w.id);
-                  const photo = journal && journalPhotos(journal)[0];
-                  return (
-                    <Pressable key={w.id} accessibilityRole="button" accessibilityLabel={`${day} 운동 기록 보기`} onPress={() => setDetail(w)} style={ps.recordRow}>
-                      {photo ? (
-                        <Image source={{ uri: photo }} style={ps.recordThumb} />
-                      ) : (
-                        <View style={[ps.recordThumb, ps.recordIcon]}>
-                          <AppIcon name={journal ? 'image' : 'dumbbell'} color={c.text.secondary} />
+                <Text style={[text.captionBold, { color: c.text.secondary }]}>
+                  {formatDay(day, 'compact')}
+                </Text>
+                {sorted
+                  .filter((w) => workoutDay(w) === day)
+                  .map((w) => {
+                    const journal = entries.find((j) => j.workoutId === w.id);
+                    const photo = journal && journalPhotos(journal)[0];
+                    return (
+                      <Pressable
+                        key={w.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${day} 운동 기록 보기`}
+                        onPress={() => setDetail(w)}
+                        style={ps.recordRow}
+                      >
+                        {photo ? (
+                          <Image source={{ uri: photo }} style={ps.recordThumb} />
+                        ) : (
+                          <View style={[ps.recordThumb, ps.recordIcon]}>
+                            <AppIcon
+                              name={journal ? 'image' : 'dumbbell'}
+                              color={c.text.secondary}
+                            />
+                          </View>
+                        )}
+                        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                          <Text style={[text.bodyBold, { color: c.text.primary }]}>
+                            {recordTitle(w)}
+                          </Text>
+                          <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>
+                            {recordMeta(w, unit)}
+                          </Text>
                         </View>
-                      )}
-                      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                        <Text style={[text.bodyBold, { color: c.text.primary }]}>{recordTitle(w)}</Text>
-                        <Text numberOfLines={1} style={[text.label, { color: c.text.secondary }]}>{recordMeta(w, unit)}</Text>
-                      </View>
-                      <AppIcon name="chevron-right" color={c.text.muted} />
-                    </Pressable>
-                  );
-                })}
+                        <AppIcon name="chevron-right" color={c.text.muted} />
+                      </Pressable>
+                    );
+                  })}
               </View>
             ))}
           </View>
         ) : (
-          <EmptyCard icon="dumbbell" title="아직 운동 기록이 없어요" body="운동을 마치면 여기에 날짜별로 쌓여요" />
+          <EmptyCard
+            icon="dumbbell"
+            title="아직 운동 기록이 없어요"
+            body="운동을 마치면 여기에 날짜별로 쌓여요"
+          />
         )
       ) : session && journalSource === 'account' ? (
-        <ServerPostList session={session} onTotal={setServerPostCount} onLoadStatus={setPostLoadStatus} />
+        <ServerPostList
+          session={session}
+          onTotal={setServerPostCount}
+          onLoadStatus={setPostLoadStatus}
+        />
       ) : entries.length > 0 ? (
         <View style={ps.grid}>
           {[...entries]
@@ -338,21 +449,30 @@ export function ProfileScreen({
                 ) : (
                   <View style={[ps.cellImage, ps.cellText]}>
                     <AppIcon name="image" color={c.text.muted} />
-                    <Text numberOfLines={2} style={[text.label, { color: c.text.secondary, textAlign: 'center' }]}>
+                    <Text
+                      numberOfLines={2}
+                      style={[text.label, { color: c.text.secondary, textAlign: 'center' }]}
+                    >
                       {j.memo || '사진 없는 오운완'}
                     </Text>
                   </View>
                 )}
                 {journalPhotos(j).length > 1 && (
                   <View style={ps.count}>
-                    <Text style={[text.label, { color: c.text.inverse }]}>{journalPhotos(j).length}장</Text>
+                    <Text style={[text.label, { color: c.text.inverse }]}>
+                      {journalPhotos(j).length}장
+                    </Text>
                   </View>
                 )}
               </Pressable>
             ))}
         </View>
       ) : (
-        <EmptyCard icon="image" title="첫 오운완을 남겨보세요" body="운동을 마친 뒤 사진을 기록할 수 있어요." />
+        <EmptyCard
+          icon="image"
+          title="첫 오운완을 남겨보세요"
+          body="운동을 마친 뒤 사진을 기록할 수 있어요."
+        />
       )}
       {__DEV__ &&
         profile.value.journals.filter((j) => j.workoutId.startsWith('sample-own-')).length < 3 && (
@@ -362,7 +482,9 @@ export function ProfileScreen({
             size="md"
             disabled={!profile.ready || profile.busy}
             onPress={() =>
-              void profile.save(addOwnSamplePosts(profile.value)).catch(() => setError('샘플 게시물을 저장하지 못했습니다.'))
+              void profile
+                .save(addOwnSamplePosts(profile.value))
+                .catch(() => setError('샘플 게시물을 저장하지 못했습니다.'))
             }
           />
         )}
@@ -374,9 +496,20 @@ export function ProfileScreen({
         onJournal={onJournal}
       />
       {/* 저장 순서와 실제 운동 날짜가 달라도 사용자가 원하는 기록을 직접 고릅니다(Figma 06-11). */}
-      <Modal visible={choosingWorkout} onDismiss={openPendingJournal} animationType="slide" onRequestClose={() => setChoosingWorkout(false)}>
+      <Modal
+        visible={choosingWorkout}
+        onDismiss={openPendingJournal}
+        animationType="slide"
+        onRequestClose={() => setChoosingWorkout(false)}
+      >
         <Screen
-          header={<NavBar title="오운완 추가" leading="close" onLeading={() => setChoosingWorkout(false)} />}
+          header={
+            <NavBar
+              title="오운완 추가"
+              leading="close"
+              onLeading={() => setChoosingWorkout(false)}
+            />
+          }
           footer={
             <Button
               title="다음"
@@ -391,7 +524,9 @@ export function ProfileScreen({
         >
           <View style={{ gap: 4 }}>
             <Text style={[text.titleM, { color: c.text.primary }]}>어떤 운동의 오운완인가요?</Text>
-            <Text style={[text.callout, { color: c.text.secondary }]}>오운완이 없는 최근 기록이에요</Text>
+            <Text style={[text.callout, { color: c.text.secondary }]}>
+              오운완이 없는 최근 기록이에요
+            </Text>
           </View>
           {withoutJournal.map((w) => {
             const on = choice === w.id;
@@ -408,14 +543,20 @@ export function ProfileScreen({
                   <Text style={[text.calloutBold, { color: c.text.primary }]}>
                     {formatDay(workoutDay(w), 'compact')} · {recordTitle(w)}
                   </Text>
-                  <Text style={[text.label, { color: c.text.secondary }]}>{recordMeta(w, unit)}</Text>
+                  <Text style={[text.label, { color: c.text.secondary }]}>
+                    {recordMeta(w, unit)}
+                  </Text>
                 </View>
                 <CheckMark checked={on} />
               </Pressable>
             );
           })}
           {!withoutJournal.length && (
-            <EmptyCard icon="check" title="모든 기록에 오운완이 있어요" body="기존 오운완은 게시물에서 고칠 수 있어요" />
+            <EmptyCard
+              icon="check"
+              title="모든 기록에 오운완이 있어요"
+              body="기존 오운완은 게시물에서 고칠 수 있어요"
+            />
           )}
         </Screen>
       </Modal>
@@ -437,40 +578,3 @@ export function ProfileScreen({
     </Screen>
   );
 }
-
-const ps = StyleSheet.create({
-  me: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[16] },
-  stats: { flexDirection: 'row', gap: tokens.space[20] },
-  stat: { flexDirection: 'row', alignItems: 'baseline', gap: 4, minHeight: 32 },
-  actions: { flexDirection: 'row', gap: tokens.space[8] },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderColor: c.line.default },
-  tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderColor: 'transparent', marginBottom: -1 },
-  tabOn: { borderColor: c.text.primary },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  cell: { width: '32.4%', aspectRatio: 1, borderRadius: 4, overflow: 'hidden', backgroundColor: c.line.input },
-  cellImage: { width: '100%', height: '100%' },
-  cellText: { padding: 8, gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg.surface },
-  count: { position: 'absolute', top: 6, right: 6, backgroundColor: c.bg.inverse, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  recordRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[12], minHeight: 56 },
-  recordThumb: { width: 52, height: 52, borderRadius: tokens.radius.md, backgroundColor: c.line.input },
-  recordIcon: { backgroundColor: c.bg.surface, alignItems: 'center', justifyContent: 'center' },
-  daySummary: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[16],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  choice: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    padding: tokens.space[16],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  choiceOn: { backgroundColor: c.bg.default, borderColor: c.text.primary },
-});

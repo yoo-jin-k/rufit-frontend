@@ -4,7 +4,7 @@
  * 오늘 카드를 누르면 기록별 전체 내용을 한 화면(02-07)에 모두 보여 줍니다.
  */
 import { useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { DEFAULT_BODY_KG, formatKcal, workoutCalories } from '../calories/model';
 import { useBodyWeight } from '../calories/useBodyWeight';
@@ -25,9 +25,11 @@ import {
   workoutDay,
   workoutMinutes,
   workoutParts,
-  workoutVolume } from './recordFormat';
+  workoutVolume,
+} from './recordFormat';
 import { unitLabel, volumeNumber } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
+import { s } from './TodayWorkoutCard.styles';
 
 const c = tokens.color;
 
@@ -39,13 +41,37 @@ export function dayTotals(records: Workout[], bodyKg = DEFAULT_BODY_KG) {
     minutes: measured ? minutes : null,
     volume: records.reduce((sum, w) => sum + workoutVolume(w), 0),
     sets: records.reduce((sum, w) => sum + completedSets(w), 0),
-    kcal: records.reduce((sum, w) => sum + (workoutCalories(w, bodyKg, w.finishedAt ?? w.startedAt, (id) => findCatalogExercise(id)?.equipment)?.total ?? 0), 0),
+    kcal: records.reduce(
+      (sum, w) =>
+        sum +
+        (workoutCalories(
+          w,
+          bodyKg,
+          w.finishedAt ?? w.startedAt,
+          (id) => findCatalogExercise(id)?.equipment,
+        )?.total ?? 0),
+      0,
+    ),
     parts: [...new Set(records.flatMap(workoutParts))],
-    exercises: [...new Set(records.flatMap((w) => w.exercises.filter((e) => e.sets.some((set) => set.completed)).map((e) => e.name)))],
+    exercises: [
+      ...new Set(
+        records.flatMap((w) =>
+          w.exercises.filter((e) => e.sets.some((set) => set.completed)).map((e) => e.name),
+        ),
+      ),
+    ],
   };
 }
 
-function Values({ minutes, volume, inverse }: { minutes: number | null; volume: number; inverse?: boolean }) {
+function Values({
+  minutes,
+  volume,
+  inverse,
+}: {
+  minutes: number | null;
+  volume: number;
+  inverse?: boolean;
+}) {
   const { unit: weightUnit } = useWeightUnit();
   const main = inverse ? c.text.inverse : c.text.primary;
   const unit = inverse ? c.text.inverse : c.text.secondary;
@@ -65,13 +91,26 @@ function Values({ minutes, volume, inverse }: { minutes: number | null; volume: 
   );
 }
 
-export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }: {
+export function TodayWorkoutCard({
+  history,
+  now,
+  journals,
+  onJournal,
+  onDelete,
+}: {
   onDelete?: (id: string) => void;
-  history: Workout[]; now: number; journals: Journal[]; onJournal: (workout: Workout) => void;
+  history: Workout[];
+  now: number;
+  journals: Journal[];
+  onJournal: (workout: Workout) => void;
 }) {
   const { unit } = useWeightUnit();
   const pending = useRef<Workout | null>(null);
-  function afterClose() { const target = pending.current; pending.current = null; if (target) onJournal(target); }
+  function afterClose() {
+    const target = pending.current;
+    pending.current = null;
+    if (target) onJournal(target);
+  }
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<Workout | null>(null);
   // 체중을 기록한 뒤 다시 계산되도록 기록 수가 바뀔 때마다 체중을 다시 읽습니다.
@@ -88,7 +127,9 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
           <LogoMark size={44} />
           <View style={{ gap: 4, marginTop: 8 }}>
             <Text style={[text.headline, { color: c.text.primary }]}>첫 운동을 기록해 보세요</Text>
-            <Text style={[text.caption, { color: c.text.secondary }]}>운동을 마치면 이번 주 달력에 표시돼요</Text>
+            <Text style={[text.caption, { color: c.text.secondary }]}>
+              운동을 마치면 이번 주 달력에 표시돼요
+            </Text>
           </View>
         </View>
       );
@@ -104,12 +145,16 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
           style={({ pressed }) => [s.card, pressed && s.pressed]}
         >
           <View style={s.head}>
-            <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>지난 운동 · {formatDay(lastDay, 'compact')}</Text>
+            <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>
+              지난 운동 · {formatDay(lastDay, 'compact')}
+            </Text>
             <AppIcon name="chevron-right" color={c.text.muted} />
           </View>
           <Values minutes={totals.minutes} volume={totals.volume} />
           <Text style={[text.caption, { color: c.text.secondary }]}>
-            {[totals.parts.join(' · '), totals.exercises.join(', '), `${totals.sets}세트`].filter(Boolean).join(' · ')}
+            {[totals.parts.join(' · '), totals.exercises.join(', '), `${totals.sets}세트`]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
         </Pressable>
         <WorkoutDetail
@@ -124,49 +169,72 @@ export function TodayWorkoutCard({ history, now, journals, onJournal, onDelete }
     );
   }
   const totals = dayTotals(records, body.kg);
-  return <>
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="오늘의 운동 전체 기록 보기"
-      onPress={() => setOpen(true)}
-      style={({ pressed }) => [s.card, s.inverse, pressed && s.pressed]}
-    >
-      <View style={s.head}>
-        <Text style={[text.caption, { color: c.text.muted, flex: 1 }]}>오늘의 운동</Text>
-        <AppIcon name="chevron-right" color={c.text.inverse} />
-      </View>
-      <Values minutes={totals.minutes} volume={totals.volume} inverse />
-      <Text style={[text.caption, { color: c.text.muted }]}>
-        {[...totals.parts, `${totals.sets}세트`, totals.kcal > 0 ? formatKcal(totals.kcal) : ''].filter(Boolean).join(' · ')}
-      </Text>
-    </Pressable>
-    <AppModal visible={open} animationType="slide" onRequestClose={() => setOpen(false)} onDismiss={afterClose}>
-      <Screen header={<NavBar title={`${formatDay(today, 'compact').replace(/ .$/, '')} 기록`} onLeading={() => setOpen(false)} />}>
-        <StatTriplet
-          size="titleL"
-          items={[
-            { value: totals.minutes === null ? '-' : String(totals.minutes), label: '분 운동' },
-            { value: volumeNumber(totals.volume, unit), label: `${unitLabel(unit)} 볼륨` },
-            { value: String(totals.sets), label: '세트' },
-            ...(totals.kcal > 0 ? [{ value: String(Math.round(totals.kcal)), label: 'kcal(추정)' }] : []),
-          ]}
-        />
-        {/* 상세 화면을 한 번 더 열지 않도록 기록별 세트와 메모를 이 화면에 모두 표시합니다. */}
-        {records.map(workout => (
-          <WorkoutRecordCard key={workout.id} workout={workout}
-            journal={journals.find(j => j.workoutId === workout.id)}
-            onDelete={onDelete && (id => { onDelete(id); if (records.length === 1) setOpen(false); })}
-            onJournal={target => { pending.current = target; setOpen(false); if (Platform.OS !== 'ios') afterClose(); }} />
-        ))}
-      </Screen>
-    </AppModal>
-  </>;
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="오늘의 운동 전체 기록 보기"
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [s.card, s.inverse, pressed && s.pressed]}
+      >
+        <View style={s.head}>
+          <Text style={[text.caption, { color: c.text.muted, flex: 1 }]}>오늘의 운동</Text>
+          <AppIcon name="chevron-right" color={c.text.inverse} />
+        </View>
+        <Values minutes={totals.minutes} volume={totals.volume} inverse />
+        <Text style={[text.caption, { color: c.text.muted }]}>
+          {[...totals.parts, `${totals.sets}세트`, totals.kcal > 0 ? formatKcal(totals.kcal) : '']
+            .filter(Boolean)
+            .join(' · ')}
+        </Text>
+      </Pressable>
+      <AppModal
+        visible={open}
+        animationType="slide"
+        onRequestClose={() => setOpen(false)}
+        onDismiss={afterClose}
+      >
+        <Screen
+          header={
+            <NavBar
+              title={`${formatDay(today, 'compact').replace(/ .$/, '')} 기록`}
+              onLeading={() => setOpen(false)}
+            />
+          }
+        >
+          <StatTriplet
+            size="titleL"
+            items={[
+              { value: totals.minutes === null ? '-' : String(totals.minutes), label: '분 운동' },
+              { value: volumeNumber(totals.volume, unit), label: `${unitLabel(unit)} 볼륨` },
+              { value: String(totals.sets), label: '세트' },
+              ...(totals.kcal > 0
+                ? [{ value: String(Math.round(totals.kcal)), label: 'kcal(추정)' }]
+                : []),
+            ]}
+          />
+          {/* 상세 화면을 한 번 더 열지 않도록 기록별 세트와 메모를 이 화면에 모두 표시합니다. */}
+          {records.map((workout) => (
+            <WorkoutRecordCard
+              key={workout.id}
+              workout={workout}
+              journal={journals.find((j) => j.workoutId === workout.id)}
+              onDelete={
+                onDelete &&
+                ((id) => {
+                  onDelete(id);
+                  if (records.length === 1) setOpen(false);
+                })
+              }
+              onJournal={(target) => {
+                pending.current = target;
+                setOpen(false);
+                if (Platform.OS !== 'ios') afterClose();
+              }}
+            />
+          ))}
+        </Screen>
+      </AppModal>
+    </>
+  );
 }
-
-const s = StyleSheet.create({
-  card: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[20], gap: 6 },
-  inverse: { backgroundColor: c.bg.inverse },
-  pressed: { opacity: 0.88 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  values: { flexDirection: 'row', alignItems: 'baseline', gap: tokens.space[12], flexWrap: 'wrap' },
-});

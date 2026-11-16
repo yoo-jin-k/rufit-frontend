@@ -49,27 +49,36 @@ export function WorkoutHistory({
               key={w.id}
               accessibilityRole="button"
               accessibilityLabel={`${workoutDate(w)} 운동 기록 보기`}
-              onPress={() => onSelect ? onSelect(w) : setDetail(w)}
+              onPress={() => (onSelect ? onSelect(w) : setDetail(w))}
               style={[ui.card, ui.row]}
             >
-              {sessionCards ? <CompletedSessionCard workout={w} /> : <>
-              <AppIcon name="workout" />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={ui.muted}>{workoutDate(w)}</Text>
-                <Text style={ui.heading}>
-                  {w.exercises[0]?.name ?? '운동'}
-                  {w.exercises.length > 1 ? ' 외' : ''}
-                </Text>
-                <Text style={ui.muted}>{workoutSummary(w)}</Text>
-              </View>
-              <AppIcon name="chevron" size={16} />
-              </>}
+              {sessionCards ? (
+                <CompletedSessionCard workout={w} />
+              ) : (
+                <>
+                  <AppIcon name="workout" />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={ui.muted}>{workoutDate(w)}</Text>
+                    <Text style={ui.heading}>
+                      {w.exercises[0]?.name ?? '운동'}
+                      {w.exercises.length > 1 ? ' 외' : ''}
+                    </Text>
+                    <Text style={ui.muted}>{workoutSummary(w)}</Text>
+                  </View>
+                  <AppIcon name="chevron" size={16} />
+                </>
+              )}
             </Pressable>
           ))
       ) : (
         <Text style={ui.muted}>아직 기록한 운동이 없어요.</Text>
       )}
-      <Modal visible={!!detail} animationType="slide" onRequestClose={() => setDetail(null)} onDismiss={openPendingJournal}>
+      <Modal
+        visible={!!detail}
+        animationType="slide"
+        onRequestClose={() => setDetail(null)}
+        onDismiss={openPendingJournal}
+      >
         {detail && (
           <SafeAreaView style={ui.page}>
             <ScreenLayout title="운동 기록" onBack={() => setDetail(null)}>
@@ -97,10 +106,29 @@ export function WorkoutHistory({
                   </Text>
                 </View>
               )}
-              {onDelete && <Button title="운동 기록 삭제" secondary onPress={() => Alert.alert(
-                '이 운동 기록을 삭제할까요?', '선택한 운동 기록만 삭제합니다. 이미 작성한 오운완은 유지됩니다.',
-                [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => { onDelete(detail.id); setDetail(null); } }],
-              )} />}
+              {onDelete && (
+                <Button
+                  title="운동 기록 삭제"
+                  secondary
+                  onPress={() =>
+                    Alert.alert(
+                      '이 운동 기록을 삭제할까요?',
+                      '선택한 운동 기록만 삭제합니다. 이미 작성한 오운완은 유지됩니다.',
+                      [
+                        { text: '취소', style: 'cancel' },
+                        {
+                          text: '삭제',
+                          style: 'destructive',
+                          onPress: () => {
+                            onDelete(detail.id);
+                            setDetail(null);
+                          },
+                        },
+                      ],
+                    )
+                  }
+                />
+              )}
               {onJournal && (
                 <Button
                   title="오운완 작성·수정"
@@ -125,13 +153,20 @@ export function WorkoutHistory({
 function CompletedSessionCard({ workout }: { workout: Workout }) {
   const { unit } = useWeightUnit();
   const summary = completedWorkoutSummary(workout);
-  return <View style={{ flex: 1, gap: 12 }}>
-    <View style={ui.between}><Text style={ui.heading}>자유 운동</Text><AppIcon name="chevron" size={16} /></View>
-    <View style={[ui.row, { flexWrap: 'wrap' }]}>
-      <Text style={ui.body}>완료</Text>
-      <Text style={ui.muted}>{summary.duration} · {volumeNumber(summary.volumeKg, unit)} {unitLabel(unit)}</Text>
+  return (
+    <View style={{ flex: 1, gap: 12 }}>
+      <View style={ui.between}>
+        <Text style={ui.heading}>자유 운동</Text>
+        <AppIcon name="chevron" size={16} />
+      </View>
+      <View style={[ui.row, { flexWrap: 'wrap' }]}>
+        <Text style={ui.body}>완료</Text>
+        <Text style={ui.muted}>
+          {summary.duration} · {volumeNumber(summary.volumeKg, unit)} {unitLabel(unit)}
+        </Text>
+      </View>
+      {!!summary.parts && <Text style={ui.body}>{summary.parts}</Text>}
+      <Text style={ui.muted}>{summary.exercises}</Text>
     </View>
-    {!!summary.parts && <Text style={ui.body}>{summary.parts}</Text>}
-    <Text style={ui.muted}>{summary.exercises}</Text>
-  </View>;
+  );
 }

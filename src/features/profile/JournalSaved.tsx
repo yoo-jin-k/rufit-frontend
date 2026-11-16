@@ -1,5 +1,5 @@
 /** Figma 03-18 오운완 저장 완료 화면입니다. 프로필에서 다시 보거나 홈으로 돌아갑니다. */
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { AppModal } from '../../components/AppModal';
 import { Button } from '../../components/Button';
@@ -7,6 +7,7 @@ import { NavBar, Screen } from '../../components/kit/Screen';
 import { ListGroup, ListRow, PhotoPlaceholder } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import type { Journal } from './journalModel';
+import { s } from './JournalSaved.styles';
 
 const c = tokens.color;
 
@@ -36,15 +37,24 @@ export function JournalSaved({
       >
         <View style={s.center}>
           {photo ? (
-            <Image source={{ uri: photo }} accessibilityLabel="오운완 대표 사진" style={s.photo} resizeMode="cover" />
+            <Image
+              source={{ uri: photo }}
+              accessibilityLabel="오운완 대표 사진"
+              style={s.photo}
+              resizeMode="cover"
+            />
           ) : (
             <PhotoPlaceholder style={s.photo} />
           )}
           <View style={s.check}>
             <AppIcon name="check" color={c.text.inverse} strokeWidth={2} />
           </View>
-          <Text accessibilityRole="header" style={[text.titleM, { color: c.text.primary }]}>오운완을 저장했어요</Text>
-          <Text style={[text.callout, { color: c.text.secondary }]}>프로필 오운완 탭에서 다시 볼 수 있어요</Text>
+          <Text accessibilityRole="header" style={[text.titleM, { color: c.text.primary }]}>
+            오운완을 저장했어요
+          </Text>
+          <Text style={[text.callout, { color: c.text.secondary }]}>
+            프로필 오운완 탭에서 다시 볼 수 있어요
+          </Text>
         </View>
         <ListGroup>
           <ListRow
@@ -57,17 +67,3 @@ export function JournalSaved({
     </AppModal>
   );
 }
-
-const s = StyleSheet.create({
-  center: { alignItems: 'center', gap: tokens.space[8], paddingBottom: tokens.space[8] },
-  photo: { width: '66%', maxWidth: 240, aspectRatio: 240 / 300, borderRadius: tokens.radius.xl },
-  check: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: c.bg.inverse,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: tokens.space[8],
-  },
-});

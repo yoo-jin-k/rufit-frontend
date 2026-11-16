@@ -16,12 +16,18 @@ export function completedSets(workout: Workout) {
 export function workoutVolume(workout: Workout) {
   return workout.exercises.reduce(
     (total, e) =>
-      total + e.sets.reduce((sum, set) => sum + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0), 0),
+      total +
+      e.sets.reduce(
+        (sum, set) =>
+          sum + (set.completed ? (Number(set.weight) || 0) * (Number(set.reps) || 0) : 0),
+        0,
+      ),
     0,
   );
 }
 
-export const formatNumber = (value: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+export const formatNumber = (value: number) =>
+  value.toLocaleString('ko-KR', { maximumFractionDigits: 1 });
 
 /** 운동한 부위를 중복 없이 나열합니다(예: 가슴 · 어깨). */
 export function workoutParts(workout: Workout) {
@@ -46,7 +52,10 @@ export function workoutMinutes(workout: Workout) {
 /** 기록 제목: 측정한 운동은 시작 시각(오전 7:10 운동), 직접 입력한 기록은 '직접 입력한 운동'입니다. */
 export function recordTitle(workout: Workout) {
   if (workout.entryMode === 'manual') return '직접 입력한 운동';
-  const started = new Date(workout.startedAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+  const started = new Date(workout.startedAt).toLocaleTimeString('ko-KR', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
   return `${started} 운동`;
 }
 

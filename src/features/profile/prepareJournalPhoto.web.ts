@@ -1,13 +1,18 @@
 /** 웹 사진 선택기는 quality 옵션을 적용하지 않으므로 로컬에서 크기와 용량을 줄입니다. 원본 파일은 수정하지 않습니다. */
-export async function prepareJournalPhoto(base64: string, mimeType = 'image/jpeg'): Promise<string> {
+export async function prepareJournalPhoto(
+  base64: string,
+  mimeType = 'image/jpeg',
+): Promise<string> {
   const source = `data:${mimeType || 'image/jpeg'};base64,${base64}`;
   const image = new Image();
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
-    image.onerror = () => reject(new Error('이 사진 형식을 읽지 못했습니다. JPG 또는 PNG 사진을 선택해 주세요.'));
+    image.onerror = () =>
+      reject(new Error('이 사진 형식을 읽지 못했습니다. JPG 또는 PNG 사진을 선택해 주세요.'));
     image.src = source;
   });
-  if (!image.naturalWidth || !image.naturalHeight) throw new Error('사진 크기를 확인할 수 없습니다.');
+  if (!image.naturalWidth || !image.naturalHeight)
+    throw new Error('사진 크기를 확인할 수 없습니다.');
   const ratio = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));

@@ -37,9 +37,10 @@ export function ServerPostList({
       try {
         // 신규 계정은 아직 소셜 프로필이 없을 수 있습니다. 게시물이 없는 정상 상태로 표시합니다.
         const directory = !memberId ? await session.api.directorySettings() : null;
-        const result = !memberId && !directory?.memberId
-          ? { items: [], total: 0, hasNext: false }
-          : await session.api.posts(memberId, next);
+        const result =
+          !memberId && !directory?.memberId
+            ? { items: [], total: 0, hasNext: false }
+            : await session.api.posts(memberId, next);
         if (!alive.current || !session.isActive() || order !== sequence.current) return;
         setItems((old) =>
           next
@@ -80,7 +81,7 @@ export function ServerPostList({
   }, [load]);
   // 앱 복귀 시 최신 게시물을 조회하며 화면을 닫으면 구독도 해제합니다.
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', state => {
+    const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active' && !selected) void load();
     });
     return () => subscription.remove();

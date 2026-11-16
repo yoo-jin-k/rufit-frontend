@@ -4,7 +4,6 @@ import { useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Image,
-
   Platform,
   Pressable,
   ScrollView,
@@ -15,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
-import { colors, radius, size, spacing, text, tokens, typography } from '../../theme/tokens';
+import { colors, size, spacing } from '../../theme/tokens';
 import { LogoMark } from '../../components/kit/Surfaces';
 import type { AuthCoordinator } from './authCoordinator';
 import {
@@ -30,6 +29,7 @@ import {
 } from './authPresentation';
 import { authReturnUrl, nativeAuthClient } from './nativeAuth';
 import type { AuthStatus, SocialProvider } from './types';
+import { s } from './AuthModal.styles';
 
 const kakaoButton = require('../../../assets/brand/kakao-login-ko.png');
 const googleButton =
@@ -74,15 +74,29 @@ function ProviderButton({
 }
 
 /** iOS 인증 브라우저 위에 별도 네이티브 시트를 겹치지 않도록 앱 내부 화면으로 표시합니다. */
-function AuthPresentation({ visible, onClose, children }: {
-  visible: boolean; onClose(): void; children: ReactNode;
+function AuthPresentation({
+  visible,
+  onClose,
+  children,
+}: {
+  visible: boolean;
+  onClose(): void;
+  children: ReactNode;
 }) {
-  if (Platform.OS === 'ios') return visible ? (
-    <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: colors.surface }]}>
+  if (Platform.OS === 'ios')
+    return visible ? (
+      <View
+        accessibilityViewIsModal
+        style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: colors.surface }]}
+      >
+        {children}
+      </View>
+    ) : null;
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       {children}
-    </View>
-  ) : null;
-  return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>{children}</Modal>;
+    </Modal>
+  );
 }
 
 export function AuthModal({
@@ -192,9 +206,20 @@ export function AuthModal({
                   <Text style={s.body}>{copy.body}</Text>
                 </View>
               )}
-              {coordinator && <EmailAccountPanel key={sessionKey} coordinator={coordinator} signedIn enabled={enabled} />}
+              {coordinator && (
+                <EmailAccountPanel
+                  key={sessionKey}
+                  coordinator={coordinator}
+                  signedIn
+                  enabled={enabled}
+                />
+              )}
               <Text style={s.localNotice}>{signedInLocalNotice}</Text>
-              <Text style={s.localNotice}>{Platform.OS === 'web' ? '로컬 웹 시험용 로그인입니다. 새로고침하면 복원하며, 탭을 닫으면 종료됩니다.' : restartLoginNotice}</Text>
+              <Text style={s.localNotice}>
+                {Platform.OS === 'web'
+                  ? '로컬 웹 시험용 로그인입니다. 새로고침하면 복원하며, 탭을 닫으면 종료됩니다.'
+                  : restartLoginNotice}
+              </Text>
               {confirmLogout ? (
                 <View style={s.card}>
                   <Text style={s.heading}>로그아웃할까요?</Text>
@@ -226,7 +251,9 @@ export function AuthModal({
             <>
               <Text style={s.title}>루핏에 로그인</Text>
               <Text style={s.body}>사용할 계정을 선택해 주세요.</Text>
-              {coordinator && <EmailAccountPanel coordinator={coordinator} signedIn={false} enabled={enabled} />}
+              {coordinator && (
+                <EmailAccountPanel coordinator={coordinator} signedIn={false} enabled={enabled} />
+              )}
               {copy && (
                 <View
                   accessibilityRole={status.kind === 'error' ? 'alert' : undefined}
@@ -276,7 +303,8 @@ export function AuthModal({
               )}
               <Text style={s.caption}>로그인은 시스템 브라우저에서 진행돼요.</Text>
               <Text style={s.caption}>
-                처음 로그인하면 루핏 계정이 만들어져요. 같은 기록으로 이용하려면 로그인 후 계정 관리에서 다른 로그인 방법을 연결해 주세요.
+                처음 로그인하면 루핏 계정이 만들어져요. 같은 기록으로 이용하려면 로그인 후 계정
+                관리에서 다른 로그인 방법을 연결해 주세요.
               </Text>
               {busy && status.kind === 'signing-in' && (
                 <Button title="로그인 취소" secondary onPress={() => coordinator?.cancelLogin()} />
@@ -308,56 +336,3 @@ export function AuthModal({
     </AuthPresentation>
   );
 }
-
-const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.surface },
-  content: {
-    width: '100%',
-    maxWidth: size.contentMax,
-    alignSelf: 'center',
-    paddingTop: spacing.md,
-    gap: spacing.xxl,
-  },
-  title: { ...text.titleM, color: colors.text },
-  body: { ...typography.body, color: colors.textSecondary },
-  heading: { ...typography.heading, color: colors.text },
-  caption: { ...typography.caption, color: colors.textSecondary },
-  providers: { width: '100%', maxWidth: 400, alignSelf: 'center', gap: spacing.md },
-  // 공식 로그인 버튼 이미지를 그대로 쓰고, Figma 버튼 높이(56)·모서리(14)에 맞춰 가운데 둡니다.
-  providerButton: {
-    height: tokens.size.buttonLg,
-    width: '100%',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: tokens.radius.lg,
-  },
-  kakao: { backgroundColor: tokens.color.brand.kakao },
-  google: { backgroundColor: tokens.color.bg.default, borderWidth: 1, borderColor: tokens.color.line.input },
-  kakaoImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
-  googleImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
-  providerDisabled: { opacity: 0.45 },
-  providerPressed: { opacity: 0.76 },
-  status: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.status,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  errorStatus: { backgroundColor: colors.dangerSurface },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  demo: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.inputBorder,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  localNotice: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
-});

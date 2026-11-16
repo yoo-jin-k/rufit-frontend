@@ -1,6 +1,6 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../theme/tokens';
+import { styles } from './HomeScreen.styles';
 
 export function HomeScreen() {
   return (
@@ -17,19 +17,3 @@ export function HomeScreen() {
     </SafeAreaView>
   );
 }
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 24, gap: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  brand: { color: colors.primary, fontSize: 22, fontWeight: '800' },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: '700',
-    lineHeight: 44,
-    marginVertical: 24,
-  },
-  card: { backgroundColor: colors.surface, padding: 24, borderRadius: 20, gap: 12 },
-  cardTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  body: { color: colors.muted, fontSize: 16, lineHeight: 26 },
-  caption: { color: colors.muted, fontSize: 14 },
-});

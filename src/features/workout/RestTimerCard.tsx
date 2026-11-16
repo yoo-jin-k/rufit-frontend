@@ -1,6 +1,7 @@
 /** 휴식은 운동 타이머와 별개입니다. 좁은 화면과 큰 글자에서는 조절 버튼만 다음 줄로 배치합니다. */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { wrappableTime } from './timerView';
+import { s } from './RestTimerCard.styles';
 export function RestTimerCard({
   phase,
   remainingLabel,
@@ -54,26 +55,3 @@ export function RestTimerCard({
     </View>
   );
 }
-const s = StyleSheet.create({
-  card: {
-    backgroundColor: '#111113',
-    borderRadius: 16,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  caption: { fontSize: 12, color: '#BBBBBF' },
-  time: { fontSize: 28, fontWeight: '700', color: 'white', fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  button: {
-    minHeight: 44,
-    minWidth: 44,
-    padding: 10,
-    backgroundColor: '#303034',
-    borderRadius: 10,
-    justifyContent: 'center',
-  },
-  label: { fontSize: 12, fontWeight: '600', color: 'white' },
-});

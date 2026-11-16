@@ -372,7 +372,8 @@ export function createRufitApi(options: Options) {
     unitPreferences: () => request<UnitPreferences>('GET', '/preferences/units'),
     saveUnitPreferences: (version: number, weightUnit: WeightUnit) =>
       request<UnitPreferences>('PUT', '/preferences/units', { version, weightUnit }),
-    exerciseFavorites: () => request<{ favorites: ExerciseFavorite[] }>('GET', '/exercises/favorites'),
+    exerciseFavorites: () =>
+      request<{ favorites: ExerciseFavorite[] }>('GET', '/exercises/favorites'),
     addExerciseFavorite: (exerciseId: string) =>
       request<ExerciseFavorite>('PUT', `/exercises/${segment(exerciseId)}/favorite`),
     removeExerciseFavorite: (exerciseId: string) =>

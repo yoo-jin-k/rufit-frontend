@@ -12,16 +12,21 @@ import type { AuthClient } from './types';
 
 // 웹 로그인은 설정으로 켠 경우에만, 로컬 시험 주소나 https 배포 주소에서만 사용합니다.
 // 실제 복귀 주소는 서버 설정이 정하므로 여기서 다른 주소를 허용해도 서버가 거절합니다.
-const localWeb = Platform.OS === 'web' && typeof window !== 'undefined'
-  && (['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'https:')
-  && process.env.EXPO_PUBLIC_RUFIT_WEB_LOGIN_ENABLED === 'true';
+const localWeb =
+  Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  (['localhost', '127.0.0.1'].includes(window.location.hostname) ||
+    window.location.protocol === 'https:') &&
+  process.env.EXPO_PUBLIC_RUFIT_WEB_LOGIN_ENABLED === 'true';
 export const nativeAuthAvailable = Platform.OS === 'ios' || Platform.OS === 'android' || localWeb;
 export const nativeAuthClient: AuthClient | null =
   Platform.OS === 'ios' ? 'IOS' : Platform.OS === 'android' ? 'ANDROID' : localWeb ? 'WEB' : null;
-export const authReturnUrl = localWeb ? `${window.location.origin}/auth/callback.html` : AuthSession.makeRedirectUri({
-  scheme: 'rufit',
-  path: 'auth/callback',
-});
+export const authReturnUrl = localWeb
+  ? `${window.location.origin}/auth/callback.html`
+  : AuthSession.makeRedirectUri({
+      scheme: 'rufit',
+      path: 'auth/callback',
+    });
 const nativeFetch = expoFetch as typeof fetch;
 
 export function createNativeAuthCoordinator(baseUrl: string) {
@@ -46,7 +51,8 @@ export function createNativeAuthCoordinator(baseUrl: string) {
       (url, returnUrl) => {
         // 구글 로그인마다 계정 선택을 표시합니다. 인증 주소의 호스트는 API 계층에서 검증합니다.
         const target = new URL(url);
-        if (target.hostname === 'accounts.google.com') target.searchParams.set('prompt', 'select_account');
+        if (target.hostname === 'accounts.google.com')
+          target.searchParams.set('prompt', 'select_account');
         return WebBrowser.openAuthSessionAsync(target.toString(), returnUrl);
       },
       () => WebBrowser.dismissAuthSession(),

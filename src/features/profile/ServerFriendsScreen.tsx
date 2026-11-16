@@ -184,7 +184,7 @@ export function ServerFriendsScreen({
   if (profile)
     return (
       <ScreenLayout
-      safeTop
+        safeTop
         title="친구 프로필"
         onBack={() => (initialMemberId ? onClose() : setProfile(null))}
       >

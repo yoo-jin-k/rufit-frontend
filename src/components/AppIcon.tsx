@@ -32,7 +32,8 @@ export function AppIcon({
   filled?: boolean;
   strokeWidth?: number;
 }) {
-  const icon = figmaIcons[name in legacy ? legacy[name as keyof typeof legacy] : (name as FigmaIconName)];
+  const icon =
+    figmaIcons[name in legacy ? legacy[name as keyof typeof legacy] : (name as FigmaIconName)];
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" fill="none" accessible={false}>
       {icon.stroke.map((d) => (

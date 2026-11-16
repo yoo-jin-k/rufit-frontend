@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addExercise, addSet, finishWorkout, setLabels, setSetDetail, startWorkout, updateSet, type Workout } from '../src/features/workout/model.ts';
+import {
+  addExercise,
+  addSet,
+  finishWorkout,
+  setLabels,
+  setSetDetail,
+  startWorkout,
+  updateSet,
+  type Workout,
+} from '../src/features/workout/model.ts';
 import { decodeArchive, emptyArchive, remember } from '../src/features/workout/storage.ts';
 import { importPreviousSets } from '../src/features/workout/previousSetModel.ts';
 import { recommendSet } from '../src/features/workout/setEditorModel.ts';
@@ -53,8 +62,20 @@ test('세트 복제와 지난 기록 불러오기는 종류를 이어받고 자�
   const copy = w.exercises[0]!.sets.find((s) => s.id === 'copy')!;
   assert.deepEqual([copy.setType, copy.rpe], ['DROP', undefined]);
   let n = 0;
-  const loaded = importPreviousSets(w, 'e', { ...w.exercises[0]!, sets: [{ id: 'p', weight: '50', reps: '5', completed: true, setType: 'FAILURE', rpe: 10 }] }, () => `n${++n}`, true);
-  assert.deepEqual([loaded.exercises[0]!.sets[0]!.setType, loaded.exercises[0]!.sets[0]!.rpe], ['FAILURE', undefined]);
+  const loaded = importPreviousSets(
+    w,
+    'e',
+    {
+      ...w.exercises[0]!,
+      sets: [{ id: 'p', weight: '50', reps: '5', completed: true, setType: 'FAILURE', rpe: 10 }],
+    },
+    () => `n${++n}`,
+    true,
+  );
+  assert.deepEqual(
+    [loaded.exercises[0]!.sets[0]!.setType, loaded.exercises[0]!.sets[0]!.rpe],
+    ['FAILURE', undefined],
+  );
 });
 
 test('추천값은 웜업 세트를 빼고 계산합니다', () => {

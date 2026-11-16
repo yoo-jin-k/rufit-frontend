@@ -27,7 +27,9 @@ export default function App() {
     () => (nativeAuthAvailable && baseUrl ? createNativeAuthCoordinator(baseUrl) : null),
     [baseUrl],
   );
-  useEffect(() => { void coordinator?.restore(); }, [coordinator]);
+  useEffect(() => {
+    void coordinator?.restore();
+  }, [coordinator]);
   // 앱이 다시 활성화되면 일시 장애로 실패한 로그인 복원을 재시도하고, 만료가 가까운 접근 토큰을 갱신합니다.
   useEffect(() => {
     if (!coordinator) return;
@@ -59,22 +61,29 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <NotificationProvider session={coordinator?.getSession() ?? null} accountMode={authLabel === '계정'}>
-      <AppSurface>
-        {entered || authLabel === '계정' ? (
-          <WorkoutScreen session={coordinator?.getSession() ?? null} authLabel={authLabel} onOpenAuth={() => setShowAuth(true)} />
-        ) : (
-          <WelcomeScreen onLogin={() => setShowAuth(true)} onGuest={() => setEntered(true)} />
-        )}
-        <AuthModal
-          visible={showAuth}
-          onClose={() => setShowAuth(false)}
-          coordinator={coordinator}
-          status={status}
-          enabled={enabled}
-          demo={demo}
-        />
-      </AppSurface>
+      <NotificationProvider
+        session={coordinator?.getSession() ?? null}
+        accountMode={authLabel === '계정'}
+      >
+        <AppSurface>
+          {entered || authLabel === '계정' ? (
+            <WorkoutScreen
+              session={coordinator?.getSession() ?? null}
+              authLabel={authLabel}
+              onOpenAuth={() => setShowAuth(true)}
+            />
+          ) : (
+            <WelcomeScreen onLogin={() => setShowAuth(true)} onGuest={() => setEntered(true)} />
+          )}
+          <AuthModal
+            visible={showAuth}
+            onClose={() => setShowAuth(false)}
+            coordinator={coordinator}
+            status={status}
+            enabled={enabled}
+            demo={demo}
+          />
+        </AppSurface>
       </NotificationProvider>
     </SafeAreaProvider>
   );

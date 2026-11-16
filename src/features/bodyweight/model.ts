@@ -1,7 +1,12 @@
 import { today, validDate } from '../strength/model.ts';
 export type WeightRecord = { date: string; weight: number; height?: number };
 export const weightStorageKey = 'rufit.bodyweight.v1';
-export function weightRecord(date: string, input: string, now = today(), heightInput = ''): WeightRecord {
+export function weightRecord(
+  date: string,
+  input: string,
+  now = today(),
+  heightInput = '',
+): WeightRecord {
   if (!validDate(date) || date > now)
     throw new Error('오늘 또는 이전의 올바른 날짜를 입력해 주세요.');
   if (!/^\d+(\.\d{1,2})?$/.test(input.trim()) || Number(input) <= 0 || Number(input) > 700)
@@ -32,7 +37,11 @@ export function decodeWeight(raw: string | null): WeightRecord[] {
       !Number.isFinite(r.weight) ||
       r.weight <= 0 ||
       r.weight > 700 ||
-      (r.height !== undefined && (typeof r.height !== 'number' || !Number.isFinite(r.height) || r.height < 30 || r.height > 300))
+      (r.height !== undefined &&
+        (typeof r.height !== 'number' ||
+          !Number.isFinite(r.height) ||
+          r.height < 30 ||
+          r.height > 300))
     )
       throw new Error('체중 기록을 읽을 수 없습니다.');
     dates.add(r.date);

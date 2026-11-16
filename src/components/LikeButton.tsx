@@ -24,11 +24,19 @@ export function LikeButton({ post, actor = 'local-self' }: { post: string; actor
           paddingHorizontal: 8,
         }}
       >
-        <AppIcon name="heart" size={18} color={liked ? tokens.color.danger.default : tokens.color.text.secondary} filled={liked} />
+        <AppIcon
+          name="heart"
+          size={18}
+          color={liked ? tokens.color.danger.default : tokens.color.text.secondary}
+          filled={liked}
+        />
         <Text style={[text.label, { color: tokens.color.text.secondary }]}>{count}</Text>
       </Pressable>
       {!!value.error && (
-        <Text accessibilityRole="alert" style={[text.label, { color: tokens.color.danger.default }]}>
+        <Text
+          accessibilityRole="alert"
+          style={[text.label, { color: tokens.color.danger.default }]}
+        >
           {value.error}
         </Text>
       )}

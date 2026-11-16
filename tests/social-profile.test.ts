@@ -88,9 +88,14 @@ test('내 샘플 게시물은 기존 기록을 보존하고 반복 추가해도 
   assert.deepEqual(decodeProfile(JSON.stringify(seeded)), seeded);
 });
 
- test('프로필 소개와 지점은 기존 기록을 보존하고 선택 항목 삭제 및 재로딩을 지원합니다', () => {
+test('프로필 소개와 지점은 기존 기록을 보존하고 선택 항목 삭제 및 재로딩을 지원합니다', () => {
   const original = addOwnSamplePosts(emptyProfile());
-  const edited = updateProfileDetails(original, ' 운동하는 나 ', ' 꾸준히 운동합니다 ', ' 루핏짐 강남점 ');
+  const edited = updateProfileDetails(
+    original,
+    ' 운동하는 나 ',
+    ' 꾸준히 운동합니다 ',
+    ' 루핏짐 강남점 ',
+  );
   assert.equal(edited.bio, '꾸준히 운동합니다');
   assert.equal(edited.gym, '루핏짐 강남점');
   assert.deepEqual(edited.journals, original.journals);

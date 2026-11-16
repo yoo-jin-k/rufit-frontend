@@ -54,4 +54,5 @@ export function volumeNumber(kg: number, unit: WeightUnit): string {
 }
 
 /** 증감 버튼 크기입니다. kg는 0.5·5, lb는 1·5입니다. */
-export const weightSteps = (unit: WeightUnit): [number, number] => (unit === 'LB' ? [1, 5] : [0.5, 5]);
+export const weightSteps = (unit: WeightUnit): [number, number] =>
+  unit === 'LB' ? [1, 5] : [0.5, 5];

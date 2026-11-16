@@ -1,7 +1,7 @@
 import { AppModal as Modal } from '../../components/AppModal';
 /** 가상 사용자의 공개 샘플 프로필입니다. 실제 기록 보관함과 분리하고 차단 상태에서는 내용을 숨깁니다. */
 import { useState } from 'react';
-import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TestPhoto } from '../../components/TestPhoto';
 import { AppIcon } from '../../components/AppIcon';
@@ -14,6 +14,7 @@ import { blockedPair } from './friendSafetyModel';
 import { testSelf } from './friendTestModel';
 import { monthCells, shiftMonth } from '../calendar/model';
 import { colors } from '../../theme/tokens';
+import { s } from './TestUserProfile.styles';
 export function TestUserProfile({
   userId,
   actor,
@@ -226,22 +227,3 @@ export function TestUserProfile({
     </Modal>
   );
 }
-const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  frame: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  icon: { width: 40, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 20, gap: 16, paddingBottom: 32 },
-  stats: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heading: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  body: { color: colors.text, fontSize: 13, lineHeight: 21 },
-  muted: { color: colors.muted, fontSize: 11, lineHeight: 18 },
-  record: { padding: 16, borderRadius: 12, backgroundColor: colors.primarySoft, gap: 6 },
-});

@@ -4,7 +4,7 @@ import { WorkoutTransferPanel } from '../sync/WorkoutTransferPanel';
 import { MeasurementTransferPanel } from '../sync/MeasurementTransferPanel';
 /** 서버 계정 기록은 기기 기록과 구분하여 조회합니다. 실패해도 기기 기록을 변경하지 않습니다. */
 import { useEffect, useRef, useState } from 'react';
-import {  Text } from 'react-native';
+import { Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RufitSession } from '../../api/session';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
@@ -66,7 +66,9 @@ export function ServerHistoryScreen({
       if (mounted.current) setBusy(false);
     }
   }
-  useReadRecovery(/연결|네트워크|시간 초과|network|fetch/i.test(error) && transfers === 0, () => load(true));
+  useReadRecovery(/연결|네트워크|시간 초과|network|fetch/i.test(error) && transfers === 0, () =>
+    load(true),
+  );
   return (
     <Modal visible animationType="slide" onRequestClose={close}>
       <SafeAreaView style={ui.page}>

@@ -11,14 +11,15 @@ import { useProfile } from '../features/profile/useProfile';
 import { TestPhoto } from './TestPhoto';
 /** 모든 메뉴에서 같은 친구 신청을 표시합니다. 빨간 점은 아직 처리하지 않은 신청이 있다는 뜻입니다. */
 import { useState } from 'react';
-import {  Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from './AppIcon';
 import { FriendRow } from './FriendRow';
 import { Button } from './Button';
-import { colors, text } from '../theme/tokens';
+import { colors } from '../theme/tokens';
 import { useTestFriends } from '../features/profile/useTestFriends';
 import { testSelf } from '../features/profile/friendTestModel';
+import { s } from './NotificationButton.styles';
 export function NotificationButton() {
   const inbox = useServerNotifications();
   return inbox?.accountMode ? <ServerNotificationButton /> : <LocalNotificationButton />;
@@ -61,7 +62,9 @@ function LocalNotificationButton() {
         style={s.trigger}
       >
         <AppIcon name="bell" color={colors.text} />
-        {(requests.length > 0 || unread > 0 || cheerUnread > 0) && <View testID="notification-dot" style={s.dot} />}
+        {(requests.length > 0 || unread > 0 || cheerUnread > 0) && (
+          <View testID="notification-dot" style={s.dot} />
+        )}
       </Pressable>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <SafeAreaView style={s.page}>
@@ -81,14 +84,48 @@ function LocalNotificationButton() {
                 </Text>
               )}
               {!ready && !error && <Text style={s.muted}>알림을 불러오는 중입니다.</Text>}
-              {ready && likes.ready && !requests.length && !received.length && !cheerNotifications.length && (
-                <Text style={s.muted}>새로운 알림이 없습니다.</Text>
-              )}
-              {cheerNotifications.slice().reverse().map((cheer) => <Pressable key={`${cheer.from}:${cheer.workout}`} accessibilityRole="button" accessibilityLabel="응원 알림 읽음 처리" style={s.likeRow} onPress={() => void cheers.update((d) => ({ ...d, cheers: d.cheers.map((c) => c.from === cheer.from && c.to === cheer.to && c.workout === cheer.workout ? { ...c, read: true } : c) }))}>
-                <TestPhoto tile={getTestProfile(cheer.from)?.avatar ?? 0} size={34} round label="응원한 친구 사진" />
-                <View style={{ flex: 1 }}><Text style={s.body}>{getTestProfile(cheer.from)?.nickname ?? '친구'}님이 운동을 응원했어요.</Text><Text style={s.muted}>로컬 테스트 · {cheer.read ? '읽음' : '눌러서 읽음 처리'}</Text></View>
-                {!cheer.read && <View style={s.unread} />}
-              </Pressable>)}
+              {ready &&
+                likes.ready &&
+                !requests.length &&
+                !received.length &&
+                !cheerNotifications.length && <Text style={s.muted}>새로운 알림이 없습니다.</Text>}
+              {cheerNotifications
+                .slice()
+                .reverse()
+                .map((cheer) => (
+                  <Pressable
+                    key={`${cheer.from}:${cheer.workout}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="응원 알림 읽음 처리"
+                    style={s.likeRow}
+                    onPress={() =>
+                      void cheers.update((d) => ({
+                        ...d,
+                        cheers: d.cheers.map((c) =>
+                          c.from === cheer.from && c.to === cheer.to && c.workout === cheer.workout
+                            ? { ...c, read: true }
+                            : c,
+                        ),
+                      }))
+                    }
+                  >
+                    <TestPhoto
+                      tile={getTestProfile(cheer.from)?.avatar ?? 0}
+                      size={34}
+                      round
+                      label="응원한 친구 사진"
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.body}>
+                        {getTestProfile(cheer.from)?.nickname ?? '친구'}님이 운동을 응원했어요.
+                      </Text>
+                      <Text style={s.muted}>
+                        로컬 테스트 · {cheer.read ? '읽음' : '눌러서 읽음 처리'}
+                      </Text>
+                    </View>
+                    {!cheer.read && <View style={s.unread} />}
+                  </Pressable>
+                ))}
               {requests.map((r) => (
                 <FriendRow key={r.from} actor={testSelf} other={r.from} notification />
               ))}
@@ -169,37 +206,3 @@ function LocalNotificationButton() {
     </>
   );
 }
-const s = StyleSheet.create({
-  likeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  unread: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  trigger: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  dot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.accent,
-    borderWidth: 1,
-    borderColor: colors.surface,
-  },
-  page: { flex: 1, backgroundColor: colors.background },
-  content: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center', padding: 20, gap: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { ...text.titleL, color: colors.text, flexShrink: 0 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  footer: { paddingTop: 8 },
-  body: { ...text.bodyMedium, color: colors.text },
-  muted: { ...text.label, color: colors.muted },
-  error: { color: colors.danger },
-  card: { backgroundColor: colors.primarySoft, padding: 16, borderRadius: 16, gap: 12 },
-  actions: { flexDirection: 'row', gap: 10 },
-});

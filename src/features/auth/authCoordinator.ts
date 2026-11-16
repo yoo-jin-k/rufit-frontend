@@ -140,7 +140,13 @@ export class AuthCoordinator {
    * 서버가 만료·폐기를 명시했거나 저장값이 맞지 않을 때만 저장된 정보를 지웁니다.
    */
   async restore() {
-    if (this.runtime || this.activeOperation !== null || this.pendingLocalLogout || !this.options.store.load) return;
+    if (
+      this.runtime ||
+      this.activeOperation !== null ||
+      this.pendingLocalLogout ||
+      !this.options.store.load
+    )
+      return;
     const operation = ++this.epoch;
     this.activeOperation = operation;
     try {
@@ -153,8 +159,10 @@ export class AuthCoordinator {
       }
       const saved = stored === null ? null : decodeStoredSession(JSON.stringify(stored));
       if (operation !== this.epoch || !saved) return;
-      if (saved.server.replace(/\/$/, '') !== this.options.api.server.replace(/\/$/, '')
-        || Date.parse(saved.refreshTokenExpiresAt) <= Date.now())
+      if (
+        saved.server.replace(/\/$/, '') !== this.options.api.server.replace(/\/$/, '') ||
+        Date.parse(saved.refreshTokenExpiresAt) <= Date.now()
+      )
         throw new Error('로그인 정보가 만료되었거나 서버가 변경되었습니다. 다시 로그인해 주세요.');
       this.publish({ kind: 'signing-in', provider: saved.provider, stage: 'verifying' });
       const tokens = await this.options.api.refresh(saved.refreshToken);
@@ -169,12 +177,17 @@ export class AuthCoordinator {
       if (isTransientAuthFailure(error)) {
         this.publish({
           kind: 'signed-out',
-          notice: '서버에 연결하지 못해 로그인을 확인하지 못했어요. 연결되면 앱을 다시 열 때 자동으로 확인해요. 기기 기록은 유지됩니다.',
+          notice:
+            '서버에 연결하지 못해 로그인을 확인하지 못했어요. 연결되면 앱을 다시 열 때 자동으로 확인해요. 기기 기록은 유지됩니다.',
         });
         return;
       }
       await this.serialStore(() => this.options.store.clear()).catch(() => {});
-      if (operation === this.epoch) this.publish({ kind: 'signed-out', notice: '로그인을 복원하지 못했습니다. 다시 로그인해 주세요. 기기 기록은 유지됩니다.' });
+      if (operation === this.epoch)
+        this.publish({
+          kind: 'signed-out',
+          notice: '로그인을 복원하지 못했습니다. 다시 로그인해 주세요. 기기 기록은 유지됩니다.',
+        });
     } finally {
       if (this.activeOperation === operation) this.activeOperation = null;
     }
@@ -210,7 +223,11 @@ export class AuthCoordinator {
    * /me 확인 같은 후속 요청보다 먼저 새 토큰을 저장합니다. 저장소에 교체 전 토큰이 그대로 있을 때만
    * 바꾸므로, 그사이 로그아웃이나 다른 계정 로그인으로 바뀐 저장값은 덮어쓰지 않습니다.
    */
-  private persistRotated(previousRefreshToken: string, tokens: SessionTokens, provider: LoginProvider) {
+  private persistRotated(
+    previousRefreshToken: string,
+    tokens: SessionTokens,
+    provider: LoginProvider,
+  ) {
     return this.serialStore(async () => {
       if (!this.options.store.load) return;
       let current: StoredSession | null;
@@ -219,7 +236,8 @@ export class AuthCoordinator {
       } catch {
         throw new ApiError(0, 'STORE_UNAVAILABLE', '기기의 로그인 정보를 읽지 못했습니다.');
       }
-      if (current?.refreshToken !== previousRefreshToken || current.sessionId !== tokens.sessionId) return;
+      if (current?.refreshToken !== previousRefreshToken || current.sessionId !== tokens.sessionId)
+        return;
       await this.options.store.save(this.toStored(tokens, provider));
     });
   }
@@ -236,10 +254,13 @@ export class AuthCoordinator {
     if (!current) return;
     const untilRefresh =
       delayMs ?? Date.parse(current.tokens.accessTokenExpiresAt) - Date.now() - refreshMarginMs;
-    const timer = setTimeout(() => {
-      this.refreshTimer = null;
-      if (this.runtime) void this.refresh();
-    }, Math.min(Math.max(untilRefresh, minRefreshDelayMs), maxTimerMs));
+    const timer = setTimeout(
+      () => {
+        this.refreshTimer = null;
+        if (this.runtime) void this.refresh();
+      },
+      Math.min(Math.max(untilRefresh, minRefreshDelayMs), maxTimerMs),
+    );
     // 테스트·Node 환경에서 예약 작업이 프로세스 종료를 막지 않게 합니다. 앱 런타임에는 없는 기능입니다.
     (timer as { unref?: () => void }).unref?.();
     this.refreshTimer = timer;
@@ -317,7 +338,8 @@ export class AuthCoordinator {
     return this.emailSignIn(() => this.accountApi().login(email, password));
   }
   private async emailSignIn(work: () => Promise<SessionTokens | null>) {
-    if (this.activeOperation !== null || this.runtime || this.pendingLocalLogout) throw new Error('현재 로그인 작업을 먼저 마쳐 주세요.');
+    if (this.activeOperation !== null || this.runtime || this.pendingLocalLogout)
+      throw new Error('현재 로그인 작업을 먼저 마쳐 주세요.');
     const operation = ++this.epoch;
     this.activeOperation = operation;
     this.publish({ kind: 'signing-in', provider: 'EMAIL', stage: 'verifying' });
@@ -325,21 +347,44 @@ export class AuthCoordinator {
       const tokens = await work();
       if (tokens && operation === this.epoch) await this.accept(tokens, 'EMAIL', operation);
     } catch (error) {
-      if (operation === this.epoch) this.publish({ kind: 'error', reason: 'login-failed', action: 'retry-login', provider: 'EMAIL',
-        message: error instanceof Error ? error.message : '로그인을 완료하지 못했습니다.' });
+      if (operation === this.epoch)
+        this.publish({
+          kind: 'error',
+          reason: 'login-failed',
+          action: 'retry-login',
+          provider: 'EMAIL',
+          message: error instanceof Error ? error.message : '로그인을 완료하지 못했습니다.',
+        });
       throw error;
-    } finally { if (this.activeOperation === operation) this.activeOperation = null; }
+    } finally {
+      if (this.activeOperation === operation) this.activeOperation = null;
+    }
   }
   emailRequest(email: string, purpose: 'REGISTER' | 'RESET' | 'LINK') {
     if (purpose === 'LINK' && !this.runtime) throw new Error('로그인이 필요합니다.');
     return this.accountApi().request(email, purpose, this.runtime?.tokens.accessToken);
   }
-  async emailConfirm(purpose: 'REGISTER' | 'RESET' | 'LINK', requestId: string, verificationToken: string, password: string) {
-    if (purpose === 'REGISTER') return this.emailSignIn(() => this.accountApi().confirm(purpose, requestId, verificationToken, password));
+  async emailConfirm(
+    purpose: 'REGISTER' | 'RESET' | 'LINK',
+    requestId: string,
+    verificationToken: string,
+    password: string,
+  ) {
+    if (purpose === 'REGISTER')
+      return this.emailSignIn(() =>
+        this.accountApi().confirm(purpose, requestId, verificationToken, password),
+      );
     const current = this.runtime;
     if (purpose === 'LINK' && !current) throw new Error('로그인이 필요합니다.');
-    await this.accountApi().confirm(purpose, requestId, verificationToken, password, current?.tokens.accessToken);
-    if (purpose === 'LINK' && current !== this.runtime) throw new Error('계정이 바뀌었습니다. 다시 확인해 주세요.');
+    await this.accountApi().confirm(
+      purpose,
+      requestId,
+      verificationToken,
+      password,
+      current?.tokens.accessToken,
+    );
+    if (purpose === 'LINK' && current !== this.runtime)
+      throw new Error('계정이 바뀌었습니다. 다시 확인해 주세요.');
   }
   // 로그아웃과 겹친 조회도 Promise 거절로 전달하여 화면 렌더를 중단하지 않습니다.
   async loginMethods() {
@@ -347,7 +392,8 @@ export class AuthCoordinator {
     return this.accountApi().methods(this.runtime.tokens.accessToken);
   }
   async linkSocial(provider: SocialProvider, client: AuthClient, returnUrl: string, merge = false) {
-    if (this.activeOperation !== null || this.refreshPromise || !this.runtime) throw new Error('다른 로그인 작업이 끝난 후 다시 시도해 주세요.');
+    if (this.activeOperation !== null || this.refreshPromise || !this.runtime)
+      throw new Error('다른 로그인 작업이 끝난 후 다시 시도해 주세요.');
     const current = this.runtime;
     const operation = ++this.epoch;
     this.activeOperation = operation;
@@ -355,7 +401,12 @@ export class AuthCoordinator {
       this.options.browser.prepare?.();
       const pkce = await this.options.createPkce();
       if (operation !== this.epoch) return;
-      const attempt = await this.accountApi().startLink(provider, client, pkce.challenge, current.tokens.accessToken);
+      const attempt = await this.accountApi().startLink(
+        provider,
+        client,
+        pkce.challenge,
+        current.tokens.accessToken,
+      );
       if (operation !== this.epoch) return;
       const result = await this.options.browser.open(attempt.authorizationUrl, returnUrl);
       if (operation !== this.epoch) return;
@@ -364,11 +415,27 @@ export class AuthCoordinator {
       if (handoff.kind === 'cancelled') throw new Error('계정 연결을 취소했습니다.');
       // 통합은 화면에서 명시적으로 선택한 경우에만 별도 API로 요청합니다.
       const api = this.accountApi();
-      if (merge) await api.finishMerge(attempt.attemptId, handoff.handoffCode, pkce.verifier, current.tokens.accessToken);
-      else await api.finishLink(attempt.attemptId, handoff.handoffCode, pkce.verifier, current.tokens.accessToken);
-      if (current !== this.runtime || operation !== this.epoch) throw new Error('계정이 바뀌었습니다. 연결 상태를 다시 확인해 주세요.');
+      if (merge)
+        await api.finishMerge(
+          attempt.attemptId,
+          handoff.handoffCode,
+          pkce.verifier,
+          current.tokens.accessToken,
+        );
+      else
+        await api.finishLink(
+          attempt.attemptId,
+          handoff.handoffCode,
+          pkce.verifier,
+          current.tokens.accessToken,
+        );
+      if (current !== this.runtime || operation !== this.epoch)
+        throw new Error('계정이 바뀌었습니다. 연결 상태를 다시 확인해 주세요.');
     } finally {
-      if (this.activeOperation === operation) { this.activeOperation = null; await this.options.browser.close?.(); }
+      if (this.activeOperation === operation) {
+        this.activeOperation = null;
+        await this.options.browser.close?.();
+      }
     }
   }
 
@@ -457,14 +524,19 @@ export class AuthCoordinator {
           throw new ApiError(200, 'ACCOUNT_CHANGED', '갱신된 세션의 계정을 확인하지 못했습니다.');
         await this.persistRotated(current.tokens.refreshToken, tokens, current.provider);
         // /me 확인이 일시 장애로 실패해도 다음 갱신은 새 갱신 토큰으로 하도록 메모리 상태도 바꿉니다.
-        if (operation === this.epoch && this.runtime === current) this.runtime = { ...current, tokens };
+        if (operation === this.epoch && this.runtime === current)
+          this.runtime = { ...current, tokens };
         await this.accept(tokens, current.provider, operation, this.runtime ?? current);
       })
       .catch(async (error) => {
         if (operation !== this.epoch) return;
         const latest = this.runtime;
         if (latest && isTransientAuthFailure(error)) {
-          this.publish({ kind: 'signed-in', accountId: latest.tokens.account.id, provider: latest.provider });
+          this.publish({
+            kind: 'signed-in',
+            accountId: latest.tokens.account.id,
+            provider: latest.provider,
+          });
           this.scheduleRefresh(this.options.refreshRetryMs ?? 30_000);
           return;
         }

@@ -7,7 +7,12 @@ export function decodeFavorites(raw: string | null): string[] {
   if (!raw) return [];
   try {
     const value: unknown = JSON.parse(raw);
-    return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === 'string'))].slice(0, FAVORITE_LIMIT) : [];
+    return Array.isArray(value)
+      ? [...new Set(value.filter((id): id is string => typeof id === 'string'))].slice(
+          0,
+          FAVORITE_LIMIT,
+        )
+      : [];
   } catch {
     return [];
   }
@@ -15,7 +20,8 @@ export function decodeFavorites(raw: string | null): string[] {
 
 export function toggleFavorite(ids: string[], id: string): string[] {
   if (ids.includes(id)) return ids.filter((x) => x !== id);
-  if (ids.length >= FAVORITE_LIMIT) throw new Error(`즐겨찾기는 ${FAVORITE_LIMIT}개까지 담을 수 있어요.`);
+  if (ids.length >= FAVORITE_LIMIT)
+    throw new Error(`즐겨찾기는 ${FAVORITE_LIMIT}개까지 담을 수 있어요.`);
   return [id, ...ids];
 }
 

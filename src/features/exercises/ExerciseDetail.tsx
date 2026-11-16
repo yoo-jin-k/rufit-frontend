@@ -2,7 +2,7 @@
  * Figma 03-03 종목 상세입니다. 큰 동작 사진, 부위·장비 칩, 운동 설명, 내 기록(최고 무게·최근 운동), 하단 '이 종목 추가'.
  * 상세를 열어도 선택 상태는 바뀌지 않고, '이 종목 추가'를 눌러야 선택 목록에 들어갑니다.
  */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { NavBar, Screen, SectionTitle } from '../../components/kit/Screen';
 import { text, tokens } from '../../theme/tokens';
@@ -19,6 +19,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { useFavorites } from '../favorites/FavoritesProvider';
 import { formatWeight } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
+import { s } from './ExerciseDetail.styles';
 
 const c = tokens.color;
 
@@ -44,7 +45,12 @@ export function ExerciseDetail({
   onAdd?(): void;
 }) {
   const { unit } = useWeightUnit();
-  const records = previousExercises(history, { id: exercise.id, name: exercise.name, catalogId: exercise.id, sets: [] });
+  const records = previousExercises(history, {
+    id: exercise.id,
+    name: exercise.name,
+    catalogId: exercise.id,
+    sets: [],
+  });
   const best = records
     .flatMap((r) => r.exercise.sets)
     .reduce<{ weight: number; reps: string } | null>((top, set) => {
@@ -72,7 +78,11 @@ export function ExerciseDetail({
               onPress={() => favorites.toggle(exercise.id)}
               style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
             >
-              <AppIcon name="star" filled={favorite} color={favorite ? '#F5B800' : c.text.secondary} />
+              <AppIcon
+                name="star"
+                filled={favorite}
+                color={favorite ? '#F5B800' : c.text.secondary}
+              />
             </Pressable>
           }
         />
@@ -89,7 +99,9 @@ export function ExerciseDetail({
     >
       <ExerciseMedia exercise={exercise} expanded />
       {!hasExerciseImage(exercise.id) && (
-        <Text style={[text.caption, { color: c.text.secondary }]}>이 종목의 동작 사진은 준비 중입니다.</Text>
+        <Text style={[text.caption, { color: c.text.secondary }]}>
+          이 종목의 동작 사진은 준비 중입니다.
+        </Text>
       )}
       <View style={s.tags}>
         <Tag label={bodyParts[exercise.bodyPart]} />
@@ -139,7 +151,10 @@ export function ExerciseDetail({
             <View style={s.record}>
               <Text style={[text.label, { color: c.text.secondary }]}>최근 운동</Text>
               <Text style={[text.headline, { color: c.text.primary }]}>
-                {formatDay(latest.recordDate ?? localDay(latest.startedAt), 'compact').replace(/ .$/, '')}
+                {formatDay(latest.recordDate ?? localDay(latest.startedAt), 'compact').replace(
+                  / .$/,
+                  '',
+                )}
               </Text>
             </View>
           </View>
@@ -153,22 +168,3 @@ export function ExerciseDetail({
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  tags: { flexDirection: 'row', gap: tokens.space[8], flexWrap: 'wrap' },
-  tag: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: tokens.radius.full,
-    borderWidth: 1,
-    borderColor: c.line.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  records: { flexDirection: 'row', gap: tokens.space[12] },
-  list: { gap: tokens.space[8] },
-  item: { flexDirection: 'row', gap: tokens.space[8] },
-  marker: { width: 16, textAlign: 'center' },
-  itemText: { flex: 1 },
-  record: { flex: 1, backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: 4 },
-});

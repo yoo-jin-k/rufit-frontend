@@ -13,7 +13,8 @@ export const DEFAULT_BODY_KG = 70;
 export const MET_STRENGTH = 3.5;
 export const MET_BODYWEIGHT = 3.5;
 
-export const metFor = (equipment?: Equipment) => (equipment === 'BODYWEIGHT' ? MET_BODYWEIGHT : MET_STRENGTH);
+export const metFor = (equipment?: Equipment) =>
+  equipment === 'BODYWEIGHT' ? MET_BODYWEIGHT : MET_STRENGTH;
 
 /**
  * 운동 한 번의 추정 칼로리입니다. 시간을 재지 않은 직접 입력 기록은 null입니다.
@@ -28,7 +29,8 @@ export function workoutCalories(
   if (workout.entryMode === 'manual') return null;
   const kg = Number.isFinite(bodyKg) && bodyKg > 0 ? bodyKg : DEFAULT_BODY_KG;
   const hours = elapsedWorkoutMs(workout, workout.finishedAt ?? now) / 3_600_000;
-  const weightOf = (sets: Workout['exercises'][number]['sets']) => sets.filter((s) => s.completed).length;
+  const weightOf = (sets: Workout['exercises'][number]['sets']) =>
+    sets.filter((s) => s.completed).length;
   const anyDone = workout.exercises.some((e) => weightOf(e.sets) > 0);
   const shares = workout.exercises.map((e) => (anyDone ? weightOf(e.sets) : e.sets.length));
   const totalShare = shares.reduce((a, b) => a + b, 0);
@@ -51,5 +53,7 @@ export const formatKcal = (kcal: number) => `약 ${Math.round(kcal).toLocaleStri
 /** 체중 기록 중 가장 최근 값입니다. 없으면 기본 체중을 쓰고 estimated로 알립니다. */
 export function latestBodyKg(records: { date: string; weight: number }[]) {
   const latest = [...records].sort((a, b) => b.date.localeCompare(a.date))[0];
-  return latest ? { kg: latest.weight, estimated: false } : { kg: DEFAULT_BODY_KG, estimated: true };
+  return latest
+    ? { kg: latest.weight, estimated: false }
+    : { kg: DEFAULT_BODY_KG, estimated: true };
 }

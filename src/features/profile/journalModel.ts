@@ -8,7 +8,14 @@ export type Journal = {
   visibility: 'private' | 'friends';
   createdAt: number;
 };
-export type ProfileData = { version: 1; nickname: string; avatar?: string; bio?: string; gym?: string; journals: Journal[] };
+export type ProfileData = {
+  version: 1;
+  nickname: string;
+  avatar?: string;
+  bio?: string;
+  gym?: string;
+  journals: Journal[];
+};
 export const profileKey = 'rufit.profile.v1';
 export const emptyProfile = (): ProfileData => ({
   version: 1,
@@ -21,7 +28,10 @@ export function decodeProfile(raw: string | null): ProfileData {
   if (
     value?.version !== 1 ||
     typeof value.nickname !== 'string' ||
-    (value.avatar !== undefined && (typeof value.avatar !== 'string' || !value.avatar.startsWith('data:image/') || value.avatar.length > 2_800_000)) ||
+    (value.avatar !== undefined &&
+      (typeof value.avatar !== 'string' ||
+        !value.avatar.startsWith('data:image/') ||
+        value.avatar.length > 2_800_000)) ||
     (value.bio !== undefined && (typeof value.bio !== 'string' || value.bio.length > 80)) ||
     (value.gym !== undefined && (typeof value.gym !== 'string' || value.gym.length > 60)) ||
     !Array.isArray(value.journals) ||
@@ -38,7 +48,12 @@ export function decodeProfile(raw: string | null): ProfileData {
             !Number.isInteger(j.testPhotoTile) ||
             j.testPhotoTile < 5 ||
             j.testPhotoTile > 8)) ||
-        (j.photos !== undefined && (!Array.isArray(j.photos) || j.photos.length > 5 || j.photos.some((photo: unknown) => typeof photo !== 'string' || !photo.startsWith('data:image/')))) ||
+        (j.photos !== undefined &&
+          (!Array.isArray(j.photos) ||
+            j.photos.length > 5 ||
+            j.photos.some(
+              (photo: unknown) => typeof photo !== 'string' || !photo.startsWith('data:image/'),
+            ))) ||
         (j.photo !== undefined &&
           (typeof j.photo !== 'string' || !j.photo.startsWith('data:image/'))),
     )
@@ -87,7 +102,12 @@ export function addOwnSamplePosts(profile: ProfileData): ProfileData {
 }
 
 /** 소개와 지점은 선택 입력입니다. 비워서 저장하면 지우며 기존 사진·운동 기록은 유지합니다. */
-export function updateProfileDetails(profile: ProfileData, nickname: string, bio: string, gym: string): ProfileData {
+export function updateProfileDetails(
+  profile: ProfileData,
+  nickname: string,
+  bio: string,
+  gym: string,
+): ProfileData {
   const clean = (text: string) => text.replace(/[\r\n]+/g, ' ').trim();
   const details = { nickname: clean(nickname), bio: clean(bio), gym: clean(gym) };
   if (!details.nickname) throw new Error('닉네임을 입력해 주세요.');
@@ -112,8 +132,15 @@ export function updateProfileAvatar(profile: ProfileData, avatar?: string): Prof
 }
 
 /** 사진 순서와 글을 함께 비교하여 변경 없는 화면에서는 불필요한 확인을 생략합니다. */
-export function journalDraftChanged(initial: Journal | undefined, memo: string, photos: string[]): boolean {
+export function journalDraftChanged(
+  initial: Journal | undefined,
+  memo: string,
+  photos: string[],
+): boolean {
   const previous = journalPhotos(initial);
-  return memo !== (initial?.memo ?? '') || previous.length !== photos.length
-    || previous.some((photo, index) => photo !== photos[index]);
+  return (
+    memo !== (initial?.memo ?? '') ||
+    previous.length !== photos.length ||
+    previous.some((photo, index) => photo !== photos[index])
+  );
 }

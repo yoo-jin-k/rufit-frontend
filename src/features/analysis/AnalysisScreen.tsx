@@ -3,7 +3,7 @@
  * 측정 데이터는 진입 시 기기 저장소에서 읽고, 저장되지 않은 샘플 수치는 보여 주지 않습니다.
  */
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppIcon } from '../../components/AppIcon';
 import { PageHeader, Screen } from '../../components/kit/Screen';
@@ -18,6 +18,7 @@ import { signed } from '../strength/StrengthScreen';
 import { TrendChart } from '../strength/TrendChart';
 import { decodeWeight, weightStorageKey, type WeightRecord } from '../bodyweight/model';
 import { weightBase } from '../bodyweight/BodyWeightScreen';
+import { s } from './AnalysisScreen.styles';
 
 const c = tokens.color;
 const md = (date: string) => formatDay(date, 'compact').replace(/ .$/, '');
@@ -40,7 +41,12 @@ function MeasureCard({
   onPress: () => void;
 }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title} 보기`} onPress={onPress} style={({ pressed }) => [s.card, pressed && { opacity: 0.85 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title} 보기`}
+      onPress={onPress}
+      style={({ pressed }) => [s.card, pressed && { opacity: 0.85 }]}
+    >
       <View style={s.row}>
         <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>{title}</Text>
         <AppIcon name="chevron-right" color={c.text.muted} />
@@ -78,7 +84,10 @@ export function AnalysisScreen({
     [error, setError] = useState('');
   useEffect(() => {
     let active = true;
-    Promise.all([AsyncStorage.getItem(storageKey).then(decode), AsyncStorage.getItem(weightStorageKey).then(decodeWeight)])
+    Promise.all([
+      AsyncStorage.getItem(storageKey).then(decode),
+      AsyncStorage.getItem(weightStorageKey).then(decodeWeight),
+    ])
       .then(([s, w]) => {
         if (active) {
           setStrength(s);
@@ -104,8 +113,14 @@ export function AnalysisScreen({
         title="삼대 측정"
         name="삼대 합계"
         value={latest && formatNumber(total(latest))}
-        delta={latest && previous ? `지난번보다 ${signed(total(latest) - total(previous))}` : undefined}
-        meta={latest ? `벤치 ${latest.bench} · 스쿼트 ${latest.squat} · 데드리프트 ${latest.deadlift}` : '아직 측정 기록이 없어요'}
+        delta={
+          latest && previous ? `지난번보다 ${signed(total(latest) - total(previous))}` : undefined
+        }
+        meta={
+          latest
+            ? `벤치 ${latest.bench} · 스쿼트 ${latest.squat} · 데드리프트 ${latest.deadlift}`
+            : '아직 측정 기록이 없어요'
+        }
         values={strength.map((r) => ({ date: r.date, value: total(r) }))}
         onPress={onStrength}
       />
@@ -113,14 +128,20 @@ export function AnalysisScreen({
         title="체중"
         name="체중"
         value={lastWeight && String(lastWeight.weight)}
-        delta={lastWeight && pastWeight && pastWeight !== lastWeight ? `4주 전보다 ${signed(lastWeight.weight - pastWeight.weight)}` : undefined}
+        delta={
+          lastWeight && pastWeight && pastWeight !== lastWeight
+            ? `4주 전보다 ${signed(lastWeight.weight - pastWeight.weight)}`
+            : undefined
+        }
         meta={lastWeight ? `${md(lastWeight.date)} 측정` : '아직 측정 기록이 없어요'}
         values={weight.map((r) => ({ date: r.date, value: r.weight }))}
         onPress={onWeight}
       />
       <View style={s.card}>
         <View style={s.row}>
-          <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>{Number(month.month.slice(5))}월 달성률</Text>
+          <Text style={[text.caption, { color: c.text.secondary, flex: 1 }]}>
+            {Number(month.month.slice(5))}월 달성률
+          </Text>
           <Text style={[text.captionBold, { color: c.text.primary }]}>
             {month.totalDays}일 중 {month.workoutDays}일
           </Text>
@@ -131,13 +152,11 @@ export function AnalysisScreen({
         </Text>
         <ProgressBar value={month.percent} label={`${Number(month.month.slice(5))}월 달성률`} />
       </View>
-      {!!error && <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>{error}</Text>}
+      {!!error && (
+        <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
+          {error}
+        </Text>
+      )}
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  card: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: tokens.space[4] },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headline: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-});

@@ -1,19 +1,13 @@
 /** Figma 표시 부품(카드·목록 행·아바타·사진 자리·대화상자·시트·토스트·로고)입니다. */
 import { useEffect, useRef, type ReactNode } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppModal } from '../AppModal';
 import { AppIcon, type IconName } from '../AppIcon';
 import { Button } from '../Button';
 import { text, tokens } from '../../theme/tokens';
+import { s } from './Surfaces.styles';
 
 const c = tokens.color;
 
@@ -32,7 +26,12 @@ export function Card({
   tone?: 'surface' | 'inverse' | 'outline';
   style?: StyleProp<ViewStyle>;
 }) {
-  const look = [s.card, tone === 'inverse' && s.cardInverse, tone === 'outline' && s.cardOutline, style];
+  const look = [
+    s.card,
+    tone === 'inverse' && s.cardInverse,
+    tone === 'outline' && s.cardOutline,
+    style,
+  ];
   if (!onPress) return <View style={look}>{children}</View>;
   return (
     <Pressable
@@ -61,7 +60,14 @@ export function Stat({
   return (
     <Text style={[text[size], { color }]}>
       {value}
-      {!!unit && <Text style={[text.caption, { color: color === c.text.primary ? c.text.secondary : color }]}> {unit}</Text>}
+      {!!unit && (
+        <Text
+          style={[text.caption, { color: color === c.text.primary ? c.text.secondary : color }]}
+        >
+          {' '}
+          {unit}
+        </Text>
+      )}
     </Text>
   );
 }
@@ -104,7 +110,13 @@ export function ListRow({
   const content = (
     <>
       {icon && <AppIcon name={icon} color={danger ? c.danger.default : c.text.primary} />}
-      <Text style={[text.bodyMedium, s.rowLabel, { color: danger ? c.danger.default : disabled ? c.text.muted : c.text.primary }]}>
+      <Text
+        style={[
+          text.bodyMedium,
+          s.rowLabel,
+          { color: danger ? c.danger.default : disabled ? c.text.muted : c.text.primary },
+        ]}
+      >
         {label}
       </Text>
       {!!value && <Text style={[text.callout, { color: c.text.secondary }]}>{value}</Text>}
@@ -132,7 +144,9 @@ export function ListRow({
 
 /** 작은 회색 글자 묶음 제목입니다(설정의 운동·데이터·정보 등). */
 export function GroupLabel({ children }: { children: string }) {
-  return <Text style={[text.label, { color: c.text.secondary, marginBottom: -4 }]}>{children}</Text>;
+  return (
+    <Text style={[text.label, { color: c.text.secondary, marginBottom: -4 }]}>{children}</Text>
+  );
 }
 
 /** Figma Avatar: s(44)·m(64)·l(96). 사진이 없으면 이름 첫 글자, 이름도 없으면 사람 아이콘을 보여 줍니다. */
@@ -159,7 +173,9 @@ export function Avatar({
     >
       {photo ??
         (initial ? (
-          <Text style={[box >= 64 ? text.titleM : text.calloutBold, { color: c.text.primary }]}>{initial}</Text>
+          <Text style={[box >= 64 ? text.titleM : text.calloutBold, { color: c.text.primary }]}>
+            {initial}
+          </Text>
         ) : (
           <AppIcon name="person" size={box * 0.42} color={c.text.secondary} />
         ))}
@@ -168,7 +184,13 @@ export function Avatar({
 }
 
 /** Figma Placeholder/Photo: 사진이 없거나 아직 불러오지 않은 자리입니다. */
-export function PhotoPlaceholder({ style, radius = tokens.radius.xl }: { style?: StyleProp<ViewStyle>; radius?: number }) {
+export function PhotoPlaceholder({
+  style,
+  radius = tokens.radius.xl,
+}: {
+  style?: StyleProp<ViewStyle>;
+  radius?: number;
+}) {
   return (
     <View accessible={false} style={[s.photo, { borderRadius: radius }, style]}>
       <AppIcon name="image" color={c.text.muted} />
@@ -177,15 +199,29 @@ export function PhotoPlaceholder({ style, radius = tokens.radius.xl }: { style?:
 }
 
 /** 빈 상태 카드: 동그란 아이콘, 제목, 설명을 가운데 정렬로 보여 줍니다. */
-export function EmptyCard({ icon, title, body, hint }: { icon: IconName; title: string; body?: string; hint?: string }) {
+export function EmptyCard({
+  icon,
+  title,
+  body,
+  hint,
+}: {
+  icon: IconName;
+  title: string;
+  body?: string;
+  hint?: string;
+}) {
   return (
     <View style={s.empty}>
       <View style={s.emptyIcon}>
         <AppIcon name={icon} color={c.text.secondary} />
       </View>
       <Text style={[text.headline, { color: c.text.primary, textAlign: 'center' }]}>{title}</Text>
-      {!!body && <Text style={[text.caption, { color: c.text.secondary, textAlign: 'center' }]}>{body}</Text>}
-      {!!hint && <Text style={[text.label, { color: c.text.muted, textAlign: 'center' }]}>{hint}</Text>}
+      {!!body && (
+        <Text style={[text.caption, { color: c.text.secondary, textAlign: 'center' }]}>{body}</Text>
+      )}
+      {!!hint && (
+        <Text style={[text.label, { color: c.text.muted, textAlign: 'center' }]}>{hint}</Text>
+      )}
     </View>
   );
 }
@@ -246,14 +282,27 @@ export function ConfirmDialog({
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={s.dim}>
-        <Pressable accessibilityLabel={cancelLabel} style={StyleSheet.absoluteFill} onPress={onCancel} />
+        <Pressable
+          accessibilityLabel={cancelLabel}
+          style={StyleSheet.absoluteFill}
+          onPress={onCancel}
+        />
         <View accessibilityViewIsModal style={s.dialog}>
           <Text accessibilityRole="header" style={[text.headline, s.center]}>
             {title}
           </Text>
-          {!!message && <Text style={[text.callout, s.center, { color: c.text.secondary }]}>{message}</Text>}
+          {!!message && (
+            <Text style={[text.callout, s.center, { color: c.text.secondary }]}>{message}</Text>
+          )}
           <View style={s.dialogActions}>
-            <Button title={cancelLabel} variant="soft" size="md" fullWidth={false} style={s.flex} onPress={onCancel} />
+            <Button
+              title={cancelLabel}
+              variant="soft"
+              size="md"
+              fullWidth={false}
+              style={s.flex}
+              onPress={onCancel}
+            />
             <Button
               title={confirmLabel}
               variant={tone === 'danger' ? 'danger' : 'primary'}
@@ -295,9 +344,16 @@ export function BottomSheet({
               <Text accessibilityRole="header" style={[text.titleM, { color: c.text.primary }]}>
                 {title}
               </Text>
-              {!!subtitle && <Text style={[text.caption, { color: c.text.secondary }]}>{subtitle}</Text>}
+              {!!subtitle && (
+                <Text style={[text.caption, { color: c.text.secondary }]}>{subtitle}</Text>
+              )}
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={12}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="닫기"
+              onPress={onClose}
+              hitSlop={12}
+            >
               <AppIcon name="close" color={c.text.secondary} />
             </Pressable>
           </View>
@@ -309,7 +365,15 @@ export function BottomSheet({
 }
 
 /** Figma Toast: 검정 둥근 알림입니다. 정해진 시간이 지나면 onHide로 스스로 사라집니다. */
-export function Toast({ message, onHide, duration = 2400 }: { message: string; onHide: () => void; duration?: number }) {
+export function Toast({
+  message,
+  onHide,
+  duration = 2400,
+}: {
+  message: string;
+  onHide: () => void;
+  duration?: number;
+}) {
   // 부모가 1초마다 다시 그려지면서 onHide가 새로 만들어져도 타이머를 다시 시작하지 않도록 최신 함수만 기억합니다.
   const hide = useRef(onHide);
   useEffect(() => {
@@ -342,88 +406,3 @@ export function LogoMark({ size = 44 }: { size?: number }) {
     </Svg>
   );
 }
-
-const s = StyleSheet.create({
-  flex: { flex: 1 },
-  center: { textAlign: 'center', color: c.text.primary, width: '100%' },
-  pressed: { opacity: 0.85 },
-  card: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, padding: tokens.space[16], gap: tokens.space[8] },
-  cardInverse: { backgroundColor: c.bg.inverse },
-  cardOutline: { backgroundColor: c.bg.default, borderWidth: 1, borderColor: c.line.default },
-  group: { backgroundColor: c.bg.surface, borderRadius: tokens.radius.xl, paddingHorizontal: tokens.space[16] },
-  divider: { height: 1, backgroundColor: c.line.default },
-  row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: tokens.space[12] },
-  rowPressed: { opacity: 0.6 },
-  rowLabel: { flex: 1 },
-  avatar: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarInitial: { backgroundColor: c.bg.default, borderWidth: 1, borderColor: c.line.default },
-  avatarEmpty: { backgroundColor: c.bg.surface },
-  photo: { backgroundColor: '#E4E4E7', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  empty: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.xl,
-    paddingVertical: tokens.space[24],
-    paddingHorizontal: tokens.space[20],
-    alignItems: 'center',
-    gap: 6,
-  },
-  emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: c.bg.default,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: tokens.space[8],
-  },
-  notice: {
-    backgroundColor: c.bg.surface,
-    borderRadius: tokens.radius.md,
-    paddingHorizontal: tokens.space[16],
-    paddingVertical: tokens.space[12],
-    flexDirection: 'row',
-    gap: tokens.space[8],
-    alignItems: 'center',
-  },
-  track: { height: 8, borderRadius: 4, backgroundColor: c.line.default, overflow: 'hidden' },
-  fillBar: { height: 8, borderRadius: 4, backgroundColor: c.accent.default },
-  dim: { flex: 1, backgroundColor: c.bg.dim, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  dialog: {
-    width: '100%',
-    maxWidth: 338,
-    backgroundColor: c.bg.default,
-    borderRadius: tokens.radius['2xl'],
-    paddingTop: 28,
-    paddingHorizontal: tokens.space[20],
-    paddingBottom: tokens.space[20],
-    gap: tokens.space[8],
-    alignItems: 'center',
-  },
-  dialogActions: { flexDirection: 'row', gap: tokens.space[12], paddingTop: tokens.space[16], width: '100%' },
-  sheetDim: { flex: 1, backgroundColor: c.bg.dim, justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: c.bg.default,
-    borderTopLeftRadius: tokens.radius['2xl'],
-    borderTopRightRadius: tokens.radius['2xl'],
-    paddingHorizontal: tokens.size.screenPadding,
-    paddingBottom: tokens.space[8],
-    maxHeight: '90%',
-    width: '100%',
-    maxWidth: 640,
-    alignSelf: 'center',
-  },
-  grabber: { width: 36, height: 4, borderRadius: 2, backgroundColor: c.line.strong, alignSelf: 'center', marginTop: 8 },
-  sheetHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingTop: 20, paddingBottom: 16 },
-  sheetBody: { gap: tokens.space[16] },
-  toastWrap: { position: 'absolute', left: 0, right: 0, bottom: 112, alignItems: 'center', paddingHorizontal: 20 },
-  toast: {
-    ...text.captionBold,
-    color: c.text.inverse,
-    backgroundColor: c.bg.inverse,
-    borderRadius: tokens.radius.full,
-    overflow: 'hidden',
-    paddingHorizontal: tokens.space[24],
-    paddingVertical: 12,
-    textAlign: 'center',
-  },
-});
