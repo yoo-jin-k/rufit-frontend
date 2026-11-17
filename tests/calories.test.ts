@@ -37,9 +37,13 @@ test('체중이 이상하면 기본 체중, 직접 입력 기록은 계산하지
   assert.equal(workoutCalories({ ...done(60), entryMode: 'manual' }, 70, 0), null);
 });
 
-test('진행 중인 운동은 지금 시각까지, 종목이 없어도 시간만큼 계산합니다', () => {
+test('완료한 세트가 없으면 시간이 지나도 계산하지 않고, 첫 세트 완료 후 지금 시각까지 계산합니다', () => {
+  assert.equal(workoutCalories(startWorkout('w', 0), 70, 30 * 60_000), null);
+  const added = addExercise(startWorkout('w', 0), 'a', '스쿼트', 'sq');
+  assert.equal(workoutCalories(added, 70, 30 * 60_000), null);
+  const started = updateSet(added, 'a', 'a-1', { weight: '60', reps: '10', completed: true });
   assert.equal(
-    Math.round(workoutCalories(startWorkout('w', 0), 70, 30 * 60_000)!.total),
+    Math.round(workoutCalories(started, 70, 30 * 60_000)!.total),
     Math.round(3.5 * 70 * 0.5),
   );
 });

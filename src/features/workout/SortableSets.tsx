@@ -1,6 +1,9 @@
-/** 번호 영역에서만 드래그를 시작합니다. 행 높이를 실제로 측정하여 오류 문구·글자 확대에도 이동 위치를 맞춥니다. */
-import { Component, useState, type ReactNode } from 'react';
-import { PanResponder, Text, View } from 'react-native';
+/**
+ * 번호 영역에서만 드래그를 시작합니다. 행 높이를 실제로 측정하여 오류 문구·글자 확대에도 이동 위치를 맞춥니다.
+ * 끄는 동안 들어갈 자리의 세트들이 끄는 세트 높이만큼 비켜서, 어디에 놓일지 미리 보입니다.
+ */
+import { Component, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, PanResponder, Platform, Text, View } from 'react-native';
 import { text, tokens } from '../../theme/tokens';
 import { setDragStyles } from './SetDrag.styles';
 import type { WorkoutSet } from './model';
@@ -29,13 +32,13 @@ export function SortableSets({
 }) {
   const [layouts, setLayouts] = useState<Record<string, { y: number; height: number }>>({});
   const [drag, setDrag] = useState<{ id: string; dy: number } | null>(null);
-  function drop(id: string, dy: number) {
-    setDrag(null);
-    onDraggingChange?.(false);
+  const reduceMotion = useReduceMotion();
+  /** 끄는 세트의 가운데와 가장 가까운 세트 자리를 들어갈 위치로 봅니다. */
+  function targetFor(id: string, dy: number) {
     const source = layouts[id];
-    if (!source || disabled) return;
-    const center = source.y + source.height / 2 + dy;
     let target = sets.findIndex((set) => set.id === id);
+    if (!source) return target;
+    const center = source.y + source.height / 2 + dy;
     let distance = Infinity;
     sets.forEach((set, index) => {
       const bounds = layouts[set.id];
@@ -46,8 +49,25 @@ export function SortableSets({
         distance = next;
       }
     });
+    return target;
+  }
+  function drop(id: string, dy: number) {
+    setDrag(null);
+    onDraggingChange?.(false);
+    if (!layouts[id] || disabled) return;
+    const target = targetFor(id, dy);
     if (target !== sets.findIndex((set) => set.id === id)) onMove(id, target);
   }
+  // 끄는 세트가 지나간 자리의 세트들은 끄는 세트 높이(+행 간격 2)만큼 반대로 비켜섭니다.
+  const from = drag ? sets.findIndex((set) => set.id === drag.id) : -1;
+  const to = drag ? targetFor(drag.id, drag.dy) : -1;
+  const gapSize = drag ? (layouts[drag.id]?.height ?? 0) + 2 : 0;
+  const shiftFor = (index: number) => {
+    if (!drag || index === from) return 0;
+    if (from < to && index > from && index <= to) return -gapSize;
+    if (to < from && index >= to && index < from) return gapSize;
+    return 0;
+  };
   return (
     <View style={{ gap: 2 }}>
       {sets.map((set, index) => {
@@ -98,9 +118,13 @@ export function SortableSets({
             </Text>
           </DragNumber>
         );
+        const dragging = drag?.id === set.id;
         return (
-          <View
+          <ShiftRow
             key={set.id}
+            shift={shiftFor(index)}
+            active={!!drag}
+            reduceMotion={reduceMotion}
             onLayout={(event) => {
               const { y, height } = event.nativeEvent.layout;
               setLayouts((current) =>
@@ -110,15 +134,67 @@ export function SortableSets({
               );
             }}
             style={{
-              zIndex: drag?.id === set.id ? 10 : 0,
-              backgroundColor: drag?.id === set.id ? tokens.color.bg.default : undefined,
-              transform: [{ translateY: drag?.id === set.id ? drag.dy : 0 }],
+              zIndex: dragging ? 10 : 0,
+              backgroundColor: dragging ? tokens.color.bg.default : undefined,
+              transform: [{ translateY: dragging ? drag.dy : 0 }],
             }}
           >
             {children(set, index, handle)}
-          </View>
+          </ShiftRow>
         );
       })}
+    </View>
+  );
+}
+
+function useReduceMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => alive && setReduce(value))
+      .catch(() => undefined);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+  return reduce;
+}
+
+/**
+ * 비켜서는 세트 한 줄입니다. 끄는 동안에는 부드럽게 움직이고,
+ * 놓는 순간에는 순서가 바뀐 화면과 같은 프레임에 0으로 돌아가 깜빡이지 않게 합니다.
+ */
+function ShiftRow({
+  shift,
+  active,
+  reduceMotion,
+  style,
+  children,
+  ...props
+}: React.ComponentProps<typeof View> & {
+  shift: number;
+  active: boolean;
+  reduceMotion: boolean;
+}) {
+  const [offset] = useState(() => new Animated.Value(0));
+  useLayoutEffect(() => {
+    if (!active || reduceMotion) {
+      offset.stopAnimation();
+      offset.setValue(active ? shift : 0);
+      return;
+    }
+    Animated.timing(offset, {
+      toValue: shift,
+      duration: 160,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [active, offset, reduceMotion, shift]);
+  return (
+    <View {...props} style={style}>
+      <Animated.View style={{ transform: [{ translateY: offset }] }}>{children}</Animated.View>
     </View>
   );
 }

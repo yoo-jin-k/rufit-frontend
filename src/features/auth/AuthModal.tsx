@@ -30,12 +30,9 @@ import {
 import { authReturnUrl, nativeAuthClient } from './nativeAuth';
 import type { AuthStatus, SocialProvider } from './types';
 import { s } from './AuthModal.styles';
+import { GoogleLogo } from './GoogleLogo';
 
 const kakaoButton = require('../../../assets/brand/kakao-login-ko.png');
-const googleButton =
-  Platform.OS === 'ios'
-    ? require('../../../assets/brand/google-signin-ios-light.png')
-    : require('../../../assets/brand/google-signin-android-web-light.png');
 const providerName = { KAKAO: '카카오', GOOGLE: 'Google', EMAIL: '이메일' } as const;
 
 function ProviderButton({
@@ -47,7 +44,6 @@ function ProviderButton({
   disabled: boolean;
   onPress(): void;
 }) {
-  const image = provider === 'KAKAO' ? kakaoButton : googleButton;
   const label = providerAccessibilityLabel(provider);
   return (
     <Pressable
@@ -63,12 +59,14 @@ function ProviderButton({
         pressed && !disabled && s.providerPressed,
       ]}
     >
-      <Image
-        source={image}
-        resizeMode="contain"
-        style={provider === 'KAKAO' ? s.kakaoImage : s.googleImage}
-        accessible={false}
-      />
+      {provider === 'KAKAO' ? (
+        <Image source={kakaoButton} resizeMode="contain" style={s.kakaoImage} accessible={false} />
+      ) : (
+        <View style={s.googleContent}>
+          <GoogleLogo />
+          <Text style={s.googleText}>{label}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }

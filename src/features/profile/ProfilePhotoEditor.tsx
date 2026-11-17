@@ -38,8 +38,8 @@ export function ProfilePhotoEditor({
       }
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
-        base64: true,
-        quality: 0.5,
+        base64: Platform.OS === 'web',
+        quality: 1,
         allowsEditing: true,
         aspect: [1, 1],
       };
@@ -47,9 +47,7 @@ export function ProfilePhotoEditor({
         ? await ImagePicker.launchCameraAsync(options)
         : await ImagePicker.launchImageLibraryAsync(options);
       if (!result.canceled) {
-        const asset = result.assets[0];
-        if (!asset.base64) throw new Error('사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.');
-        const prepared = await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg');
+        const prepared = await prepareJournalPhoto(result.assets[0]);
         onChange(prepared);
       }
     } catch (cause) {

@@ -11,6 +11,7 @@ import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs
 import { existsSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { imageEdgeColors } from './image-edge-color.mts';
 
 type Entry = { id: string; name: string; image: string | null; gif: string | null };
 
@@ -32,6 +33,7 @@ const { exercises } = JSON.parse(
 
 const images: string[] = [];
 const animations: string[] = [];
+const colors: string[] = [];
 const missing: string[] = [];
 const hasSource = existsSync(source);
 
@@ -83,6 +85,11 @@ if (hasSource) {
           );
         }
       }
+      if (kind === 'image') {
+        // 목록의 정사각형 칸에 사진 전체를 맞출 때 남는 공간을 채울 가장자리 색입니다.
+        const edge = imageEdgeColors(to);
+        if (edge) colors.push(`  '${entry.id}': ['${edge[0]}', '${edge[1]}', '${edge[2]}'],`);
+      }
       const line = `  '${entry.id}': require('../../../assets/licensed/exercises/${name}'),`;
       (kind === 'image' ? images : animations).push(line);
     }
@@ -97,6 +104,7 @@ await writeFile(
     '',
     `export const licensedImages: Record<string, ImageSourcePropType> = {${images.length ? `\n${images.join('\n')}\n` : ''}};`,
     `export const licensedAnimations: Record<string, ImageSourcePropType> = {${animations.length ? `\n${animations.join('\n')}\n` : ''}};`,
+    `export const licensedImageColors: Record<string, readonly [string, string, 'column' | 'row']> = {${colors.length ? `\n${colors.join('\n')}\n` : ''}};`,
     '',
   ].join('\n'),
 );

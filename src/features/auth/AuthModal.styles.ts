@@ -16,7 +16,7 @@ export const s = StyleSheet.create({
   heading: { ...typography.heading, color: colors.text },
   caption: { ...typography.caption, color: colors.textSecondary },
   providers: { width: '100%', maxWidth: 400, alignSelf: 'center', gap: spacing.md },
-  // 공식 로그인 버튼 이미지를 그대로 쓰고, Figma 버튼 높이(56)·모서리(14)에 맞춰 가운데 둡니다.
+  // 카카오는 공식 버튼 이미지를, Google은 표준 G 로고와 글자를 Figma 버튼 높이(56)·모서리(14)에 맞춰 가운데 둡니다.
   providerButton: {
     height: tokens.size.buttonLg,
     width: '100%',
@@ -32,7 +32,8 @@ export const s = StyleSheet.create({
     borderColor: tokens.color.line.input,
   },
   kakaoImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
-  googleImage: { height: tokens.size.buttonLg, width: 238, maxWidth: '100%' },
+  googleContent: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  googleText: { ...typography.button, fontWeight: '600', color: colors.text },
   providerDisabled: { opacity: 0.45 },
   providerPressed: { opacity: 0.76 },
   status: {

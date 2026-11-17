@@ -89,9 +89,9 @@ test('로그인 계정에도 기기 보관·비동기화·재실행 재로그인
   assert.match(restartLoginNotice, /앱을 다시 열면 저장된 로그인을 확인/);
 });
 
-test('하단 inset은 디자인 여백과 중복 합산하지 않고 공식 Google 이름을 그대로 읽는다', () => {
+test('하단 inset은 디자인 여백과 중복 합산하지 않고 Google 버튼은 보이는 글자 그대로 읽는다', () => {
   assert.equal(authContentBottomPadding(34, 20), 34);
   assert.equal(authContentBottomPadding(10, 20), 20);
-  assert.equal(providerAccessibilityLabel('GOOGLE'), 'Sign in with Google');
+  assert.equal(providerAccessibilityLabel('GOOGLE'), 'Google 로그인');
   assert.equal(providerAccessibilityLabel('KAKAO'), '카카오 로그인');
 });
