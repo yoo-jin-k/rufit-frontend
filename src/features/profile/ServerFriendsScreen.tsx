@@ -12,6 +12,7 @@ import type { RufitSession } from '../../api/session';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
 import { ServerMemberActions } from './ServerMemberActions';
+import { ProfileAvatar } from './ProfileAvatar';
 
 /** 계정 친구는 서버 응답으로만 표시하며 검색 노출은 사용자가 명시적으로 저장합니다. */
 export function ServerFriendsScreen({
@@ -164,20 +165,37 @@ export function ServerFriendsScreen({
       />
     );
   }
-  function memberLink(id: string, label: string) {
+  /** 사진·닉네임·한 줄 소개를 한 줄로 보여 주고, 누르면 프로필을 엽니다. 신청 목록은 사진·소개가 없어 기본 아이콘을 씁니다. */
+  function memberLink(member: {
+    memberId: string;
+    nickname: string;
+    bio?: string | null;
+    avatar?: string | null;
+  }) {
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label} 프로필 보기`}
+        accessibilityLabel={`${member.nickname} 프로필 보기`}
         disabled={busy}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 }}
         onPress={() =>
           void run(async () => {
-            const value = await session.api.memberProfile(id);
+            const value = await session.api.memberProfile(member.memberId);
             if (active()) setProfile(value);
           })
         }
       >
-        <Text style={ui.heading}>{label}</Text>
+        <ProfileAvatar photo={member.avatar} size={48} label={`${member.nickname} 프로필 사진`} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text numberOfLines={1} style={ui.heading}>
+            {member.nickname}
+          </Text>
+          {!!member.bio && (
+            <Text numberOfLines={2} style={ui.muted}>
+              {member.bio}
+            </Text>
+          )}
+        </View>
       </Pressable>
     );
   }
@@ -194,7 +212,15 @@ export function ServerFriendsScreen({
           </Text>
         )}
         <View style={ui.card}>
-          <Text style={ui.heading}>{profile.nickname}</Text>
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <ProfileAvatar
+              photo={profile.avatar}
+              size={96}
+              label={`${profile.nickname} 프로필 사진`}
+            />
+            <Text style={ui.heading}>{profile.nickname}</Text>
+            {!!profile.bio && <Text style={[ui.body, { textAlign: 'center' }]}>{profile.bio}</Text>}
+          </View>
           <Text style={ui.body}>
             {
               {
@@ -206,7 +232,9 @@ export function ServerFriendsScreen({
               }[profile.relationship]
             }
           </Text>
-          <Text style={ui.muted}>공개된 닉네임과 친구에게 공개한 오운완을 표시합니다.</Text>
+          <Text style={ui.muted}>
+            공개 프로필(사진·한 줄 소개)과 친구에게 공개한 오운완을 표시합니다.
+          </Text>
           {actions(profile.memberId, profile.nickname)}
           <ServerPostList session={session} memberId={profile.memberId} />
         </View>
@@ -247,7 +275,8 @@ export function ServerFriendsScreen({
             />
           </View>
           <Text style={ui.muted}>
-            허용한 경우에만 검색에 나타납니다. 운동 기록과 사진은 공개되지 않습니다.
+            허용한 경우에만 검색에 나타납니다. 프로필 사진과 한 줄 소개가 함께 보이며, 운동 기록과
+            운동 장소는 공개되지 않습니다.
           </Text>
           <Button
             title="친구 설정 저장"
@@ -292,7 +321,7 @@ export function ServerFriendsScreen({
               requests.incoming.some((request) => request.requesterId === member.memberId);
             return (
               <View key={member.memberId} style={ui.card}>
-                {memberLink(member.memberId, member.nickname)}
+                {memberLink(member)}
                 {actions(member.memberId, member.nickname)}
                 <Button
                   compact
@@ -323,7 +352,7 @@ export function ServerFriendsScreen({
           <Text style={ui.heading}>받은 신청 · {requests.incoming.length}</Text>
           {requests.incoming.map((request) => (
             <View key={request.id} style={ui.card}>
-              {memberLink(request.requesterId, request.requesterNickname)}
+              {memberLink({ memberId: request.requesterId, nickname: request.requesterNickname })}
               {actions(request.requesterId, request.requesterNickname)}
               <View style={[ui.row, { flexWrap: 'wrap' }]}>
                 <Button
@@ -345,7 +374,7 @@ export function ServerFriendsScreen({
           <Text style={ui.heading}>보낸 신청 · {requests.outgoing.length}</Text>
           {requests.outgoing.map((request) => (
             <View key={request.id} style={ui.card}>
-              {memberLink(request.targetId, request.targetNickname)}
+              {memberLink({ memberId: request.targetId, nickname: request.targetNickname })}
               {actions(request.targetId, request.targetNickname)}
               <Button
                 title="신청 취소"
@@ -360,7 +389,7 @@ export function ServerFriendsScreen({
           {!friends.length && <Text style={ui.muted}>아직 친구가 없습니다.</Text>}
           {friends.map((friend) => (
             <View key={friend.memberId} style={ui.card}>
-              {memberLink(friend.memberId, friend.nickname)}
+              {memberLink(friend)}
               {actions(friend.memberId, friend.nickname)}
             </View>
           ))}

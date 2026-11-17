@@ -129,7 +129,10 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
       );
     };
     await click('운동 친구 프로필 보기');
-    assert.match(document.body.textContent!, /공개된 닉네임과 친구에게 공개한 오운완/);
+    assert.match(
+      document.body.textContent!,
+      /공개 프로필\(사진·한 줄 소개\)과 친구에게 공개한 오운완/,
+    );
     await click('운동 친구 더보기');
     await click('신고하기');
     await click('괴롭힘');

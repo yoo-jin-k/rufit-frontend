@@ -8,7 +8,7 @@ import { Platform, Pressable, Share, Text, TextInput, View } from 'react-native'
 import { AppIcon } from '../../components/AppIcon';
 import { AppModal } from '../../components/AppModal';
 import { Button } from '../../components/Button';
-import { Chip, ChipRow, Toggle } from '../../components/kit/Controls';
+import { Chip, ChipRow, Segmented, Toggle } from '../../components/kit/Controls';
 import { NavBar, PageHeader, Screen } from '../../components/kit/Screen';
 import {
   ConfirmDialog,
@@ -131,10 +131,10 @@ export function SettingsScreen({
           {live && (
             <ListRow
               icon="userplus"
-              label="친구에게 운동 중 상태 공개"
+              label="운동 중 상태 공개"
               trailing={
                 <Toggle
-                  label="친구에게 내 운동 상태 공개"
+                  label="내 운동 중 상태 공개"
                   value={live.data?.sharing ?? false}
                   disabled={live.busy || !live.data}
                   onChange={(value) => void live.share(value)}
@@ -143,6 +143,28 @@ export function SettingsScreen({
             />
           )}
         </ListGroup>
+        {/* 켜 둔 경우에만 공개 범위를 고릅니다. 모두에게는 친구가 아닌 회원에게도 보입니다. */}
+        {live?.data?.sharing && (
+          <View style={{ gap: tokens.space[8] }}>
+            <Segmented
+              label="운동 중 상태 공개 범위"
+              items={[
+                { value: 'FRIENDS', label: '친구에게' },
+                { value: 'PUBLIC', label: '모두에게' },
+              ]}
+              value={live.data.scope ?? 'FRIENDS'}
+              onChange={(scope) => {
+                if (!live.busy && scope !== (live.data?.scope ?? 'FRIENDS'))
+                  void live.share(true, scope);
+              }}
+            />
+            <Text style={[text.caption, { color: c.text.secondary }]}>
+              {live.data.scope === 'PUBLIC'
+                ? '친구가 아닌 회원도 운동 중 목록에서 내 닉네임·사진·볼륨을 보고 응원할 수 있어요.'
+                : '친구에게만 운동 중 목록에 보여요.'}
+            </Text>
+          </View>
+        )}
         {live && !!live.error && (
           <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
             {live.error}

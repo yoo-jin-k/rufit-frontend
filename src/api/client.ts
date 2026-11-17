@@ -1,7 +1,19 @@
+/** FRIENDS는 친구에게만, PUBLIC은 친구가 아닌 회원에게도 운동 중 상태를 보여 줍니다. */
+export type LiveScope = 'FRIENDS' | 'PUBLIC';
 export type LiveWorkouts = {
   sharing: boolean;
+  scope?: LiveScope;
   workoutId: string | null;
-  items: { memberId: string; nickname: string; workoutId: string; sent: boolean }[];
+  /** 서버가 친구 먼저, 같은 묶음 안에서는 지금 운동 볼륨(kg)이 큰 순서로 보내 줍니다. */
+  items: {
+    memberId: string;
+    nickname: string;
+    workoutId: string;
+    sent: boolean;
+    friend?: boolean;
+    volume?: number;
+    avatar?: string | null;
+  }[];
   received: { memberId: string; nickname: string }[];
 };
 export type ServerPost = {
@@ -44,6 +56,16 @@ export type MemberProfile = {
   memberId: string;
   nickname: string;
   relationship: 'SELF' | 'FRIEND' | 'INCOMING' | 'OUTGOING' | 'NONE';
+  /** 공개 프로필의 한 줄 소개와 작은 사진(data URI)입니다. 저장하지 않았으면 null입니다. */
+  bio?: string | null;
+  avatar?: string | null;
+};
+/** 검색·친구 목록 한 줄입니다. */
+export type SocialMember = {
+  memberId: string;
+  nickname: string;
+  bio?: string | null;
+  avatar?: string | null;
 };
 export type FriendRequest = {
   id: string;
@@ -54,7 +76,7 @@ export type FriendRequest = {
   state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
 };
 export type FriendRequests = { incoming: FriendRequest[]; outgoing: FriendRequest[] };
-export type SocialMembers = { items: { memberId: string; nickname: string }[] };
+export type SocialMembers = { items: SocialMember[] };
 /** 검색 허용은 별도의 명시적 저장으로만 변경하며 기기 프로필을 자동 공개하지 않습니다. */
 /** 닉네임 사용 가능 여부 확인 결과입니다. nickname은 앞뒤 공백을 제거한 값입니다. */
 export type NicknameAvailability = { nickname: string; available: boolean };
@@ -63,10 +85,13 @@ export type DirectorySettings = {
   nickname: string | null;
   discoverable: boolean;
   version: number;
+  /** 공개 프로필을 한 번도 저장하지 않았으면 null입니다. */
+  bio?: string | null;
+  hasAvatar?: boolean;
 };
 export type DirectoryEdit = { nickname: string; discoverable: boolean; version: number };
 export type DirectoryResults = {
-  items: { memberId: string; nickname: string }[];
+  items: SocialMember[];
   page: number;
   size: number;
   hasNext: boolean;
@@ -556,10 +581,10 @@ export function createRufitApi(options: Options) {
     likePost: (id: string, liked: boolean) =>
       request<ServerPost>('PUT', `/social/posts/${segment(id)}/like`, { liked }),
     liveWorkouts: () => request<LiveWorkouts>('GET', '/social/live'),
-    shareLiveWorkout: (enabled: boolean) =>
-      request<void>('PUT', '/social/live/sharing', { enabled }),
-    liveHeartbeat: (id: string, active: boolean) =>
-      request<void>('PUT', `/social/live/mine/${segment(id)}`, { active }),
+    shareLiveWorkout: (enabled: boolean, scope?: LiveScope) =>
+      request<void>('PUT', '/social/live/sharing', { enabled, scope }),
+    liveHeartbeat: (id: string, active: boolean, volume?: number) =>
+      request<void>('PUT', `/social/live/mine/${segment(id)}`, { active, volume }),
     cheerWorkout: (memberId: string, workoutId: string) =>
       request<void>('POST', `/social/live/${segment(memberId)}/${segment(workoutId)}/cheer`),
     deletePost: (id: string, version: number) =>
@@ -585,6 +610,12 @@ export function createRufitApi(options: Options) {
         'GET',
         `/social/directory/nickname-availability?nickname=${segment(nickname)}`,
       ),
+    /** 친구 검색·친구 목록에 보일 사진과 한 줄 소개를 통째로 바꿉니다. avatar가 null이면 지웁니다. */
+    updatePublicProfile: (bio: string, avatar: string | null) =>
+      request<{ bio: string; avatar: string | null }>('PUT', '/social/directory/me/profile', {
+        bio,
+        avatar,
+      }),
     searchDirectory: (query: string, page = 0, size = 20) =>
       request<DirectoryResults>(
         'GET',
