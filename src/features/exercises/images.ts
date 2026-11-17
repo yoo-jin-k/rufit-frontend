@@ -1,8 +1,12 @@
 import type { ImageSourcePropType } from 'react-native';
 
+import { bundledImageColors } from './bundledImageColors';
+
 type LicensedMedia = {
   licensedImages: Record<string, ImageSourcePropType>;
   licensedAnimations: Record<string, ImageSourcePropType>;
+  /** 예전에 만든 연결 파일에는 없을 수 있습니다. */
+  licensedImageColors?: Record<string, ImageEdgeColors>;
 };
 // 구매한 그림은 Git에 없고 npm run media:sync 가 만든 파일로만 들어옵니다.
 // 그 파일이 없는 환경(GitHub 검사·다른 컴퓨터)에서는 아래 기본 그림만 씁니다.
@@ -44,4 +48,17 @@ export const exerciseImages: Record<string, ImageSourcePropType> = {
 };
 /** 종목 동작 GIF입니다. 상세 화면의 큰 사진 자리에서만 씁니다. */
 export const exerciseAnimations: Record<string, ImageSourcePropType> = licensed.licensedAnimations;
+/** [위 또는 왼쪽 색, 아래 또는 오른쪽 색, 두 칸을 나누는 방향]입니다. */
+export type ImageEdgeColors = readonly [string, string, 'column' | 'row'];
+
+/**
+ * 정지 사진의 가장자리 색입니다. 목록의 정사각형 칸에 사진 전체를 맞출 때 빈 공간을 채웁니다.
+ * 구매한 그림이 있는 종목은 기본 사진의 색을 쓰지 않습니다(투명 배경이면 색 없이 칸 배경이 보입니다).
+ */
+export const exerciseImageColors: Record<string, ImageEdgeColors> = {
+  ...Object.fromEntries(
+    Object.entries(bundledImageColors).filter(([id]) => !(id in licensed.licensedImages)),
+  ),
+  ...licensed.licensedImageColors,
+};
 export const hasExerciseImage = (id: string) => exerciseImages[id] !== undefined;

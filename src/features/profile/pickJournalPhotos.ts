@@ -19,8 +19,9 @@ export async function pickJournalPhotos(camera: boolean, remaining: number): Pro
   }
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
-    base64: true,
-    quality: 0.5,
+    // 웹만 base64로 받아 줄이고, 앱은 파일 경로(uri)로 줄입니다(큰 원본을 base64로 받으면 메모리를 많이 씁니다).
+    base64: Platform.OS === 'web',
+    quality: 1,
     allowsEditing: camera,
     allowsMultipleSelection: !camera,
     selectionLimit: remaining,
@@ -34,8 +35,7 @@ export async function pickJournalPhotos(camera: boolean, remaining: number): Pro
     throw new Error(`사진은 ${remaining}장 더 추가할 수 있습니다. 다시 선택해 주세요.`);
   const photos: string[] = [];
   for (const asset of result.assets) {
-    if (!asset.base64) throw new Error('사진을 읽을 수 없습니다. 다른 사진을 선택해 주세요.');
-    photos.push(await prepareJournalPhoto(asset.base64, asset.mimeType ?? 'image/jpeg'));
+    photos.push(await prepareJournalPhoto(asset));
   }
   return photos;
 }

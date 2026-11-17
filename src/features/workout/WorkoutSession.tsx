@@ -185,6 +185,8 @@ export function WorkoutSession({
   const [menuId, setMenuId] = useState<string | null>(null);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [toast, setToast] = useState('');
+  // 세트를 끄는 동안 화면 스크롤이 같이 움직여 흔들리지 않게 잠급니다.
+  const [draggingSet, setDraggingSet] = useState(false);
   const [restList, setRestList] = useState(false);
   const [detail, setDetail] = useState<CatalogExercise | null>(null);
   const { unit } = useWeightUnit();
@@ -279,9 +281,10 @@ export function WorkoutSession({
         ? '다음 종목'
         : '운동 종료';
   return (
+    // 운동 중에는 하단 메뉴를 숨기므로 아래 안전 영역(홈 표시줄)도 이 화면이 맡습니다.
     <Screen
-      edges={['top']}
       keyboard="cover"
+      scrollEnabled={!draggingSet}
       header={
         <View style={s.header}>
           <View style={{ flex: 1 }}>
@@ -333,13 +336,16 @@ export function WorkoutSession({
           )}
           {!paused && (
             <FooterRow>
-              <Button
-                title="종목 추가"
-                variant="secondary"
-                fullWidth={false}
-                disabled={!ready}
-                onPress={actions.onAddExercise}
-              />
+              {/* 아직 종목이 없으면 같은 버튼이 두 개가 되므로 '종목 추가' 하나만 보입니다. */}
+              {focus && (
+                <Button
+                  title="종목 추가"
+                  variant="secondary"
+                  fullWidth={false}
+                  disabled={!ready}
+                  onPress={actions.onAddExercise}
+                />
+              )}
               <Button
                 title={primaryLabel}
                 fullWidth={false}
@@ -486,6 +492,7 @@ export function WorkoutSession({
               sets={e.sets}
               name={e.name}
               disabled={false}
+              onDraggingChange={setDraggingSet}
               labels={setLabels(e.sets)}
               labelColor={(set) =>
                 set.setType && set.setType !== 'NORMAL' ? setTypeInfo[set.setType].color : undefined

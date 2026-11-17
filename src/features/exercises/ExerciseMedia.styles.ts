@@ -12,6 +12,8 @@ export const s = StyleSheet.create({
   // 구매한 GIF의 흰 배경과 이어지도록 회색 대신 흰색을 깔아 줍니다.
   animation: { backgroundColor: tokens.color.bg.default },
   fill: { width: '100%', height: '100%' },
+  // 목록 칸을 반으로 나눠 사진 위·아래(또는 좌·우) 가장자리 색을 깔아 줍니다.
+  edge: { flex: 1 },
   fallback: {
     borderRadius: tokens.radius.md,
     alignItems: 'center',

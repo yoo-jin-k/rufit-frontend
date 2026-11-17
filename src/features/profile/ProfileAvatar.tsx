@@ -2,7 +2,15 @@
 import { Image, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { tokens } from '../../theme/tokens';
-export function ProfileAvatar({ photo, size = 64 }: { photo?: string; size?: number }) {
+export function ProfileAvatar({
+  photo,
+  size = 64,
+  label = '내 프로필 사진',
+}: {
+  photo?: string | null;
+  size?: number;
+  label?: string;
+}) {
   return (
     <View
       style={{
@@ -18,7 +26,7 @@ export function ProfileAvatar({ photo, size = 64 }: { photo?: string; size?: num
       {photo ? (
         <Image
           source={{ uri: photo }}
-          accessibilityLabel="내 프로필 사진"
+          accessibilityLabel={label}
           accessible
           style={{ width: size, height: size }}
           resizeMode="cover"

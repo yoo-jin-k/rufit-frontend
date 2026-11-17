@@ -31,6 +31,7 @@ export function Screen({
   contentStyle,
   background = c.bg.default,
   keyboard = 'lift',
+  scrollEnabled = true,
 }: {
   children: ReactNode;
   /** NavBar나 PageHeader처럼 스크롤되지 않는 맨 위 영역입니다. */
@@ -50,11 +51,14 @@ export function Screen({
    *   입력칸이 많은 화면에서 입력할 때마다 화면이 위아래로 흔들리지 않게 합니다. 아래로 끌면 키보드가 내려갑니다.
    */
   keyboard?: 'lift' | 'cover';
+  /** 세트를 끌어 옮기는 동안처럼 본문 스크롤을 잠시 멈춰야 할 때 false로 둡니다. */
+  scrollEnabled?: boolean;
 }) {
   const cover = keyboard === 'cover';
   const body = scroll ? (
     <ScrollView
       keyboardShouldPersistTaps="handled"
+      scrollEnabled={scrollEnabled}
       automaticallyAdjustKeyboardInsets={cover}
       keyboardDismissMode={cover ? 'interactive' : 'none'}
       contentContainerStyle={[s.content, { gap }, contentStyle]}

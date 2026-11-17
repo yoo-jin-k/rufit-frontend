@@ -8,8 +8,12 @@ import { AppIcon } from '../../components/AppIcon';
 import { ui } from '../../components/ScreenLayout';
 import { colors } from '../../theme/tokens';
 import { ServerFriendsScreen } from '../profile/ServerFriendsScreen';
+import { ProfileAvatar } from '../profile/ProfileAvatar';
+import { unitLabel, volumeNumber } from '../units/model';
+import { useWeightUnit } from '../units/UnitProvider';
 import type { useServerLive } from './useServerLive';
 import { s } from './ServerWorkoutFriends.styles';
+import { groupLiveMembers, type LiveMember } from './liveGroups';
 
 /** 달력 아래와 운동 중 화면에서 같은 서버 상태를 표시합니다. 전송 성공 후에만 보냄으로 표시합니다. */
 export function ServerWorkoutFriends({
@@ -22,6 +26,40 @@ export function ServerWorkoutFriends({
   const [expanded, setExpanded] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const members = live.data?.items ?? [];
+  const { unit } = useWeightUnit();
+  const groups = groupLiveMembers(members);
+  // 접힌 상태에서는 친구와 다른 회원을 합쳐 3명까지만 보여 줍니다.
+  const limit = expanded ? 100 : 3;
+  const shownFriends = groups.friends.slice(0, limit);
+  const shownOthers = groups.others.slice(0, Math.max(0, limit - shownFriends.length));
+  const row = (member: LiveMember) => (
+    <View key={member.memberId} style={s.row}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${member.nickname} 프로필 보기`}
+        style={[s.profile, s.flex]}
+        onPress={() => setTarget(member.memberId)}
+      >
+        <ProfileAvatar photo={member.avatar} size={40} label={`${member.nickname} 프로필 사진`} />
+        <View style={s.flex}>
+          <Text numberOfLines={1} style={ui.body}>
+            {member.nickname}
+          </Text>
+          <Text style={ui.muted}>
+            볼륨 {volumeNumber(member.volume ?? 0, unit)}
+            {unitLabel(unit)}
+          </Text>
+        </View>
+      </Pressable>
+      <Button
+        compact
+        secondary
+        title={member.sent ? '응원 보냄' : '응원하기'}
+        disabled={live.busy || member.sent}
+        onPress={() => void live.cheer(member.memberId, member.workoutId)}
+      />
+    </View>
+  );
   return (
     <View style={s.card}>
       {/* 44pt 터치 영역은 유지하되 위아래 여백을 줄여 아래 안내 문구가 제목에 붙도록 합니다. */}
@@ -48,27 +86,11 @@ export function ServerWorkoutFriends({
         </Text>
       )}
       {!live.data && !live.error && <Text style={ui.muted}>친구 상태를 확인하고 있습니다.</Text>}
-      {live.data && !members.length && <Text style={ui.muted}>지금 운동 중인 친구가 없어요.</Text>}
-      {members.slice(0, expanded ? 100 : 3).map((member) => (
-        <View key={member.memberId} style={s.row}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${member.nickname} 프로필 보기`}
-            style={[s.profile, s.flex]}
-            onPress={() => setTarget(member.memberId)}
-          >
-            <AppIcon name="profile" size={22} />
-            <Text style={[ui.body, s.flex]}>{member.nickname}</Text>
-          </Pressable>
-          <Button
-            compact
-            secondary
-            title={member.sent ? '응원 보냄' : '응원하기'}
-            disabled={live.busy || member.sent}
-            onPress={() => void live.cheer(member.memberId, member.workoutId)}
-          />
-        </View>
-      ))}
+      {live.data && !members.length && <Text style={ui.muted}>지금 운동 중인 회원이 없어요.</Text>}
+      {!!shownFriends.length && <Text style={s.group}>친구 · {groups.friends.length}</Text>}
+      {shownFriends.map(row)}
+      {!!shownOthers.length && <Text style={s.group}>다른 회원 · {groups.others.length}</Text>}
+      {shownOthers.map(row)}
       {members.length > 3 && (
         <Button
           compact

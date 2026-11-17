@@ -7,7 +7,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { tokens } from '../../theme/tokens';
 import type { CatalogExercise } from './catalog';
-import { exerciseAnimations, exerciseImages } from './images';
+import { exerciseAnimations, exerciseImageColors, exerciseImages } from './images';
 import { s } from './ExerciseMedia.styles';
 
 export function ExerciseMedia({
@@ -46,19 +46,31 @@ export function ExerciseMedia({
         />
       </View>
     );
-  if (!missing)
+  if (!missing) {
+    const edges = exercise ? exerciseImageColors[exercise.id] : undefined;
+    // 운동 사진은 가로 3:2(850×567)라 정사각형에 꽉 채우면 양옆이 잘립니다. 사진 전체가 보이게 맞추고,
+    // 남는 위·아래 공간은 사진 가장자리 색으로 채워 사진이 칸에 이어져 보이게 합니다.
     return (
-      <Image
-        source={source}
-        style={[s.picture, box]}
-        resizeMode="cover"
-        accessible={false}
-        onError={() => {
-          setFailedId(exercise?.id ?? null);
-          onMissingChange?.(true);
-        }}
-      />
+      <View style={[s.picture, box]}>
+        {edges && (
+          <View style={[StyleSheet.absoluteFill, { flexDirection: edges[2] }]}>
+            <View style={[s.edge, { backgroundColor: edges[0] }]} />
+            <View style={[s.edge, { backgroundColor: edges[1] }]} />
+          </View>
+        )}
+        <Image
+          source={source}
+          style={[StyleSheet.absoluteFill, s.fill]}
+          resizeMode="contain"
+          accessible={false}
+          onError={() => {
+            setFailedId(exercise?.id ?? null);
+            onMissingChange?.(true);
+          }}
+        />
+      </View>
     );
+  }
   return (
     <View style={[s.fallback, box]} accessible={false}>
       <AppIcon name="image" color={tokens.color.text.muted} />

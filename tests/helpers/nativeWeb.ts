@@ -29,26 +29,37 @@ export function nativeWebLoader(mocks: Record<string, unknown> = {}) {
                   throw new Error('사진 선택 테스트에는 명시적인 기기 모의 응답이 필요합니다.');
                 },
               }
-            : name === 'expo-crypto'
-              ? { randomUUID }
-              : name === 'react-native'
-                ? require('react-native-web')
-                : name === 'react-native-safe-area-context'
-                  ? {
-                      SafeAreaView: require('react-native-web').View,
-                      SafeAreaProvider: require('react-native-web').View,
-                    }
-                  : name === 'react-native-svg'
+            : name === 'expo-image-manipulator'
+              ? {
+                  SaveFormat: { JPEG: 'jpeg' },
+                  ImageManipulator: {
+                    manipulate: () => {
+                      throw new Error(
+                        '사진 줄이기 테스트에는 명시적인 기기 모의 응답이 필요합니다.',
+                      );
+                    },
+                  },
+                }
+              : name === 'expo-crypto'
+                ? { randomUUID }
+                : name === 'react-native'
+                  ? require('react-native-web')
+                  : name === 'react-native-safe-area-context'
                     ? {
-                        __esModule: true,
-                        default: 'svg',
-                        Path: 'path',
-                        Circle: 'circle',
-                        Rect: 'rect',
+                        SafeAreaView: require('react-native-web').View,
+                        SafeAreaProvider: require('react-native-web').View,
                       }
-                    : name.startsWith('.')
-                      ? load(resolve(dirname(path), name))
-                      : require(name),
+                    : name === 'react-native-svg'
+                      ? {
+                          __esModule: true,
+                          default: 'svg',
+                          Path: 'path',
+                          Circle: 'circle',
+                          Rect: 'rect',
+                        }
+                      : name.startsWith('.')
+                        ? load(resolve(dirname(path), name))
+                        : require(name),
       exports,
     );
     return exports;

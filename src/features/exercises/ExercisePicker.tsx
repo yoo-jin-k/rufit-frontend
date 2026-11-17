@@ -549,7 +549,7 @@ function ExerciseListItem({
         accessibilityLabel={`${item.name} 이미지와 상세 설명`}
         onPress={() => onDetail(item)}
       >
-        <ExerciseMedia exercise={item} size={44} onMissingChange={updateMissing} />
+        <ExerciseMedia exercise={item} size={56} onMissingChange={updateMissing} />
       </Pressable>
       <Pressable
         accessibilityRole="checkbox"

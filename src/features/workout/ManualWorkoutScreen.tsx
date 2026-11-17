@@ -50,6 +50,8 @@ export function ManualWorkoutScreen({
   onSave: (workout: Workout) => void;
 }) {
   const [loadExerciseId, setLoadExerciseId] = useState<string | null>(null);
+  // 세트를 끄는 동안 화면 스크롤이 같이 움직여 흔들리지 않게 잠급니다.
+  const [draggingSet, setDraggingSet] = useState(false);
   const [date, setDate] = useState(initialDate);
   const [draft, setDraft] = useState(() => startWorkout(id(), Date.now()));
   const [picker, setPicker] = useState(false);
@@ -76,6 +78,7 @@ export function ManualWorkoutScreen({
     <Modal visible animationType="slide" onRequestClose={close}>
       <Screen
         keyboard="cover"
+        scrollEnabled={!draggingSet}
         header={<NavBar title="과거 기록 추가" leading="close" onLeading={close} />}
         footer={
           draft.exercises.length ? (
@@ -143,6 +146,7 @@ export function ManualWorkoutScreen({
                 sets={exercise.sets}
                 name={exercise.name}
                 disabled={false}
+                onDraggingChange={setDraggingSet}
                 onMove={(setId, target) => change((w) => moveSet(w, exercise.id, setId, target))}
               >
                 {(set, index, handle) => (

@@ -5,6 +5,7 @@ import { ServerWorkoutFriends } from '../cheers/ServerWorkoutFriends';
 import { WorkoutFriends, useWorkoutPresence } from '../cheers/WorkoutFriends';
 import type { RufitSession } from '../../api/session';
 import { ServerHistoryScreen } from './ServerHistoryScreen';
+import { workoutVolume } from './recordFormat';
 import { PreviousSets } from './PreviousSets';
 import { importPreviousSets } from './previousSetModel';
 import { NotificationButton } from '../../components/NotificationButton';
@@ -103,6 +104,7 @@ export function WorkoutScreen({
   const live = useServerLive(
     session,
     ready && workout && workout.finishedAt === undefined ? workout.id : null,
+    ready && workout && workout.finishedAt === undefined ? workoutVolume(workout) : 0,
   );
   const [serverHistory, setServerHistory] = useState(false);
   const [tab, setTab] = useState<MainTab>('workout');

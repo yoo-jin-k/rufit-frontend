@@ -61,7 +61,7 @@ export function authContentBottomPadding(bottomInset: number, designPadding: num
 }
 
 export function providerAccessibilityLabel(provider: SocialProvider) {
-  return provider === 'KAKAO' ? '카카오 로그인' : 'Sign in with Google';
+  return provider === 'KAKAO' ? '카카오 로그인' : 'Google 로그인';
 }
 
 export const signedInLocalNotice =

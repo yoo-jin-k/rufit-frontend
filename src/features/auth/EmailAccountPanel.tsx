@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { ui } from '../../components/ScreenLayout';
+import { s } from './EmailAccountPanel.styles';
 import type { AuthCoordinator } from './authCoordinator';
 import { authReturnUrl, nativeAuthClient } from './nativeAuth';
 import type { SocialProvider } from './types';
@@ -94,9 +95,9 @@ export function EmailAccountPanel({
     setPassword('');
     setNotice('');
   };
-  return (
+  const card = (
     <View style={[ui.card, { gap: 12 }]}>
-      <Text style={ui.heading}>{signedIn ? '로그인 방법 연결' : '이메일 로그인'}</Text>
+      <Text style={ui.heading}>{signedIn ? '로그인 방법 연결' : modeTitle[mode]}</Text>
       {signedIn && (
         <>
           <Text style={ui.muted}>
@@ -188,28 +189,6 @@ export function EmailAccountPanel({
       {(!signedIn || (methods && !methods.email && emailLinkOpen)) && (
         <>
           {signedIn && <Text style={ui.heading}>이메일 · 비밀번호 연결</Text>}
-          {!signedIn && (
-            <View style={{ gap: 8 }}>
-              <Button
-                title="이메일 로그인"
-                secondary
-                disabled={busy}
-                onPress={() => choose('LOGIN')}
-              />
-              <Button
-                title="이메일 회원가입"
-                secondary
-                disabled={busy}
-                onPress={() => choose('REGISTER')}
-              />
-              <Button
-                title="비밀번호 찾기"
-                secondary
-                disabled={busy}
-                onPress={() => choose('RESET')}
-              />
-            </View>
-          )}
           <TextInput
             accessibilityLabel="이메일 주소"
             placeholder="이메일 주소"
@@ -316,5 +295,58 @@ export function EmailAccountPanel({
         </Text>
       )}
     </View>
+  );
+  if (signedIn) return card;
+  // 로그인 전에는 회색 카드 아래에 보조 이동을 작은 글자로 둡니다. 왼쪽은 비밀번호 찾기, 오른쪽은 회원가입입니다.
+  return (
+    <View style={s.wrap}>
+      {card}
+      <View style={s.links}>
+        <TextLink
+          title={mode === 'RESET' ? '이메일 로그인' : '비밀번호 찾기'}
+          disabled={busy}
+          onPress={() => choose(mode === 'RESET' ? 'LOGIN' : 'RESET')}
+        />
+        <TextLink
+          title={mode === 'REGISTER' ? '이메일 로그인' : '회원가입'}
+          disabled={busy}
+          onPress={() => choose(mode === 'REGISTER' ? 'LOGIN' : 'REGISTER')}
+        />
+      </View>
+    </View>
+  );
+}
+
+const modeTitle = {
+  LOGIN: '이메일 로그인',
+  REGISTER: '이메일 회원가입',
+  RESET: '비밀번호 찾기',
+  LINK: '이메일 연결',
+} as const;
+
+function TextLink({
+  title,
+  disabled,
+  onPress,
+}: {
+  title: string;
+  disabled: boolean;
+  onPress(): void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        s.link,
+        disabled && s.linkDisabled,
+        pressed && !disabled && s.linkPressed,
+      ]}
+    >
+      <Text style={ui.muted}>{title}</Text>
+    </Pressable>
   );
 }

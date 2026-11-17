@@ -14,6 +14,7 @@ import { useTestFriends } from './useTestFriends';
 import { countTestFriends, testSelf } from './friendTestModel';
 /** 프로필 통계는 실제 완료 기록에서 집계합니다. 사진 없는 오운완도 전체 기록과 달력에 남습니다. */
 import { useEffect, useRef, useState } from 'react';
+import { ApiError } from '../../api/client';
 import type { RufitSession } from '../../api/session';
 import { ServerFriendsScreen } from './ServerFriendsScreen';
 import { Platform, Image, Pressable, Text, View } from 'react-native';
@@ -67,6 +68,11 @@ export function ProfileScreen({
     [gym, setGym] = useState(profile.value.gym ?? ''),
     [error, setError] = useState(''),
     [friends, setFriends] = useState(false);
+  // 친구 수 조회 효과가 프로필 수정마다 다시 돌지 않도록 최신 프로필은 ref로 읽습니다.
+  const localProfile = useRef(profile.value);
+  useEffect(() => {
+    localProfile.current = profile.value;
+  }, [profile.value]);
   useEffect(() => {
     let current = true;
     if (session)
@@ -75,6 +81,18 @@ export function ProfileScreen({
         .then(async (settings) => {
           const count = settings.memberId ? (await session.api.friends()).items.length : 0;
           if (current && session.isActive()) setServerCount(count);
+          // 공개 프로필이 생기기 전에 저장해 둔 사진·소개를 한 번만 올립니다(bio가 null이면 아직 없음).
+          const local = localProfile.current;
+          if (
+            current &&
+            settings.memberId &&
+            settings.bio === null &&
+            !settings.hasAvatar &&
+            (local.bio || local.avatar)
+          )
+            await session.api
+              .updatePublicProfile(local.bio ?? '', local.avatar ?? null)
+              .catch(() => undefined);
         })
         .catch(() => {
           if (current) setError('친구 수를 불러오지 못했습니다. 친구 목록에서 다시 확인해 주세요.');
@@ -149,6 +167,14 @@ export function ProfileScreen({
                     discoverable: directory.discoverable,
                     version: directory.version,
                   });
+                  // 친구 검색·친구 목록에 보일 사진과 한 줄 소개입니다. 운동 장소는 올리지 않습니다.
+                  // 새 서버가 배포되기 전(404·405)에도 프로필 저장은 막지 않습니다.
+                  await session.api
+                    .updatePublicProfile(next.bio ?? '', next.avatar ?? null)
+                    .catch((cause: unknown) => {
+                      if (!(cause instanceof ApiError && [404, 405].includes(cause.status)))
+                        throw cause;
+                    });
                 }
                 await profile.save(next);
                 setEditing(false);

@@ -2,10 +2,13 @@ import { useReadRecovery } from '../../hooks/useReadRecovery';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { RufitSession } from '../../api/session';
-import { ApiError, type LiveWorkouts } from '../../api/client';
+import { ApiError, type LiveScope, type LiveWorkouts } from '../../api/client';
 
-/** 계정이 바뀐 뒤 도착한 응답을 버리고, 상태 신호 실패가 운동 저장을 막지 않게 분리합니다. */
-export function useServerLive(session: RufitSession | null, workout: string | null) {
+/**
+ * 계정이 바뀐 뒤 도착한 응답을 버리고, 상태 신호 실패가 운동 저장을 막지 않게 분리합니다.
+ * volume은 진행 중 운동에서 완료한 세트의 볼륨(kg)이며 30초마다 보내는 신호에 함께 실립니다.
+ */
+export function useServerLive(session: RufitSession | null, workout: string | null, volume = 0) {
   const [snapshot, setSnapshot] = useState<{ session: RufitSession; data: LiveWorkouts } | null>(
     null,
   );
@@ -15,6 +18,11 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
   const sequence = useRef(0);
   const locked = useRef(false);
   const heartbeatQueue = useRef(Promise.resolve());
+  // 세트를 완료할 때마다 신호를 다시 시작하지 않도록 최신 볼륨은 ref로 읽습니다.
+  const latestVolume = useRef(volume);
+  useEffect(() => {
+    latestVolume.current = volume;
+  }, [volume]);
   useEffect(() => {
     current.current = session;
     return () => {
@@ -66,7 +74,11 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
       heartbeatQueue.current = heartbeatQueue.current.then(async () => {
         if (!session.isActive() || (active && ended)) return;
         try {
-          await session.api.liveHeartbeat(workout, active);
+          await session.api.liveHeartbeat(
+            workout,
+            active,
+            active ? Math.max(0, Math.round(latestVolume.current * 10) / 10) : undefined,
+          );
         } catch (cause) {
           if (!ended && current.current === session)
             setError(cause instanceof Error ? cause.message : '운동 상태를 갱신하지 못했습니다.');
@@ -109,7 +121,8 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
     error,
     busy,
     refresh,
-    share: (enabled: boolean) => run(() => session!.api.shareLiveWorkout(enabled)),
+    share: (enabled: boolean, scope?: LiveScope) =>
+      run(() => session!.api.shareLiveWorkout(enabled, scope)),
     cheer: (memberId: string, workoutId: string) =>
       run(() => session!.api.cheerWorkout(memberId, workoutId)),
   };

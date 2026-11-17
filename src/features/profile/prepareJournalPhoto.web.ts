@@ -1,9 +1,9 @@
 /** 웹 사진 선택기는 quality 옵션을 적용하지 않으므로 로컬에서 크기와 용량을 줄입니다. 원본 파일은 수정하지 않습니다. */
-export async function prepareJournalPhoto(
-  base64: string,
-  mimeType = 'image/jpeg',
-): Promise<string> {
-  const source = `data:${mimeType || 'image/jpeg'};base64,${base64}`;
+import { MAX_PHOTO_CHARS, MAX_PHOTO_SIDE, PHOTO_QUALITIES, type PickedPhoto } from './photoLimits';
+
+export async function prepareJournalPhoto(asset: PickedPhoto): Promise<string> {
+  if (!asset.base64) throw new Error('사진을 읽을 수 없습니다. 다른 사진을 선택해 주세요.');
+  const source = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
   const image = new Image();
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
@@ -13,7 +13,7 @@ export async function prepareJournalPhoto(
   });
   if (!image.naturalWidth || !image.naturalHeight)
     throw new Error('사진 크기를 확인할 수 없습니다.');
-  const ratio = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+  const ratio = Math.min(1, MAX_PHOTO_SIDE / Math.max(image.naturalWidth, image.naturalHeight));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
   canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
@@ -22,9 +22,9 @@ export async function prepareJournalPhoto(
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  for (const quality of [0.8, 0.6, 0.4]) {
+  for (const quality of PHOTO_QUALITIES) {
     const photo = canvas.toDataURL('image/jpeg', quality);
-    if (photo.startsWith('data:image/') && photo.length <= 2_800_000) return photo;
+    if (photo.startsWith('data:image/') && photo.length <= MAX_PHOTO_CHARS) return photo;
   }
   throw new Error('사진 용량을 줄이지 못했습니다. 더 작은 사진을 선택해 주세요.');
 }
