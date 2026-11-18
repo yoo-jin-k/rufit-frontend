@@ -5,7 +5,7 @@ export type Journal = {
   photo?: string;
   photos?: string[];
   testPhotoTile?: number;
-  visibility: 'private' | 'friends';
+  visibility: 'private' | 'friends' | 'public';
   createdAt: number;
 };
 export type ProfileData = {
@@ -41,7 +41,7 @@ export function decodeProfile(raw: string | null): ProfileData {
         typeof j.workoutId !== 'string' ||
         typeof j.memo !== 'string' ||
         j.memo.length > 200 ||
-        !['private', 'friends'].includes(j.visibility) ||
+        !['private', 'friends', 'public'].includes(j.visibility) ||
         !Number.isFinite(j.createdAt) ||
         (j.testPhotoTile !== undefined &&
           (!j.workoutId.startsWith('sample-own-') ||

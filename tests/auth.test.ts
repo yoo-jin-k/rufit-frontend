@@ -1078,3 +1078,57 @@ test('앱이 다시 활성화되면 실패한 복원을 재시도하고 만료�
   assert.equal(setup.used.length, calls + 2);
   assert.equal(setup.coordinator.getState().kind, 'signed-in');
 });
+
+test('화면 요청이 401을 받으면 한 번 갱신하고, 갱신이 거절되면 다시 로그인 상태로 바꾼다', async () => {
+  const store = memoryStore();
+  let refreshes = 0;
+  let notify: (() => void) | undefined;
+  const api = {
+    server: 'https://api.example.com',
+    startLogin: async () => ({
+      attemptId,
+      authorizationUrl: 'https://kauth.kakao.com/oauth/authorize',
+      expiresAt: '2099-01-01T00:00:00Z',
+    }),
+    exchange: async () => tokens,
+    refresh: async () => {
+      refreshes += 1;
+      throw new ApiError(401, 'AUTHENTICATION_REQUIRED', '다시 로그인해 주세요.');
+    },
+    logout: async () => {},
+  } as AuthApi;
+  const coordinator = new AuthCoordinator({
+    api,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
+    createSession: async (options) => {
+      notify = options.onUnauthorized;
+      return {
+        scope: Object.freeze({ server: api.server, accountId: tokens.account.id }),
+        api: Object.freeze({}),
+        isActive: () => true,
+        saveDraft: async () => {
+          throw new Error();
+        },
+        close: () => {},
+      } as never;
+    },
+    browser: {
+      open: async () => ({
+        type: 'success',
+        url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`,
+      }),
+    },
+  });
+  await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
+  assert.equal(coordinator.getState().kind, 'signed-in');
+  notify?.();
+  notify?.();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(refreshes, 1);
+  const state = coordinator.getState();
+  assert.equal(state.kind, 'error');
+  assert.equal(state.kind === 'error' && state.reason, 'reauth-required');
+  assert.equal(coordinator.getSession(), null);
+});

@@ -45,9 +45,14 @@ test('계정 게시물 요청은 공개 범위를 보존하고 사진을 목록 
 test('친구 게시물은 서버에서 사진과 좋아요를 읽고 실패한 좋아요를 완료로 표시하지 않습니다', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   Object.assign(globalThis, {
+    // 하트 움직임이 쓰는 프레임 함수입니다. 테스트 브라우저에는 없어서 타이머로 대신합니다.
+    requestAnimationFrame: (callback: (time: number) => void) =>
+      setTimeout(() => callback(Date.now()), 16),
+    cancelAnimationFrame: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,
+    Node: dom.window.Node,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
@@ -103,13 +108,22 @@ test('친구 게시물은 서버에서 사진과 좋아요를 읽고 실패한 �
     );
     assert.match(document.body.textContent!, /완료했어요/);
     assert.match(document.body.textContent!, /좋아요 0개/);
-    await click('♡ 좋아요');
+    await click('좋아요');
     assert.match(document.body.textContent!, /네트워크 오류/);
     assert.match(document.body.textContent!, /좋아요 0개/);
-    await click('♡ 좋아요');
+    await click('좋아요');
     assert.match(document.body.textContent!, /좋아요 1개/);
-    await click('♥ 좋아요 취소');
+    await click('좋아요 취소');
     assert.match(document.body.textContent!, /좋아요 0개/);
+    // 사진을 두 번 연달아 누르면 좋아요가 켜지고, 다시 두 번 눌러도 꺼지지 않습니다.
+    await click('사진 두 번 눌러 좋아요');
+    await click('사진 두 번 눌러 좋아요');
+    assert.match(document.body.textContent!, /좋아요 1개/);
+    const before = attempts;
+    await click('사진 두 번 눌러 좋아요');
+    await click('사진 두 번 눌러 좋아요');
+    assert.equal(attempts, before);
+    assert.match(document.body.textContent!, /좋아요 1개/);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();
@@ -122,6 +136,7 @@ test('계정 게시물 삭제는 확인 후 전송하며 실패하면 화면과 
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,
+    Node: dom.window.Node,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
@@ -138,6 +153,7 @@ test('계정 게시물 삭제는 확인 후 전송하며 실패하면 화면과 
   };
   let calls = 0,
     closed = false;
+  const saved: unknown[] = [];
   const session = {
     isActive: () => true,
     api: {
@@ -153,9 +169,13 @@ test('계정 게시물 삭제는 확인 후 전송하며 실패하면 화면과 
         likes: 0,
         mine: true,
       }),
+      savePost: async (source: string, body: { visibility: string; version: number }) => {
+        saved.push([source, body.visibility, body.version]);
+        return { ...(await session.api.post()), visibility: body.visibility, version: 5 };
+      },
       deletePost: async (id: string, version: number) => {
         assert.equal(id, 'post');
-        assert.equal(version, 4);
+        assert.equal(version, 5);
         calls++;
         if (calls === 1) throw new Error('삭제 연결 실패');
       },
@@ -179,16 +199,32 @@ test('계정 게시물 삭제는 확인 후 전송하며 실패하면 화면과 
         }),
       ),
     );
-    await click('계정 게시물 삭제');
+    // 점 세 개 메뉴에서 공개 범위를 바꾸면 같은 원본 키로 저장합니다.
+    await click('게시물 관리');
+    await click('친구 공개');
+    assert.deepEqual(saved, [['workout', 'FRIENDS', 4]]);
+    assert.match(document.body.textContent!, /친구 공개/);
+    // 오른쪽 위 점 세 개 → 삭제하기 → 확인 창에서 삭제합니다.
+    await click('게시물 관리');
+    await click('삭제하기');
+    // 메뉴 시트가 내려간 뒤(0.35초) 확인 창이 열립니다.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
     assert.equal(calls, 0);
     assert.match(document.body.textContent!, /운동 기록과 기기 저장본은 유지/);
-    await click('삭제 취소');
+    await click('취소');
     assert.equal(calls, 0);
-    await click('계정 게시물 삭제');
-    await click('확인 후 게시물 삭제');
+    await click('게시물 관리');
+    await click('삭제하기');
+    // 메뉴 시트가 내려간 뒤(0.35초) 확인 창이 열립니다.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+    await click('삭제');
     assert.equal(closed, false);
     assert.match(document.body.textContent!, /삭제 연결 실패/);
-    await click('확인 후 게시물 삭제');
+    await click('게시물 관리');
+    await click('삭제하기');
+    // 메뉴 시트가 내려간 뒤(0.35초) 확인 창이 열립니다.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+    await click('삭제');
     assert.equal(closed, true);
     assert.equal(calls, 2);
   } finally {
@@ -203,6 +239,7 @@ test('다른 기기 게시물 편집도 날짜와 요약을 보존하며 저장 
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,
+    Node: dom.window.Node,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
@@ -284,6 +321,7 @@ test('편집 충돌은 초안을 유지하고 반복 저장을 막으며 명시�
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,
+    Node: dom.window.Node,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
@@ -372,6 +410,7 @@ test('게시물 조회 실패는 로딩을 종료하고 안내 후 앱 복귀 �
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,
+    Node: dom.window.Node,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
   });

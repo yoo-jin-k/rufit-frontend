@@ -59,7 +59,15 @@ export function JournalSaved({
         <ListGroup>
           <ListRow
             label="친구 공개 범위"
-            value={accountSaved && journal?.visibility === 'friends' ? '친구 모두' : '나만 보기'}
+            value={
+              !accountSaved
+                ? '나만 보기'
+                : journal?.visibility === 'public'
+                  ? '전체 공개'
+                  : journal?.visibility === 'friends'
+                    ? '친구 모두'
+                    : '나만 보기'
+            }
             trailing="none"
           />
         </ListGroup>

@@ -45,7 +45,7 @@ test('손상된 저장 자료와 과도한 사진을 빈 프로필로 덮어쓰�
       JSON.stringify({
         version: 1,
         nickname: '나',
-        journals: [{ workoutId: '1', memo: '', visibility: 'public', createdAt: 1 }],
+        journals: [{ workoutId: '1', memo: '', visibility: 'everyone', createdAt: 1 }],
       }),
     ),
   );

@@ -140,10 +140,11 @@ export function ServerFriendsScreen({
       await refresh();
     });
   }
-  function actions(memberId: string, memberName: string) {
+  function actions(memberId: string, memberName: string, inline = false) {
     return (
       <ServerMemberActions
         key={memberId}
+        inline={inline}
         nickname={memberName}
         disabled={busy}
         onBlock={() => block(memberId)}
@@ -235,7 +236,7 @@ export function ServerFriendsScreen({
           <Text style={ui.muted}>
             공개 프로필(사진·한 줄 소개)과 친구에게 공개한 오운완을 표시합니다.
           </Text>
-          {actions(profile.memberId, profile.nickname)}
+          {actions(profile.memberId, profile.nickname, true)}
           <ServerPostList session={session} memberId={profile.memberId} />
         </View>
       </ScreenLayout>

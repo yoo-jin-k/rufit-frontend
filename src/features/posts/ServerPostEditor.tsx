@@ -110,7 +110,7 @@ export function ServerPostEditor({
             editable={!busy}
             value={memo}
             onChangeText={setMemo}
-            style={ui.input}
+            style={[ui.input, ui.inputMultiline]}
           />
           <Text style={ui.muted}>
             {memo.length}/200자 · 사진 {photos.length}/5장
@@ -129,6 +129,13 @@ export function ServerPostEditor({
               compact
               disabled={busy}
               onPress={() => setVisibility('FRIENDS')}
+            />
+            <Button
+              title={visibility === 'PUBLIC' ? '✓ 전체 공개' : '전체 공개'}
+              secondary
+              compact
+              disabled={busy}
+              onPress={() => setVisibility('PUBLIC')}
             />
           </View>
           {photos.map((photo, index) => (

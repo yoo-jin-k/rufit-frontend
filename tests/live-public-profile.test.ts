@@ -16,6 +16,7 @@ test('운동 중 공개 범위·볼륨과 공개 프로필 요청 본문을 보�
   await api.shareLiveWorkout(true, 'PUBLIC');
   await api.liveHeartbeat('session-1', true, 3240.5);
   await api.updatePublicProfile('스쿼트 좋아요', null);
+  await api.cancelCheer('friend', 'session-1');
   assert.deepEqual(calls, [
     [
       'https://api.example.test/api/v1/social/live/sharing',
@@ -32,6 +33,7 @@ test('운동 중 공개 범위·볼륨과 공개 프로필 요청 본문을 보�
       'PUT',
       { bio: '스쿼트 좋아요', avatar: null },
     ],
+    ['https://api.example.test/api/v1/social/live/friend/session-1/cheer', 'DELETE', null],
   ]);
 });
 
@@ -59,4 +61,22 @@ test('운동 중 목록은 친구를 먼저 모으고 각 묶음을 볼륨 내�
     groups.others.map((x) => x.memberId),
     ['b', 'd'],
   );
+});
+
+test('소셜 피드는 전체와 팔로잉(친구 글만)을 다른 주소로 요청합니다', async () => {
+  const urls: string[] = [];
+  const api = createRufitApi({
+    baseUrl: 'https://api.example.test',
+    getAccessToken: () => 'token',
+    fetch: async (url) => {
+      urls.push(String(url));
+      return Response.json({ items: [], hasNext: false, total: 0 });
+    },
+  });
+  await api.feed(false, 0);
+  await api.feed(true, 2);
+  assert.deepEqual(urls, [
+    'https://api.example.test/api/v1/social/posts/feed?page=0',
+    'https://api.example.test/api/v1/social/posts/feed?page=2&following=true',
+  ]);
 });

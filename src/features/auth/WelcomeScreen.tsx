@@ -15,7 +15,16 @@ const c = tokens.color;
 const days = ['월', '화', '수', '목', '금', '토', '일'];
 const example = [1, 2, 4, 5, 6];
 
-export function WelcomeScreen({ onLogin, onGuest }: { onLogin: () => void; onGuest: () => void }) {
+export function WelcomeScreen({
+  onLogin,
+  onGuest,
+}: {
+  /**
+   * 'KAKAO'·'GOOGLE'은 그 로그인을 바로 시작하고, 'EMAIL'은 이메일 로그인만 보이는 화면을 엽니다.
+   */
+  onLogin: (entry: 'KAKAO' | 'GOOGLE' | 'EMAIL') => void;
+  onGuest: () => void;
+}) {
   return (
     <Screen
       footer={
@@ -25,16 +34,16 @@ export function WelcomeScreen({ onLogin, onGuest }: { onLogin: () => void; onGue
             accessibilityLabel="카카오로 계속하기"
             variant="kakao"
             icon={<AppIcon name="kakao" color={c.brand.kakaoText} />}
-            onPress={onLogin}
+            onPress={() => onLogin('KAKAO')}
           />
           <Button
             title="Google로 계속하기"
             variant="google"
             icon={<Text style={[text.headline, { color: c.text.primary }]}>G</Text>}
-            onPress={onLogin}
+            onPress={() => onLogin('GOOGLE')}
           />
           <View style={s.links}>
-            <Pressable accessibilityRole="button" onPress={onLogin} hitSlop={8}>
+            <Pressable accessibilityRole="button" onPress={() => onLogin('EMAIL')} hitSlop={8}>
               <Text style={[text.caption, s.link]}>이메일로 로그인</Text>
             </Pressable>
             <Text style={[text.caption, { color: c.line.strong }]}>|</Text>

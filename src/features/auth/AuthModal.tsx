@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
+import { NavBar } from '../../components/kit/Screen';
 import { colors, size, spacing } from '../../theme/tokens';
 import { LogoMark } from '../../components/kit/Surfaces';
 import type { AuthCoordinator } from './authCoordinator';
@@ -104,6 +105,7 @@ export function AuthModal({
   status,
   enabled,
   demo,
+  emailOnly = false,
 }: {
   visible: boolean;
   onClose(): void;
@@ -111,6 +113,8 @@ export function AuthModal({
   status: AuthStatus;
   enabled: Record<SocialProvider, boolean>;
   demo: boolean;
+  /** 시작 화면의 '이메일로 로그인'으로 열면 카카오·Google 버튼과 안내를 숨기고 이메일 로그인만 보여 줍니다. */
+  emailOnly?: boolean;
 }) {
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -163,6 +167,10 @@ export function AuthModal({
   return (
     <AuthPresentation visible={visible} onClose={closeToWorkout}>
       <SafeAreaView style={s.page} edges={['top', 'left', 'right']}>
+        {/* 다른 화면과 같은 왼쪽 위 ‹ 뒤로 아이콘입니다. 스크롤해도 위에 고정됩니다. */}
+        <View style={{ paddingHorizontal: padding }}>
+          <NavBar leading="back" onLeading={closeToWorkout} />
+        </View>
         <ScrollView
           ref={scroll}
           contentContainerStyle={[
@@ -174,12 +182,6 @@ export function AuthModal({
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Button
-            title="뒤로"
-            secondary
-            accessibilityLabel="운동 기록으로 돌아가기"
-            onPress={closeToWorkout}
-          />
           <LogoMark size={36} />
           {Platform.OS === 'web' && !coordinator ? (
             <>
@@ -247,8 +249,12 @@ export function AuthModal({
             </>
           ) : (
             <>
-              <Text style={s.title}>루핏에 로그인</Text>
-              <Text style={s.body}>사용할 계정을 선택해 주세요.</Text>
+              <Text style={s.title}>{emailOnly ? '이메일로 로그인' : '루핏에 로그인'}</Text>
+              <Text style={s.body}>
+                {emailOnly
+                  ? '가입한 이메일과 비밀번호를 입력해 주세요.'
+                  : '사용할 계정을 선택해 주세요.'}
+              </Text>
               {coordinator && (
                 <EmailAccountPanel coordinator={coordinator} signedIn={false} enabled={enabled} />
               )}
@@ -273,13 +279,13 @@ export function AuthModal({
                   onPress={recoverLogin}
                 />
               )}
-              {!anyProviderEnabled && (
+              {!emailOnly && !anyProviderEnabled && (
                 <View style={s.status}>
                   <Text style={s.heading}>지금은 로그인을 사용할 수 없어요.</Text>
                   <Text style={s.body}>로그인 없이 운동 기록을 계속할 수 있어요.</Text>
                 </View>
               )}
-              {anyProviderEnabled && (
+              {!emailOnly && anyProviderEnabled && (
                 <View style={s.providers}>
                   <ProviderButton
                     provider="KAKAO"
@@ -299,11 +305,15 @@ export function AuthModal({
                   )}
                 </View>
               )}
-              <Text style={s.caption}>로그인은 시스템 브라우저에서 진행돼요.</Text>
-              <Text style={s.caption}>
-                처음 로그인하면 루핏 계정이 만들어져요. 같은 기록으로 이용하려면 로그인 후 계정
-                관리에서 다른 로그인 방법을 연결해 주세요.
-              </Text>
+              {!emailOnly && (
+                <>
+                  <Text style={s.caption}>로그인은 시스템 브라우저에서 진행돼요.</Text>
+                  <Text style={s.caption}>
+                    처음 로그인하면 루핏 계정이 만들어져요. 같은 기록으로 이용하려면 로그인 후 계정
+                    관리에서 다른 로그인 방법을 연결해 주세요.
+                  </Text>
+                </>
+              )}
               {busy && status.kind === 'signing-in' && (
                 <Button title="로그인 취소" secondary onPress={() => coordinator?.cancelLogin()} />
               )}

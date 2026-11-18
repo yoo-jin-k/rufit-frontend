@@ -32,7 +32,9 @@ export type AuthErrorReason =
   | 'logout-local';
 
 export type AuthStatus =
-  | { kind: 'signed-out'; notice?: string }
+  /** reauth는 저장된 로그인이 만료돼 다시 로그인해야 하는 경우입니다. 앱이 로그인 창을 엽니다. */
+  /** cancelled는 사용자가 카카오·Google 로그인을 취소한 경우입니다. */
+  | { kind: 'signed-out'; notice?: string; reauth?: boolean; cancelled?: boolean }
   | {
       kind: 'signing-in';
       provider: LoginProvider;

@@ -125,5 +125,12 @@ export function useServerLive(session: RufitSession | null, workout: string | nu
       run(() => session!.api.shareLiveWorkout(enabled, scope)),
     cheer: (memberId: string, workoutId: string) =>
       run(() => session!.api.cheerWorkout(memberId, workoutId)),
+    /** 이미 보낸 응원이면 취소하고, 아니면 보냅니다. 성공 여부를 돌려줍니다. */
+    toggleCheer: (memberId: string, workoutId: string, sent: boolean) =>
+      run(() =>
+        sent
+          ? session!.api.cancelCheer(memberId, workoutId)
+          : session!.api.cheerWorkout(memberId, workoutId),
+      ),
   };
 }

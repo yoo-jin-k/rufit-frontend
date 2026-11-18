@@ -6,7 +6,7 @@ export type JournalDraft = {
   workout: Workout;
   memo: string;
   photos: string[];
-  visibility: 'private' | 'friends';
+  visibility: 'private' | 'friends' | 'public';
 };
 const queues = new Map<string, Promise<void>>();
 const key = (scope: string) => `rufit.journal-draft.v1:${encodeURIComponent(scope)}`;
@@ -24,7 +24,7 @@ export const journalDraftStorage = {
       !Array.isArray(v.photos) ||
       v.photos.length > 5 ||
       v.photos.some((p) => typeof p !== 'string' || !p.startsWith('data:image/')) ||
-      !['private', 'friends'].includes(v.visibility)
+      !['private', 'friends', 'public'].includes(v.visibility)
     )
       throw new Error('작성 중인 오운완을 불러오지 못했습니다.');
     return v;

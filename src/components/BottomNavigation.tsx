@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon, type IconName } from './AppIcon';
 import { tokens } from '../theme/tokens';
 import { s } from './BottomNavigation.styles';
-export type MainTab = 'workout' | 'analysis' | 'profile' | 'settings';
+export type MainTab = 'workout' | 'analysis' | 'social' | 'profile' | 'settings';
 const tabs: { id: MainTab; label: string; icon: IconName }[] = [
   { id: 'workout', label: '운동', icon: 'dumbbell' },
   { id: 'analysis', label: '분석', icon: 'chart' },
+  { id: 'social', label: '소셜', icon: 'users' },
   { id: 'profile', label: '프로필', icon: 'person' },
   { id: 'settings', label: '설정', icon: 'gear' },
 ];

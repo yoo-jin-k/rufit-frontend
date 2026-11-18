@@ -133,7 +133,8 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
       document.body.textContent!,
       /공개 프로필\(사진·한 줄 소개\)과 친구에게 공개한 오운완/,
     );
-    await click('운동 친구 더보기');
+    // 프로필 화면은 더보기 없이 신고하기 버튼을 바로 보여 줍니다.
+    assert.equal(document.querySelector('[aria-label="운동 친구 더보기"]'), null);
     await click('신고하기');
     await click('괴롭힘');
     await click('신고 접수');

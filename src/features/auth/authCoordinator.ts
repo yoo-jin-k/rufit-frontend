@@ -112,6 +112,7 @@ export class AuthCoordinator {
   private activeOperation: number | null = null;
   private pendingLocalLogout = false;
   private refreshPromise: Promise<void> | null = null;
+  private lastUnauthorizedRefresh = 0;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private storageQueue: Promise<unknown> = Promise.resolve();
   constructor(options: Options) {
@@ -187,6 +188,7 @@ export class AuthCoordinator {
         this.publish({
           kind: 'signed-out',
           notice: '로그인을 복원하지 못했습니다. 다시 로그인해 주세요. 기기 기록은 유지됩니다.',
+          reauth: true,
         });
     } finally {
       if (this.activeOperation === operation) this.activeOperation = null;
@@ -289,6 +291,7 @@ export class AuthCoordinator {
         this.publish({
           kind: 'signed-out',
           notice: '로그인을 취소했어요. 기기 운동 기록은 그대로예요.',
+          cancelled: true,
         });
         return;
       }
@@ -299,6 +302,7 @@ export class AuthCoordinator {
         this.publish({
           kind: 'signed-out',
           notice: '로그인을 취소했어요. 기기 운동 기록은 그대로예요.',
+          cancelled: true,
         });
         return;
       }
@@ -444,7 +448,11 @@ export class AuthCoordinator {
     ++this.epoch;
     this.activeOperation = null;
     void this.options.browser.close?.();
-    this.publish({ kind: 'signed-out', notice: '로그인을 취소했어요. 운동 기록은 그대로예요.' });
+    this.publish({
+      kind: 'signed-out',
+      notice: '로그인을 취소했어요. 운동 기록은 그대로예요.',
+      cancelled: true,
+    });
   }
 
   showLoginSelection() {
@@ -467,6 +475,7 @@ export class AuthCoordinator {
     const session = await (this.options.createSession ?? createRufitSession)({
       baseUrl: this.options.api.server,
       getAccessToken: () => tokens.accessToken,
+      onUnauthorized: () => this.handleUnauthorized(tokens),
       fetch: this.options.fetch,
       allowInsecureHttp: new URL(this.options.api.server).protocol === 'http:',
     });
@@ -496,6 +505,19 @@ export class AuthCoordinator {
     }
     if (operation !== this.epoch || this.runtime?.session !== session) session.close();
     else this.scheduleRefresh();
+  }
+
+  /**
+   * 화면의 요청이 401을 받으면 지금 세션의 토큰일 때만 한 번 갱신합니다.
+   * 갱신이 확정 실패하면 refresh가 reauth-required를 알려 앱이 로그인 창을 엽니다.
+   * 같은 401이 연달아 와도 15초에 한 번만 시도해 갱신을 반복하지 않습니다.
+   */
+  private handleUnauthorized(tokens: SessionTokens) {
+    if (this.runtime?.tokens.accessToken !== tokens.accessToken) return;
+    const now = Date.now();
+    if (now - this.lastUnauthorizedRefresh < 15_000) return;
+    this.lastUnauthorizedRefresh = now;
+    void this.refresh();
   }
 
   /**
