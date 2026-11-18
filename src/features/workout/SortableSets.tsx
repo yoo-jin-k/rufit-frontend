@@ -2,8 +2,9 @@
  * 번호 영역에서만 드래그를 시작합니다. 행 높이를 실제로 측정하여 오류 문구·글자 확대에도 이동 위치를 맞춥니다.
  * 끄는 동안 들어갈 자리의 세트들이 끄는 세트 높이만큼 비켜서, 어디에 놓일지 미리 보입니다.
  */
-import { Component, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, PanResponder, Platform, Text, View } from 'react-native';
+import { Component, useLayoutEffect, useState, type ReactNode } from 'react';
+import { Animated, PanResponder, Platform, Text, View } from 'react-native';
+import { useReduceMotion } from '../../hooks/useReduceMotion';
 import { text, tokens } from '../../theme/tokens';
 import { setDragStyles } from './SetDrag.styles';
 import type { WorkoutSet } from './model';
@@ -145,22 +146,6 @@ export function SortableSets({
       })}
     </View>
   );
-}
-
-function useReduceMotion() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    void AccessibilityInfo.isReduceMotionEnabled()
-      .then((value) => alive && setReduce(value))
-      .catch(() => undefined);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
-    return () => {
-      alive = false;
-      sub.remove();
-    };
-  }, []);
-  return reduce;
 }
 
 /**

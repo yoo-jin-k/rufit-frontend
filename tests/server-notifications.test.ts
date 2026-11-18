@@ -27,6 +27,10 @@ test('알림 API는 서버 커서와 읽음 대상만 전송합니다', async ()
 test('서버 알림은 읽음·수락을 반영하고 계정이 바뀌면 이전 알림을 지웁니다', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
   Object.assign(globalThis, {
+    // 알림 화면이 밀려 들어오는 움직임에 쓰는 프레임 함수입니다. 테스트 브라우저에는 없어서 타이머로 대신합니다.
+    requestAnimationFrame: (callback: (time: number) => void) =>
+      setTimeout(() => callback(Date.now()), 16),
+    cancelAnimationFrame: (id: ReturnType<typeof setTimeout>) => clearTimeout(id),
     window: dom.window,
     document: dom.window.document,
     HTMLElement: dom.window.HTMLElement,

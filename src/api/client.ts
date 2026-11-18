@@ -24,7 +24,7 @@ export type ServerPost = {
   memo: string;
   date: string;
   summary: string;
-  visibility: 'PRIVATE' | 'FRIENDS';
+  visibility: 'PRIVATE' | 'FRIENDS' | 'PUBLIC';
   version: number;
   photos: string[];
   thumbnail: string | null;
@@ -37,7 +37,7 @@ export type PostEdit = {
   memo: string;
   date: string;
   summary: string;
-  visibility: 'PRIVATE' | 'FRIENDS';
+  visibility: 'PRIVATE' | 'FRIENDS' | 'PUBLIC';
   photos: string[];
 };
 export type ServerNotification = {
@@ -294,6 +294,8 @@ type Options = {
   fetch?: typeof fetch;
   timeoutMs?: number;
   allowInsecureHttp?: boolean;
+  /** 서버가 401(로그인 만료)로 응답했을 때 알립니다. 로그인 갱신이나 로그인 창 열기에 씁니다. */
+  onUnauthorized?: () => void;
 };
 const segment = encodeURIComponent;
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -363,6 +365,7 @@ export function createRufitApi(options: Options) {
         );
       }
       if (!response.ok) {
+        if (response.status === 401) options.onUnauthorized?.();
         const code = object(value) && typeof value.code === 'string' ? value.code : 'HTTP_ERROR';
         const message =
           object(value) && typeof value.detail === 'string'
@@ -573,6 +576,12 @@ export function createRufitApi(options: Options) {
     ownPost: (source: string) =>
       request<ServerPost>('GET', `/social/posts/mine/${segment(source)}`),
     post: (id: string) => request<ServerPost>('GET', `/social/posts/${segment(id)}`),
+    /** 소셜 피드: 볼 수 있는 다른 회원의 글을 최신순으로 30개씩. following이면 친구(팔로잉) 글만. */
+    feed: (following = false, page = 0) =>
+      request<{ items: ServerPost[]; hasNext: boolean; total: number }>(
+        'GET',
+        `/social/posts/feed?page=${page}${following ? '&following=true' : ''}`,
+      ),
     posts: (memberId?: string, page = 0) =>
       request<{ items: ServerPost[]; hasNext: boolean; total: number }>(
         'GET',
@@ -585,6 +594,9 @@ export function createRufitApi(options: Options) {
       request<void>('PUT', '/social/live/sharing', { enabled, scope }),
     liveHeartbeat: (id: string, active: boolean, volume?: number) =>
       request<void>('PUT', `/social/live/mine/${segment(id)}`, { active, volume }),
+    /** 보낸 응원을 취소합니다. 상대에게 간 응원 알림도 함께 지워집니다. */
+    cancelCheer: (memberId: string, workoutId: string) =>
+      request<void>('DELETE', `/social/live/${segment(memberId)}/${segment(workoutId)}/cheer`),
     cheerWorkout: (memberId: string, workoutId: string) =>
       request<void>('POST', `/social/live/${segment(memberId)}/${segment(workoutId)}/cheer`),
     deletePost: (id: string, version: number) =>

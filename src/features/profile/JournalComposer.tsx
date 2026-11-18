@@ -43,7 +43,7 @@ export function JournalComposer({
     [picking, setPicking] = useState(false),
     [photoError, setPhotoError] = useState(false);
   const destination = session ? 'account' : 'device';
-  const [visibility, setVisibility] = useState<'private' | 'friends'>(
+  const [visibility, setVisibility] = useState<'private' | 'friends' | 'public'>(
     restoredDraft?.visibility ?? initial?.visibility ?? 'private',
   );
   const draftScope = session ? `${session.scope.server}:${session.scope.accountId}` : 'guest';
@@ -160,7 +160,8 @@ export function JournalComposer({
           memo,
           date: workoutDate(workout),
           summary: workoutSummary(workout),
-          visibility: visibility === 'friends' ? 'FRIENDS' : 'PRIVATE',
+          visibility:
+            visibility === 'public' ? 'PUBLIC' : visibility === 'friends' ? 'FRIENDS' : 'PRIVATE',
           photos,
         });
         setCloudVersion(saved.version);
@@ -380,11 +381,16 @@ export function JournalComposer({
                 selected={visibility === 'friends'}
                 onPress={() => !busy && setVisibility('friends')}
               />
+              <Chip
+                label="전체 공개"
+                selected={visibility === 'public'}
+                onPress={() => !busy && setVisibility('public')}
+              />
             </ChipRow>
             <Text style={[text.label, { color: tokens.color.text.muted }]}>
               {cloudVersion
                 ? '이 운동의 계정 게시물이 있습니다. 저장하면 지금 작성한 내용으로 바뀝니다.'
-                : '저장하면 사진·글·운동 날짜와 요약을 내 계정에 저장합니다. 친구 공개면 현재 친구가 볼 수 있어요.'}
+                : '저장하면 사진·글·운동 날짜와 요약을 내 계정에 저장합니다. 친구 공개는 친구만, 전체 공개는 소셜 탭에서 모든 회원이 볼 수 있어요.'}
             </Text>
           </View>
         )}

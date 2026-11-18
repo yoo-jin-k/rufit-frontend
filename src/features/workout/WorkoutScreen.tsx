@@ -12,6 +12,7 @@ import { NotificationButton } from '../../components/NotificationButton';
 import { BottomNavigation, type MainTab } from '../../components/BottomNavigation';
 import { AnalysisScreen } from '../analysis/AnalysisScreen';
 import { ProfileScreen } from '../profile/ProfileScreen';
+import { SocialScreen } from '../social/SocialScreen';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import { JournalComposer } from '../profile/JournalComposer';
 import { useProfile } from '../profile/useProfile';
@@ -28,7 +29,7 @@ import { ManualWorkoutScreen } from './ManualWorkoutScreen';
 import { BodyWeightScreen } from '../bodyweight/BodyWeightScreen';
 import { StrengthScreen } from '../strength/StrengthScreen';
 import { useEffect, useState } from 'react';
-import { BottomSheet, ConfirmDialog } from '../../components/kit/Surfaces';
+import { BottomSheet, ConfirmDialog, Toast } from '../../components/kit/Surfaces';
 import { WorkoutHome } from './WorkoutHome';
 import { UnitProvider } from '../units/UnitProvider';
 import { FavoritesProvider } from '../favorites/FavoritesProvider';
@@ -107,6 +108,8 @@ export function WorkoutScreen({
     ready && workout && workout.finishedAt === undefined ? workoutVolume(workout) : 0,
   );
   const [serverHistory, setServerHistory] = useState(false);
+  // 응원 보냄·취소 안내처럼 화면 아래에 잠깐 뜨는 알림입니다.
+  const [toast, setToast] = useState('');
   const [tab, setTab] = useState<MainTab>('workout');
   const accountKey = session ? `${session.scope.server}:${session.scope.accountId}` : null;
   // 로그인이 완료되어 계정이 바뀌면 설정 등 다른 메뉴에 있었더라도 메인 홈으로 이동합니다.
@@ -338,7 +341,7 @@ export function WorkoutScreen({
     onSkipRest: skipRest,
   };
   const friends = session ? (
-    <ServerWorkoutFriends session={session} live={live} />
+    <ServerWorkoutFriends session={session} live={live} onToast={setToast} />
   ) : (
     <WorkoutFriends enabled={__DEV__} />
   );
@@ -395,6 +398,8 @@ export function WorkoutScreen({
                 onStrength={() => setShowStrength(true)}
                 onWeight={() => setShowWeight(true)}
               />
+            ) : tab === 'social' ? (
+              <SocialScreen session={session} onOpenAuth={() => onOpenAuth?.()} />
             ) : tab === 'profile' ? (
               <ProfileScreen
                 key={`${session ? `${session.scope.server}:${session.scope.accountId}` : 'guest'}:${journalRevision}`}
@@ -623,6 +628,7 @@ export function WorkoutScreen({
               }
             />
           </View>
+          {!!toast && <Toast message={toast} duration={1000} onHide={() => setToast('')} />}
         </View>
       </FavoritesProvider>
     </UnitProvider>

@@ -19,8 +19,11 @@ export function ServerMemberActions({
   onBlock,
   onRemove,
   onReport,
+  inline = false,
 }: {
   nickname: string;
+  /** 프로필 화면에서는 더보기(⋯)에 숨기지 않고 차단·신고 버튼을 바로 보여 줍니다. */
+  inline?: boolean;
   disabled: boolean;
   onBlock: () => void;
   onRemove?: () => void;
@@ -42,16 +45,36 @@ export function ServerMemberActions({
             onPress={() => setMode('remove')}
           />
         )}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${nickname} 더보기`}
-          accessibilityState={{ expanded: mode !== 'closed', disabled }}
-          disabled={disabled}
-          onPress={() => setMode(mode === 'closed' ? 'menu' : 'closed')}
-          style={{ padding: 12 }}
-        >
-          <AppIcon name="more" size={18} />
-        </Pressable>
+        {inline && (
+          <>
+            <Button
+              title="차단하기"
+              compact
+              secondary
+              disabled={disabled}
+              onPress={() => setMode('block')}
+            />
+            <Button
+              title="신고하기"
+              compact
+              secondary
+              disabled={disabled}
+              onPress={() => setMode('report')}
+            />
+          </>
+        )}
+        {!inline && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${nickname} 더보기`}
+            accessibilityState={{ expanded: mode !== 'closed', disabled }}
+            disabled={disabled}
+            onPress={() => setMode(mode === 'closed' ? 'menu' : 'closed')}
+            style={{ padding: 12 }}
+          >
+            <AppIcon name="more" size={18} />
+          </Pressable>
+        )}
       </View>
       {mode !== 'closed' && (
         <View style={ui.card}>

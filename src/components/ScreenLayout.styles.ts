@@ -32,16 +32,27 @@ export const ui = StyleSheet.create({
     padding: tokens.space[16],
     gap: tokens.space[12],
   },
+  // 한 줄 입력칸은 줄 높이를 두지 않고 높이를 고정합니다. iOS에서 줄 높이가 있으면
+  // 입력한 글자가 안내 글자(placeholder)보다 아래에 그려져, 입력을 시작할 때 글자가 위아래로 움직입니다.
   input: {
     ...text.bodyMedium,
+    lineHeight: undefined,
     borderWidth: 1,
     borderColor: c.line.input,
     borderRadius: tokens.radius.md,
-    minHeight: tokens.size.input,
+    height: tokens.size.input,
     paddingHorizontal: tokens.space[16],
-    paddingVertical: 12,
+    paddingVertical: 0,
     color: c.text.primary,
     backgroundColor: c.bg.default,
+  },
+  /** 여러 줄 입력칸은 줄 사이가 붙지 않게 줄 높이를 되살리고 내용만큼 늘어납니다. */
+  inputMultiline: {
+    lineHeight: text.bodyMedium.lineHeight,
+    height: undefined,
+    minHeight: tokens.size.input,
+    paddingVertical: 12,
+    textAlignVertical: 'top',
   },
   dock: {
     width: '100%',

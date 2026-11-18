@@ -595,7 +595,8 @@ export function ProfileScreen({
               ? () => {
                   const workout = history.find((workout) => `own:${workout.id}` === post);
                   setPost(null);
-                  if (workout) onJournal(workout);
+                  // 게시물 화면이 닫힌 뒤에 편집 화면을 띄웁니다. 겹치면 iOS에서 열리지 않습니다.
+                  if (workout) setTimeout(() => onJournal(workout), 350);
                 }
               : undefined
           }
