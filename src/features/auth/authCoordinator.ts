@@ -584,6 +584,27 @@ export class AuthCoordinator {
     return this.refreshPromise;
   }
 
+  /**
+   * 회원 탈퇴입니다. 서버가 계정을 지운 뒤에만 이 기기의 로그인 정보를 지웁니다.
+   * 서버 세션이 이미 사라졌으므로 로그아웃 요청은 보내지 않습니다.
+   */
+  async deleteAccount() {
+    const current = this.runtime;
+    if (!current || this.activeOperation !== null)
+      throw new Error('로그인 상태를 확인한 뒤 다시 시도해 주세요.');
+    await current.session.api.deleteAccount();
+    if (this.runtime !== current) return;
+    ++this.epoch;
+    this.clearRefreshTimer();
+    current.session.close();
+    this.runtime = null;
+    await this.serialStore(() => this.options.store.clear()).catch(() => {});
+    this.publish({
+      kind: 'signed-out',
+      notice: '회원 탈퇴가 끝났어요. 계정과 서버에 저장한 기록을 모두 지웠어요.',
+    });
+  }
+
   async logout() {
     if (this.activeOperation !== null) this.cancelLogin();
     const current = this.runtime;

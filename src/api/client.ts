@@ -564,6 +564,8 @@ export function createRufitApi(options: Options) {
     respondFriendRequest: (id: string, action: 'ACCEPT' | 'REJECT' | 'CANCEL') =>
       request<FriendRequest>('POST', `/social/requests/${segment(id)}/respond`, { action }),
     removeFriend: (id: string) => request<null>('DELETE', `/social/friends/${segment(id)}`),
+    /** 회원 탈퇴: 계정과 서버에 저장한 기록을 모두 지웁니다. 되돌릴 수 없습니다. */
+    deleteAccount: () => request<null>('DELETE', '/account'),
     memberProfile: (id: string) => request<MemberProfile>('GET', `/social/members/${segment(id)}`),
     reportMember: (requestId: string, targetId: string, reason: ReportReason) =>
       request<{ id: string; status: 'RECEIVED' }>('POST', '/social/reports', {

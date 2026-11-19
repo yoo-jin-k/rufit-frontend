@@ -1132,3 +1132,69 @@ test('화면 요청이 401을 받으면 한 번 갱신하고, 갱신이 거절�
   assert.equal(state.kind === 'error' && state.reason, 'reauth-required');
   assert.equal(coordinator.getSession(), null);
 });
+
+test('회원 탈퇴는 서버 삭제가 성공한 뒤에만 이 기기 로그인을 지우고 로그아웃 요청은 보내지 않는다', async () => {
+  let fail = true;
+  let deletes = 0;
+  let logoutCalls = 0;
+  let closed = 0;
+  const store = memoryStore();
+  const api = {
+    server: 'https://api.example.com',
+    startLogin: async () => ({
+      attemptId,
+      authorizationUrl: 'https://kauth.kakao.com/oauth/authorize',
+      expiresAt: '2099-01-01T00:00:00Z',
+    }),
+    exchange: async () => tokens,
+    refresh: async () => tokens,
+    logout: async () => {
+      logoutCalls++;
+    },
+  } as AuthApi;
+  const coordinator = new AuthCoordinator({
+    api,
+    store,
+    createPkce: async () => ({ verifier, challenge }),
+    createSession: async () =>
+      ({
+        scope: Object.freeze({ server: api.server, accountId: tokens.account.id }),
+        api: Object.freeze({
+          deleteAccount: async () => {
+            deletes++;
+            if (fail) throw new Error('잠시 후 다시 시도해 주세요.');
+            return null;
+          },
+        }),
+        isActive: () => true,
+        saveDraft: async () => {
+          throw new Error();
+        },
+        close: () => {
+          closed++;
+        },
+      }) as never,
+    browser: {
+      open: async () => ({
+        type: 'success',
+        url: `rufit://auth/callback?attemptId=${attemptId}&handoffCode=${handoff}`,
+      }),
+    },
+  });
+  await coordinator.login('KAKAO', 'IOS', 'rufit://auth/callback');
+  await assert.rejects(coordinator.deleteAccount(), /잠시 후 다시 시도/);
+  assert.equal(
+    coordinator.getState().kind,
+    'signed-in',
+    '서버 삭제가 실패하면 로그인을 유지합니다.',
+  );
+  assert.ok(store.value);
+  fail = false;
+  await coordinator.deleteAccount();
+  assert.equal(deletes, 2);
+  assert.equal(coordinator.getState().kind, 'signed-out');
+  assert.equal(coordinator.getSession(), null);
+  assert.equal(store.value, null);
+  assert.equal(closed, 1);
+  assert.equal(logoutCalls, 0);
+});
