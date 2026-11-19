@@ -1,6 +1,6 @@
 import { EmailAccountPanel } from './EmailAccountPanel';
 import { AppModal as Modal } from '../../components/AppModal';
-import { useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Image,
@@ -16,7 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '../../components/Button';
 import { NavBar } from '../../components/kit/Screen';
 import { colors, size, spacing } from '../../theme/tokens';
-import { LogoMark } from '../../components/kit/Surfaces';
+import { ConfirmDialog, LogoMark } from '../../components/kit/Surfaces';
 import type { AuthCoordinator } from './authCoordinator';
 import {
   authContentBottomPadding,
@@ -120,6 +120,24 @@ export function AuthModal({
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
   const [confirmLogout, updateLogoutConfirmation] = useReducer(logoutConfirmation, false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  async function deleteAccount() {
+    if (!coordinator || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await coordinator.deleteAccount();
+    } catch (cause) {
+      setDeleteError(
+        cause instanceof Error ? cause.message : '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    } finally {
+      setConfirmDelete(false);
+      setDeleting(false);
+    }
+  }
   const signedIn =
     status.kind === 'signed-in' || status.kind === 'refreshing' || status.kind === 'signing-out';
   const busy =
@@ -246,6 +264,32 @@ export function AuthModal({
                 />
               )}
               <Button title="운동 기록으로 돌아가기" onPress={closeToWorkout} />
+              {!!deleteError && (
+                <Text accessibilityRole="alert" style={[s.body, { color: colors.danger }]}>
+                  {deleteError}
+                </Text>
+              )}
+              {/* 되돌릴 수 없는 동작이라 눈에 덜 띄는 글자 버튼으로 맨 아래에 둡니다. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="회원 탈퇴"
+                disabled={busy || deleting}
+                hitSlop={8}
+                onPress={() => setConfirmDelete(true)}
+                style={{ alignSelf: 'center', paddingVertical: spacing.sm }}
+              >
+                <Text style={[s.localNotice, { textDecorationLine: 'underline' }]}>회원 탈퇴</Text>
+              </Pressable>
+              <ConfirmDialog
+                visible={confirmDelete}
+                title="회원 탈퇴할까요?"
+                message="계정과 서버에 저장한 운동 기록·프로필·오운완·친구 관계가 모두 지워지고 되돌릴 수 없어요."
+                confirmLabel="탈퇴하기"
+                tone="danger"
+                busy={deleting}
+                onCancel={() => setConfirmDelete(false)}
+                onConfirm={() => void deleteAccount()}
+              />
             </>
           ) : (
             <>

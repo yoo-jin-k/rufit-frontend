@@ -1,9 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
+import { BottomSheet, ConfirmDialog, ListGroup, ListRow } from '../../components/kit/Surfaces';
 import { ui } from '../../components/ScreenLayout';
+import { tokens } from '../../theme/tokens';
 import type { ReportReason } from '../../api/client';
 
 const reasons: { value: ReportReason; label: string }[] = [
@@ -12,7 +14,15 @@ const reasons: { value: ReportReason; label: string }[] = [
   { value: 'INAPPROPRIATE', label: '부적절한 내용' },
   { value: 'OTHER', label: '기타' },
 ];
-/** 관계 변경은 설명 후 확인하며 신고 재시도에는 같은 접수 번호를 사용합니다. */
+// iOS는 시트가 완전히 내려간 뒤에야 다음 창을 띄울 수 있어 잠시 기다립니다.
+const NEXT_MODAL_DELAY = 350;
+
+type Step = 'remove' | 'block' | 'report';
+
+/**
+ * 친구 해제·차단·신고 메뉴입니다. 목록에서는 ⋯ 하나만 두고 아래에서 올라오는 메뉴로 고릅니다.
+ * 관계를 바꾸는 동작은 확인 창을 한 번 더 거치고, 신고 재시도에는 같은 접수 번호를 씁니다.
+ */
 export function ServerMemberActions({
   nickname,
   disabled,
@@ -22,139 +32,177 @@ export function ServerMemberActions({
   inline = false,
 }: {
   nickname: string;
-  /** 프로필 화면에서는 더보기(⋯)에 숨기지 않고 차단·신고 버튼을 바로 보여 줍니다. */
+  /** 프로필 화면에서는 메뉴에 숨기지 않고 작은 버튼으로 바로 보여 줍니다. */
   inline?: boolean;
   disabled: boolean;
   onBlock: () => void;
   onRemove?: () => void;
   onReport: (id: string, reason: ReportReason) => Promise<boolean>;
 }) {
-  const [mode, setMode] = useState<'closed' | 'menu' | 'block' | 'remove' | 'report'>('closed');
+  const [menu, setMenu] = useState(false);
+  const [step, setStep] = useState<Step | null>(null);
   const [reason, setReason] = useState<ReportReason>('SPAM');
   const [sent, setSent] = useState(false);
+  const [failed, setFailed] = useState(false);
   const ids = useRef(new Map<ReportReason, string>());
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  function open(next: Step) {
+    setSent(false);
+    setFailed(false);
+    setStep(next);
+  }
+  function choose(next: Step) {
+    setMenu(false);
+    timer.current = setTimeout(() => open(next), NEXT_MODAL_DELAY);
+  }
+
+  const items: { step: Step; label: string; icon: 'users' | 'block' | 'flag' }[] = [
+    ...(onRemove ? [{ step: 'remove' as const, label: '친구 해제', icon: 'users' as const }] : []),
+    { step: 'block', label: '차단하기', icon: 'block' },
+    { step: 'report', label: '신고하기', icon: 'flag' },
+  ];
+
   return (
-    <View>
-      <View style={[ui.row, { justifyContent: 'flex-end', flexWrap: 'wrap' }]}>
-        {onRemove && (
-          <Button
-            title="친구 해제"
-            compact
-            secondary
-            disabled={disabled}
-            onPress={() => setMode('remove')}
-          />
-        )}
-        {inline && (
-          <>
+    <>
+      {inline ? (
+        <View style={[ui.row, { gap: tokens.space[8], flexWrap: 'wrap' }]}>
+          {items.map((item) => (
             <Button
-              title="차단하기"
-              compact
-              secondary
+              key={item.step}
+              title={item.label}
+              // 프로필 카드가 회색이라 테두리 버튼으로 구분합니다.
+              variant="secondary"
+              size="sm"
+              fullWidth={false}
               disabled={disabled}
-              onPress={() => setMode('block')}
+              onPress={() => open(item.step)}
             />
-            <Button
-              title="신고하기"
-              compact
-              secondary
-              disabled={disabled}
-              onPress={() => setMode('report')}
-            />
-          </>
-        )}
-        {!inline && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${nickname} 더보기`}
-            accessibilityState={{ expanded: mode !== 'closed', disabled }}
-            disabled={disabled}
-            onPress={() => setMode(mode === 'closed' ? 'menu' : 'closed')}
-            style={{ padding: 12 }}
-          >
-            <AppIcon name="more" size={18} />
-          </Pressable>
-        )}
-      </View>
-      {mode !== 'closed' && (
-        <View style={ui.card}>
-          {mode === 'menu' && (
-            <>
-              <Button
-                title="차단하기"
-                compact
-                secondary
-                disabled={disabled}
-                onPress={() => setMode('block')}
-              />
-              <Button
-                title="신고하기"
-                compact
-                secondary
-                disabled={disabled}
-                onPress={() => setMode('report')}
-              />
-            </>
-          )}
-          {mode === 'block' && (
-            <>
-              <Text style={ui.body}>{nickname} 님을 차단하시겠어요?</Text>
-              <Text style={ui.muted}>
-                친구 관계와 대기 신청이 삭제됩니다. 차단 해제 후에도 복원되지 않습니다.
-              </Text>
-              <Button title="차단 확인" compact disabled={disabled} onPress={onBlock} />
-            </>
-          )}
-          {mode === 'remove' && (
-            <>
-              <Text style={ui.body}>{nickname} 님을 친구에서 해제하시겠어요?</Text>
-              <Text style={ui.muted}>다시 연결하려면 친구 신청과 수락이 필요합니다.</Text>
-              <Button title="친구 해제 확인" compact disabled={disabled} onPress={onRemove!} />
-            </>
-          )}
-          {mode === 'report' &&
-            (sent ? (
-              <Text accessibilityLiveRegion="polite" style={ui.body}>
-                신고가 접수되었습니다. 검토가 완료된 것은 아니며 차단은 별도로 선택할 수 있습니다.
-              </Text>
-            ) : (
-              <>
-                <Text style={ui.heading}>신고 사유를 선택해 주세요.</Text>
-                <View style={[ui.row, { flexWrap: 'wrap' }]}>
-                  {reasons.map((item) => (
-                    <Button
-                      key={item.value}
-                      title={`${reason === item.value ? '✓ ' : ''}${item.label}`}
-                      compact
-                      secondary
-                      disabled={disabled}
-                      onPress={() => setReason(item.value)}
-                    />
-                  ))}
-                </View>
-                <Button
-                  title="신고 접수"
-                  compact
-                  disabled={disabled}
-                  onPress={() => {
-                    const id = ids.current.get(reason) ?? randomUUID();
-                    ids.current.set(reason, id);
-                    void onReport(id, reason).then((ok) => {
-                      if (ok) setSent(true);
-                    });
-                  }}
-                />
-              </>
-            ))}
-          <Button
-            title="닫기"
-            compact
-            secondary
-            disabled={disabled}
-            onPress={() => setMode('closed')}
-          />
+          ))}
         </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${nickname} 더보기`}
+          accessibilityState={{ expanded: menu, disabled }}
+          disabled={disabled}
+          hitSlop={4}
+          onPress={() => setMenu(true)}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <AppIcon name="more" size={20} color={tokens.color.text.secondary} />
+        </Pressable>
       )}
-    </View>
+
+      <BottomSheet visible={menu} title={nickname} onClose={() => setMenu(false)}>
+        <ListGroup>
+          {items.map((item) => (
+            <ListRow
+              key={item.step}
+              icon={item.icon}
+              label={item.label}
+              danger={item.step !== 'remove'}
+              trailing="none"
+              disabled={disabled}
+              onPress={() => choose(item.step)}
+            />
+          ))}
+        </ListGroup>
+      </BottomSheet>
+
+      <ConfirmDialog
+        visible={step === 'remove'}
+        title={`${nickname}님을 친구에서 해제할까요?`}
+        message="다시 연결하려면 친구 신청과 수락이 필요합니다."
+        confirmLabel="해제"
+        tone="danger"
+        busy={disabled}
+        onCancel={() => setStep(null)}
+        onConfirm={() => {
+          setStep(null);
+          onRemove?.();
+        }}
+      />
+      <ConfirmDialog
+        visible={step === 'block'}
+        title={`${nickname}님을 차단할까요?`}
+        message="친구 관계와 대기 중인 신청이 삭제되고, 차단을 풀어도 복원되지 않습니다."
+        confirmLabel="차단"
+        tone="danger"
+        busy={disabled}
+        onCancel={() => setStep(null)}
+        onConfirm={() => {
+          setStep(null);
+          onBlock();
+        }}
+      />
+      <BottomSheet
+        visible={step === 'report'}
+        title="신고하기"
+        subtitle={sent ? undefined : `${nickname}님을 신고하는 이유를 골라 주세요.`}
+        onClose={() => setStep(null)}
+      >
+        {sent ? (
+          <View style={{ gap: tokens.space[16] }}>
+            <Text accessibilityLiveRegion="polite" style={ui.body}>
+              신고가 접수되었습니다. 검토가 끝난 것은 아니며, 차단은 따로 할 수 있습니다.
+            </Text>
+            <Button title="확인" size="md" onPress={() => setStep(null)} />
+          </View>
+        ) : (
+          <View style={{ gap: tokens.space[16] }}>
+            <ListGroup>
+              {reasons.map((item) => (
+                <ListRow
+                  key={item.value}
+                  label={item.label}
+                  accessibilityLabel={item.label}
+                  trailing={
+                    reason === item.value ? (
+                      <AppIcon name="check" color={tokens.color.accent.default} />
+                    ) : (
+                      'none'
+                    )
+                  }
+                  disabled={disabled}
+                  onPress={() => setReason(item.value)}
+                />
+              ))}
+            </ListGroup>
+            {failed && (
+              <Text accessibilityRole="alert" style={ui.error}>
+                신고를 접수하지 못했어요. 다시 시도해 주세요.
+              </Text>
+            )}
+            <Button
+              title="신고 접수"
+              size="md"
+              variant="danger"
+              disabled={disabled}
+              onPress={() => {
+                const id = ids.current.get(reason) ?? randomUUID();
+                ids.current.set(reason, id);
+                void onReport(id, reason).then((ok) => {
+                  setSent(ok);
+                  setFailed(!ok);
+                });
+              }}
+            />
+          </View>
+        )}
+      </BottomSheet>
+    </>
   );
 }

@@ -12,6 +12,9 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
     HTMLElement: dom.window.HTMLElement,
     ShadowRoot: dom.window.ShadowRoot,
     IS_REACT_ACT_ENVIRONMENT: true,
+    requestAnimationFrame: (callback: FrameRequestCallback) =>
+      setTimeout(() => callback(Date.now()), 0),
+    cancelAnimationFrame: (id: number) => clearTimeout(id),
   });
   const { createRoot } = await import('react-dom/client');
   const load = nativeWebLoader({
@@ -119,7 +122,8 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
     await act(async () =>
       accept.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })),
     );
-    assert.match(document.body.textContent!, /받은 신청 · 0/);
+    // 처리할 신청이 없으면 빈 묶음 제목을 보여 주지 않습니다.
+    assert.doesNotMatch(document.body.textContent!, /받은 신청/);
     assert.match(document.body.textContent!, /친구 · 1/);
     const click = async (label: string) => {
       const element = document.querySelector(`[aria-label="${label}"]`);
@@ -144,25 +148,27 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
     assert.equal(reports[0], reports[1], '응답 실패 재시도는 같은 신고 번호를 사용합니다.');
     assert.match(document.body.textContent!, /신고가 접수되었습니다/);
     assert.equal(blockCalls, 0, '신고가 차단이나 친구 해제를 자동 실행하지 않습니다.');
-    await click('닫기');
+    await click('확인');
     await click('친구 해제');
     assert.equal(removeCalls, 0);
-    await click('친구 해제 확인');
+    await click('해제');
     assert.equal(removeCalls, 1);
     assert.match(document.body.textContent!, /친구 · 0/);
     await click('수락');
     await click('운동 친구 더보기');
     assert.equal(blockCalls, 0, '더보기만 눌러서는 차단하지 않습니다.');
+    // 친구 목록에서는 ⋯ 메뉴 안에 친구 해제·차단·신고가 함께 있습니다.
+    assert.ok(document.querySelector('[aria-label="친구 해제"]'));
     await click('차단하기');
+    // 메뉴가 내려간 뒤 확인 창이 뜹니다.
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 400)));
     assert.equal(blockCalls, 0);
-    assert.match(document.body.textContent!, /차단 해제 후에도 복원되지 않습니다/);
-    await click('차단 확인');
+    assert.match(document.body.textContent!, /차단을 풀어도 복원되지 않습니다/);
+    await click('차단');
     assert.equal(blockCalls, 1);
     assert.match(document.body.textContent!, /친구 · 0/);
-    await click('차단 목록 · 1');
-    await click('차단 해제');
-    assert.match(document.body.textContent!, /차단 목록 접기/);
-    assert.match(document.body.textContent!, /친구 · 0/);
+    // 차단 목록은 설정으로 옮겨 친구 화면에는 두지 않습니다.
+    assert.equal(document.querySelector('[aria-label^="차단 목록"]'), null);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

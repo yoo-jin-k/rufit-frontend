@@ -1,6 +1,6 @@
 import { ServerPostList } from '../posts/ServerPosts';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import type {
   DirectorySettings,
@@ -11,6 +11,8 @@ import type {
 import type { RufitSession } from '../../api/session';
 import { ScreenLayout, ui } from '../../components/ScreenLayout';
 import { Button } from '../../components/Button';
+import { GroupLabel, ListGroup } from '../../components/kit/Surfaces';
+import { text, tokens } from '../../theme/tokens';
 import { ServerMemberActions } from './ServerMemberActions';
 import { ProfileAvatar } from './ProfileAvatar';
 
@@ -30,8 +32,6 @@ export function ServerFriendsScreen({
   const [directory, setDirectory] = useState<DirectorySettings | null>(null);
   const [name, setName] = useState(nickname),
     [visible, setVisible] = useState(false);
-  const [blocked, setBlocked] = useState<SocialMembers['items']>([]);
-  const [showBlocked, setShowBlocked] = useState(false);
   const [friends, setFriends] = useState<SocialMembers['items']>([]);
   const [requests, setRequests] = useState<FriendRequests>({ incoming: [], outgoing: [] });
   const [query, setQuery] = useState(''),
@@ -48,18 +48,13 @@ export function ServerFriendsScreen({
   const active = useCallback(() => alive.current && session.isActive(), [session]);
   const refresh = useCallback(async () => {
     const settings = await session.api.directorySettings();
-    const [members, pending, blocks] = settings.memberId
-      ? await Promise.all([
-          session.api.friends(),
-          session.api.friendRequests(),
-          session.api.blockedMembers(),
-        ])
-      : [{ items: [] }, { incoming: [], outgoing: [] }, { items: [] }];
+    const [members, pending] = settings.memberId
+      ? await Promise.all([session.api.friends(), session.api.friendRequests()])
+      : [{ items: [] }, { incoming: [], outgoing: [] }];
     if (!active()) return;
     setDirectory(settings);
     setFriends(members.items);
     setRequests(pending);
-    setBlocked(blocks.items);
     return settings;
   }, [session, active]);
   const run = useCallback(
@@ -166,40 +161,42 @@ export function ServerFriendsScreen({
       />
     );
   }
-  /** 사진·닉네임·한 줄 소개를 한 줄로 보여 주고, 누르면 프로필을 엽니다. 신청 목록은 사진·소개가 없어 기본 아이콘을 씁니다. */
-  function memberLink(member: {
-    memberId: string;
-    nickname: string;
-    bio?: string | null;
-    avatar?: string | null;
-  }) {
+  /** 사진·닉네임·한 줄 소개를 한 줄로 보여 주고, 누르면 프로필을 엽니다. 오른쪽에는 작은 버튼이나 ⋯만 둡니다. */
+  function memberRow(
+    member: { memberId: string; nickname: string; bio?: string | null; avatar?: string | null },
+    trailing: ReactNode,
+  ) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${member.nickname} 프로필 보기`}
-        disabled={busy}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 }}
-        onPress={() =>
-          void run(async () => {
-            const value = await session.api.memberProfile(member.memberId);
-            if (active()) setProfile(value);
-          })
-        }
-      >
-        <ProfileAvatar photo={member.avatar} size={48} label={`${member.nickname} 프로필 사진`} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text numberOfLines={1} style={ui.heading}>
-            {member.nickname}
-          </Text>
-          {!!member.bio && (
-            <Text numberOfLines={2} style={ui.muted}>
-              {member.bio}
+      <View key={member.memberId} style={s.row}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${member.nickname} 프로필 보기`}
+          disabled={busy}
+          style={s.member}
+          onPress={() =>
+            void run(async () => {
+              const value = await session.api.memberProfile(member.memberId);
+              if (active()) setProfile(value);
+            })
+          }
+        >
+          <ProfileAvatar photo={member.avatar} size={40} label={`${member.nickname} 프로필 사진`} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text numberOfLines={1} style={s.name}>
+              {member.nickname}
             </Text>
-          )}
-        </View>
-      </Pressable>
+            {!!member.bio && (
+              <Text numberOfLines={1} style={s.bio}>
+                {member.bio}
+              </Text>
+            )}
+          </View>
+        </Pressable>
+        <View style={s.trailing}>{trailing}</View>
+      </View>
     );
   }
+  const small = { size: 'sm' as const, fullWidth: false, disabled: busy };
   if (profile)
     return (
       <ScreenLayout
@@ -221,22 +218,22 @@ export function ServerFriendsScreen({
             />
             <Text style={ui.heading}>{profile.nickname}</Text>
             {!!profile.bio && <Text style={[ui.body, { textAlign: 'center' }]}>{profile.bio}</Text>}
-          </View>
-          <Text style={ui.body}>
-            {
+            <Text style={ui.muted}>
               {
-                SELF: '내 프로필',
-                FRIEND: '친구',
-                INCOMING: '받은 친구 신청',
-                OUTGOING: '보낸 친구 신청',
-                NONE: '아직 친구가 아닙니다',
-              }[profile.relationship]
-            }
-          </Text>
+                {
+                  SELF: '내 프로필',
+                  FRIEND: '친구',
+                  INCOMING: '받은 친구 신청',
+                  OUTGOING: '보낸 친구 신청',
+                  NONE: '아직 친구가 아닙니다',
+                }[profile.relationship]
+              }
+            </Text>
+            {actions(profile.memberId, profile.nickname, true)}
+          </View>
           <Text style={ui.muted}>
             공개 프로필(사진·한 줄 소개)과 친구에게 공개한 오운완을 표시합니다.
           </Text>
-          {actions(profile.memberId, profile.nickname, true)}
           <ServerPostList session={session} memberId={profile.memberId} />
         </View>
       </ScreenLayout>
@@ -248,13 +245,9 @@ export function ServerFriendsScreen({
           {error}
         </Text>
       )}
-      <Button
-        title="새로고침"
-        secondary
-        compact
-        disabled={busy}
-        onPress={() => void run(refresh)}
-      />
+      <View style={{ alignItems: 'flex-end' }}>
+        <Button title="새로고침" variant="soft" {...small} onPress={() => void run(refresh)} />
+      </View>
       {directory && (
         <View style={ui.card}>
           <Text style={ui.heading}>친구에게 보이는 닉네임</Text>
@@ -281,6 +274,7 @@ export function ServerFriendsScreen({
           </Text>
           <Button
             title="친구 설정 저장"
+            size="md"
             disabled={busy || name.trim().length < 2}
             onPress={() =>
               void run(async () => {
@@ -301,123 +295,127 @@ export function ServerFriendsScreen({
       )}
       {directory?.memberId ? (
         <>
-          <TextInput
-            accessibilityLabel="친구 닉네임 검색"
-            placeholder="닉네임을 2자 이상 입력해 주세요"
-            value={query}
-            onChangeText={setQuery}
-            style={ui.input}
-            maxLength={30}
-          />
-          <Button
-            title="친구 검색"
-            disabled={busy || query.trim().length < 2}
-            onPress={() => void search()}
-          />
+          <View style={ui.row}>
+            <TextInput
+              accessibilityLabel="친구 닉네임 검색"
+              placeholder="닉네임 2자 이상"
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => {
+                if (!busy && query.trim().length >= 2) void search();
+              }}
+              returnKeyType="search"
+              style={[ui.input, { flex: 1 }]}
+              maxLength={30}
+            />
+            <Button
+              title="검색"
+              accessibilityLabel="친구 검색"
+              size="md"
+              fullWidth={false}
+              disabled={busy || query.trim().length < 2}
+              onPress={() => void search()}
+            />
+          </View>
           {searched && !results.length && <Text style={ui.muted}>검색 결과가 없습니다.</Text>}
-          {results.map((member) => {
-            const existing = friends.some((friend) => friend.memberId === member.memberId);
-            const pending =
-              requests.outgoing.some((request) => request.targetId === member.memberId) ||
-              requests.incoming.some((request) => request.requesterId === member.memberId);
-            return (
-              <View key={member.memberId} style={ui.card}>
-                {memberLink(member)}
-                {actions(member.memberId, member.nickname)}
-                <Button
-                  compact
-                  title={existing ? '이미 친구입니다' : pending ? '신청 처리 중' : '친구 신청'}
-                  disabled={busy || existing || pending}
-                  onPress={() =>
-                    void run(async () => {
-                      // 네트워크 응답이 유실되더라도 동일한 신청 번호로 재시도합니다.
-                      const id = keys.current.get(member.memberId) ?? randomUUID();
-                      keys.current.set(member.memberId, id);
-                      await session.api.sendFriendRequest(id, member.memberId);
-                      await refresh();
-                      keys.current.delete(member.memberId);
-                    })
-                  }
-                />
-              </View>
-            );
-          })}
+          {results.length > 0 && (
+            <ListGroup>
+              {results.map((member) => {
+                const existing = friends.some((friend) => friend.memberId === member.memberId);
+                const pending =
+                  requests.outgoing.some((request) => request.targetId === member.memberId) ||
+                  requests.incoming.some((request) => request.requesterId === member.memberId);
+                return memberRow(
+                  member,
+                  <>
+                    <Button
+                      title={existing ? '친구' : pending ? '신청됨' : '친구 신청'}
+                      accessibilityLabel={
+                        existing ? '이미 친구입니다' : pending ? '신청 처리 중' : '친구 신청'
+                      }
+                      variant={existing || pending ? 'soft' : 'primary'}
+                      {...small}
+                      disabled={busy || existing || pending}
+                      onPress={() =>
+                        void run(async () => {
+                          // 네트워크 응답이 유실되더라도 동일한 신청 번호로 재시도합니다.
+                          const id = keys.current.get(member.memberId) ?? randomUUID();
+                          keys.current.set(member.memberId, id);
+                          await session.api.sendFriendRequest(id, member.memberId);
+                          await refresh();
+                          keys.current.delete(member.memberId);
+                        })
+                      }
+                    />
+                    {actions(member.memberId, member.nickname)}
+                  </>,
+                );
+              })}
+            </ListGroup>
+          )}
           {hasNext && (
             <Button
               title="검색 결과 더 보기"
-              secondary
+              variant="soft"
+              size="md"
               disabled={busy}
               onPress={() => void search(page + 1)}
             />
           )}
-          <Text style={ui.heading}>받은 신청 · {requests.incoming.length}</Text>
-          {requests.incoming.map((request) => (
-            <View key={request.id} style={ui.card}>
-              {memberLink({ memberId: request.requesterId, nickname: request.requesterNickname })}
-              {actions(request.requesterId, request.requesterNickname)}
-              <View style={[ui.row, { flexWrap: 'wrap' }]}>
-                <Button
-                  title="수락"
-                  compact
-                  disabled={busy}
-                  onPress={() => respond(request.id, 'ACCEPT')}
-                />
-                <Button
-                  title="거절"
-                  compact
-                  secondary
-                  disabled={busy}
-                  onPress={() => respond(request.id, 'REJECT')}
-                />
-              </View>
-            </View>
-          ))}
-          <Text style={ui.heading}>보낸 신청 · {requests.outgoing.length}</Text>
-          {requests.outgoing.map((request) => (
-            <View key={request.id} style={ui.card}>
-              {memberLink({ memberId: request.targetId, nickname: request.targetNickname })}
-              {actions(request.targetId, request.targetNickname)}
-              <Button
-                title="신청 취소"
-                compact
-                secondary
-                disabled={busy}
-                onPress={() => respond(request.id, 'CANCEL')}
-              />
-            </View>
-          ))}
-          <Text style={ui.heading}>친구 · {friends.length}</Text>
-          {!friends.length && <Text style={ui.muted}>아직 친구가 없습니다.</Text>}
-          {friends.map((friend) => (
-            <View key={friend.memberId} style={ui.card}>
-              {memberLink(friend)}
-              {actions(friend.memberId, friend.nickname)}
-            </View>
-          ))}
-          <Button
-            title={showBlocked ? '차단 목록 접기' : `차단 목록 · ${blocked.length}`}
-            secondary
-            disabled={busy}
-            onPress={() => setShowBlocked(!showBlocked)}
-          />
-          {showBlocked &&
-            blocked.map((member) => (
-              <View key={member.memberId} style={ui.card}>
-                <Text style={ui.body}>{member.nickname}</Text>
-                <Button
-                  title="차단 해제"
-                  compact
-                  secondary
-                  disabled={busy}
-                  onPress={() =>
-                    void run(async () => {
-                      await session.api.unblockMember(member.memberId);
-                      await refresh();
-                    })
-                  }
-                />
-              </View>
-            ))}
+          {requests.incoming.length > 0 && (
+            <GroupLabel>{`받은 신청 · ${requests.incoming.length}`}</GroupLabel>
+          )}
+          {requests.incoming.length > 0 && (
+            <ListGroup>
+              {requests.incoming.map((request) =>
+                memberRow(
+                  { memberId: request.requesterId, nickname: request.requesterNickname },
+                  <>
+                    <Button title="수락" {...small} onPress={() => respond(request.id, 'ACCEPT')} />
+                    <Button
+                      title="거절"
+                      variant="soft"
+                      {...small}
+                      onPress={() => respond(request.id, 'REJECT')}
+                    />
+                    {actions(request.requesterId, request.requesterNickname)}
+                  </>,
+                ),
+              )}
+            </ListGroup>
+          )}
+          {requests.outgoing.length > 0 && (
+            <GroupLabel>{`보낸 신청 · ${requests.outgoing.length}`}</GroupLabel>
+          )}
+          {requests.outgoing.length > 0 && (
+            <ListGroup>
+              {requests.outgoing.map((request) =>
+                memberRow(
+                  { memberId: request.targetId, nickname: request.targetNickname },
+                  <>
+                    <Button
+                      title="취소"
+                      accessibilityLabel="신청 취소"
+                      variant="soft"
+                      {...small}
+                      onPress={() => respond(request.id, 'CANCEL')}
+                    />
+                    {actions(request.targetId, request.targetNickname)}
+                  </>,
+                ),
+              )}
+            </ListGroup>
+          )}
+          <GroupLabel>{`친구 · ${friends.length}`}</GroupLabel>
+          {friends.length ? (
+            <ListGroup>
+              {friends.map((friend) =>
+                memberRow(friend, actions(friend.memberId, friend.nickname)),
+              )}
+            </ListGroup>
+          ) : (
+            <Text style={ui.muted}>아직 친구가 없습니다.</Text>
+          )}
         </>
       ) : (
         directory && (
@@ -427,3 +425,19 @@ export function ServerFriendsScreen({
     </ScreenLayout>
   );
 }
+
+const s = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[8],
+    minHeight: 64,
+    // 묶음(ListGroup)이 좌우 여백을 이미 주므로 위아래만 띄웁니다. ⋯는 오른쪽 끝에 붙입니다.
+    marginRight: -tokens.space[8],
+    paddingVertical: tokens.space[8],
+  },
+  member: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: tokens.space[12] },
+  trailing: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[4] },
+  name: { ...text.bodyMedium, color: tokens.color.text.primary },
+  bio: { ...text.caption, color: tokens.color.text.secondary },
+});

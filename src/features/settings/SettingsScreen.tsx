@@ -20,6 +20,9 @@ import {
 import { text, tokens } from '../../theme/tokens';
 import type { Workout } from '../workout/model';
 import { formatRest } from '../workout/RestSetting';
+import type { RufitSession } from '../../api/session';
+import { BlockedMembers } from './BlockedMembers';
+import { legalEffectiveDate, privacySections, termsSections } from './legalTexts';
 import { s } from './SettingsScreen.styles';
 
 const c = tokens.color;
@@ -52,7 +55,7 @@ const faqs = [
   },
 ];
 
-type Page = 'rest' | 'help' | 'privacy' | 'terms' | null;
+type Page = 'rest' | 'help' | 'privacy' | 'terms' | 'blocked' | null;
 
 export function SettingsScreen({
   live,
@@ -62,8 +65,11 @@ export function SettingsScreen({
   history,
   onAuth,
   authLabel,
+  session,
 }: {
   live?: ReturnType<typeof useServerLive>;
+  /** 로그인한 계정이 있을 때만 차단 목록을 보여 줍니다. */
+  session?: RufitSession | null;
   onServerHistory?: () => void;
   defaultRest?: number;
   onRest: (value: number | null) => void;
@@ -199,6 +205,9 @@ export function SettingsScreen({
         </ListGroup>
         <GroupLabel>계정</GroupLabel>
         <ListGroup>
+          {account && session && (
+            <ListRow icon="block" label="차단 목록" onPress={() => setPage('blocked')} />
+          )}
           {account ? (
             <ListRow
               icon="person"
@@ -344,6 +353,13 @@ export function SettingsScreen({
         </Screen>
       </AppModal>
       <AppModal
+        visible={page === 'blocked' && !!session}
+        animationType="slide"
+        onRequestClose={() => setPage(null)}
+      >
+        {session && <BlockedMembers session={session} onBack={() => setPage(null)} />}
+      </AppModal>
+      <AppModal
         visible={page === 'privacy' || page === 'terms'}
         animationType="slide"
         onRequestClose={() => setPage(null)}
@@ -356,11 +372,23 @@ export function SettingsScreen({
             />
           }
         >
-          <Text style={[text.body, { color: c.text.primary }]}>
-            {page === 'terms'
-              ? '정식 서비스 이용약관은 출시 전 제공됩니다.'
-              : '현재 운동과 사진은 이 기기에 저장됩니다. 정식 개인정보처리방침은 서버 연동 범위 확정 후 제공됩니다.'}
+          <Text style={[text.caption, { color: c.text.secondary }]}>
+            시행일: {legalEffectiveDate}
           </Text>
+          {(page === 'terms' ? termsSections : privacySections).map((section, index) => (
+            <View key={index} style={{ gap: tokens.space[8] }}>
+              {!!section.title && (
+                <Text accessibilityRole="header" style={[text.headline, { color: c.text.primary }]}>
+                  {section.title}
+                </Text>
+              )}
+              {section.body.map((line, i) => (
+                <Text key={i} style={[text.body, { color: c.text.primary }]}>
+                  {line}
+                </Text>
+              ))}
+            </View>
+          ))}
         </Screen>
       </AppModal>
     </>
