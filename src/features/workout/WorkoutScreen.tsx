@@ -413,6 +413,7 @@ export function WorkoutScreen({
             ) : (
               <SettingsScreen
                 live={session ? live : undefined}
+                session={session}
                 onServerHistory={session?.isActive() ? () => setServerHistory(true) : undefined}
                 defaultRest={defaultRest}
                 onRest={saveDefaultRest}
