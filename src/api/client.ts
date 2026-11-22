@@ -31,6 +31,8 @@ export type ServerPost = {
   likes: number;
   liked: boolean;
   mine: boolean;
+  /** 상세를 연 다른 회원 수입니다. 예전 서버는 보내지 않아 없을 수 있습니다. */
+  views?: number;
 };
 export type PostEdit = {
   version: number;

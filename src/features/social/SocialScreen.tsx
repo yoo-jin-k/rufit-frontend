@@ -20,6 +20,8 @@ import { Button } from '../../components/Button';
 import { BottomSheet, EmptyCard, ListGroup, ListRow } from '../../components/kit/Surfaces';
 import { tokens } from '../../theme/tokens';
 import { ServerPostDetail } from '../posts/ServerPosts';
+import { AppModal } from '../../components/AppModal';
+import { ServerFriendsScreen } from '../profile/ServerFriendsScreen';
 import { s } from './SocialScreen.styles';
 
 type Filter = 'ALL' | 'FOLLOWING';
@@ -44,6 +46,8 @@ export function SocialScreen({
   const [needsNickname, setNeedsNickname] = useState(false);
   const [picker, setPicker] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  // 작성자 이름을 눌러 연 회원 프로필입니다.
+  const [member, setMember] = useState<string | null>(null);
   // 보기를 바꾸거나 새로고침한 뒤 늦게 온 이전 응답은 버립니다.
   const request = useRef(0);
 
@@ -141,7 +145,7 @@ export function SocialScreen({
         renderItem={({ item }) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${item.nickname}님의 오운완, ${item.date}`}
+            accessibilityLabel={`${item.nickname}님의 오운완, ${item.date}, 조회 ${item.views ?? 0}회`}
             onPress={() => setOpen(item.id)}
             style={({ pressed }) => [
               s.tile,
@@ -159,9 +163,11 @@ export function SocialScreen({
                 </Text>
               </View>
             )}
-            <Text numberOfLines={1} style={s.name}>
-              {item.nickname}
-            </Text>
+            {/* 닉네임 대신 조회수를 보여 줍니다. 작성자는 게시물 상세에서 이름을 눌러 볼 수 있습니다. */}
+            <View style={s.views}>
+              <AppIcon name="eye" size={12} color={tokens.color.text.inverse} />
+              <Text style={s.viewsText}>{(item.views ?? 0).toLocaleString('ko-KR')}</Text>
+            </View>
           </Pressable>
         )}
         ListEmptyComponent={
@@ -232,6 +238,10 @@ export function SocialScreen({
         <ServerPostDetail
           session={session}
           id={open}
+          onOpenMember={(memberId) => {
+            setOpen(null);
+            setMember(memberId);
+          }}
           onClose={() => {
             setOpen(null);
             // 상세에서 좋아요·공개 범위가 바뀌었을 수 있어 지금 보기를 다시 읽습니다.
@@ -239,6 +249,19 @@ export function SocialScreen({
           }}
         />
       )}
+      <AppModal visible={!!member} animationType="slide" onRequestClose={() => setMember(null)}>
+        {/* 친구 화면이 위쪽 안전 영역을 직접 비우므로 여기서는 감싸지 않습니다. */}
+        <View style={s.page}>
+          {member && (
+            <ServerFriendsScreen
+              session={session}
+              nickname=""
+              initialMemberId={member}
+              onClose={() => setMember(null)}
+            />
+          )}
+        </View>
+      </AppModal>
     </SafeAreaView>
   );
 }
