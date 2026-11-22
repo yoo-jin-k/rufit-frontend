@@ -26,8 +26,8 @@
       "id": "00000000-0000-4000-8000-000000000004",
       "name": "오버헤드프레스",
       "english": "overhead press",
-      "image": null,
-      "gif": null
+      "image": "11651101-Barbell-Standing-Military-Press-(without-rack)_Shoulders-FIX_max.png",
+      "gif": "11651301-Barbell-Standing-Military-Press-(without-rack)_Shoulders-FIX_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000005",
@@ -40,8 +40,8 @@
       "id": "00000000-0000-4000-8000-000000000006",
       "name": "레그프레스",
       "english": "leg press",
-      "image": null,
-      "gif": null
+      "image": "07391101-Sled-45-Leg-Press_Hips_max.png",
+      "gif": "07391301-Sled-45-Leg-Press_Hips_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000007",
@@ -54,722 +54,722 @@
       "id": "00000000-0000-4000-8000-000000000008",
       "name": "풀업",
       "english": "pull up",
-      "image": null,
-      "gif": null
+      "image": "06521101-Pull-up_Back_max.png",
+      "gif": "06521301-Pull-up_Back_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000009",
       "name": "덤벨컬",
       "english": "dumbbell curl",
-      "image": null,
-      "gif": null
+      "image": "02941101-Dumbbell-Biceps-Curl_Upper-Arms_max.png",
+      "gif": "02941301-Dumbbell-Biceps-Curl_Upper-Arms_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000010",
       "name": "트라이셉스푸시다운",
       "english": "triceps pushdown",
-      "image": null,
-      "gif": null
+      "image": "02011101-Cable-Pushdown_Upper-Arms-FIX_max.png",
+      "gif": "02011301-Cable-Pushdown_Upper-Arms-FIX_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000011",
       "name": "맨몸 스쿼트",
       "english": "bodyweight squat",
-      "image": null,
-      "gif": null
+      "image": "07871101-Squat_Hips_max.png",
+      "gif": "07871301-Squat_Hips_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000012",
       "name": "덤벨 스쿼트",
       "english": "dumbbell squat",
-      "image": null,
-      "gif": null
+      "image": "04131101-Dumbbell-Squat_Hips_max.png",
+      "gif": "04131301-Dumbbell-Squat_Hips_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000013",
       "name": "프론트 스쿼트",
       "english": "front squat",
-      "image": null,
-      "gif": null
+      "image": "00421101-Barbell-Front-Squat_Hips-FIX_max.png",
+      "gif": "00421301-Barbell-Front-Squat_Hips-FIX_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000014",
       "name": "덤벨 사이드 레터럴 레이즈",
       "english": "lateral raise",
-      "image": null,
-      "gif": null
+      "image": "03341101-Dumbbell-Lateral-Raise_shoulder-AFIX_max.png",
+      "gif": "03341301-Dumbbell-Lateral-Raise_shoulder-AFIX_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000015",
       "name": "덤벨 숄더 프레스",
       "english": "dumbbell shoulder press",
-      "image": null,
-      "gif": null
+      "image": "04051101-Dumbbell-Seated-Shoulder-Press_Shoulders_max.png",
+      "gif": "04051301-Dumbbell-Seated-Shoulder-Press_Shoulders_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000016",
       "name": "덤벨 업라이트 로우",
       "english": "upright row",
-      "image": null,
-      "gif": null
+      "image": "04371101-Dumbbell-Upright-Row_Shoulders-FIX_max.png",
+      "gif": "04371301-Dumbbell-Upright-Row_Shoulders-FIX_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000017",
       "name": "덤벨 벤치 프레스",
       "english": "dumbbell bench press",
-      "image": null,
-      "gif": null
+      "image": "02891101-Dumbbell-Bench-Press_Chest-FIX_max.png",
+      "gif": "02891301-Dumbbell-Bench-Press_Chest_720.gif"
     },
     {
       "id": "00000000-0000-4000-8000-000000000018",
       "name": "크런치",
       "english": "crunch",
-      "image": null,
-      "gif": null
+      "image": "02741101-Crunch-Floor-m_waist_max.png",
+      "gif": "02741301-Crunch-Floor-m_waist_720.gif"
     },
     {
       "id": "4e043528-5b74-5bd1-bb8f-e6dcceb15fbb",
       "name": "바벨 인클라인 벤치 프레스",
       "english": "incline barbell bench press",
-      "image": null,
-      "gif": null
+      "image": "00471101-Barbell-Incline-Bench-Press_Chest-FIX_max.png",
+      "gif": "00471301-Barbell-Incline-Bench-Press_Chest_720.gif"
     },
     {
       "id": "c10c6f98-739e-5a69-a35a-2d9f3161916e",
       "name": "바벨 디클라인 벤치 프레스",
       "english": "decline barbell bench press",
-      "image": null,
-      "gif": null
+      "image": "00331101-Barbell-Decline-Bench-Press_Chest-FIX_max.png",
+      "gif": "00331301-Barbell-Decline-Bench-Press_Chest_720.gif"
     },
     {
       "id": "acf2fb76-aa3a-5e44-bac8-68f564410570",
       "name": "덤벨 인클라인 벤치 프레스",
       "english": "incline dumbbell press",
-      "image": null,
-      "gif": null
+      "image": "03141101-Dumbbell-Incline-Bench-Press_Chest-FIX_max.png",
+      "gif": "03141301-Dumbbell-Incline-Bench-Press_Chest-FIX_720.gif"
     },
     {
       "id": "adda9c6d-34d1-510e-b1b7-eeceb8cac56d",
       "name": "덤벨 플라이",
       "english": "dumbbell fly",
-      "image": null,
-      "gif": null
+      "image": "03081101-Dumbbell-Fly_Chest-FIX_max.png",
+      "gif": "03081301-Dumbbell-Fly_Chest-FIX_720.gif"
     },
     {
       "id": "21f0724b-5230-5d86-b931-48cf4e2b58d7",
       "name": "덤벨 플로어 프레스",
       "english": "dumbbell floor press",
-      "image": null,
-      "gif": null
+      "image": "29821101-Dumbbell-Alternating-Floor-Press_Chest_max.png",
+      "gif": "29821301-Dumbbell-Alternating-Floor-Press_Chest_720.gif"
     },
     {
       "id": "e547c640-2ae3-5615-be90-539c80cbf851",
       "name": "머신 체스트 프레스",
       "english": "machine chest press",
-      "image": null,
-      "gif": null
+      "image": "05771101-Lever-Chest-Press_Chest_max.png",
+      "gif": "05771301-Lever-Chest-Press_Chest_720.gif"
     },
     {
       "id": "36887727-110e-5480-a3db-57fed43675dd",
       "name": "펙 덱 플라이",
       "english": "pec deck fly",
-      "image": null,
-      "gif": null
+      "image": "10301101-Lever-Pec-Deck-Fly_Chest_max.png",
+      "gif": "10301301-Lever-Pec-Deck-Fly_Chest_720.gif"
     },
     {
       "id": "2e586c08-3134-5d8b-b930-ff6bff62c191",
       "name": "케이블 체스트 플라이",
       "english": "cable chest fly",
-      "image": null,
-      "gif": null
+      "image": "02271101-Cable-Standing-Fly_Chest-FIX_max.png",
+      "gif": "02271301-Cable-Standing-Fly_Chest-FIX_720.gif"
     },
     {
       "id": "f258954a-1bd2-5862-adf8-70e134c72f38",
       "name": "평행봉 딥스",
       "english": "parallel bar dip",
-      "image": null,
-      "gif": null
+      "image": "02511101-Chest-Dip_Chest_max.png",
+      "gif": "02511301-Chest-Dip_Chest_720.gif"
     },
     {
       "id": "cb823199-51dc-5e9d-aead-35e6d735b940",
       "name": "인클라인 푸시업",
       "english": "incline push up",
-      "image": null,
-      "gif": null
+      "image": "04931101-Incline-Push-up_Chest_max.png",
+      "gif": "04931301-Incline-Push-up_Chest_720.gif"
     },
     {
       "id": "c2ade00b-cb15-56d7-b78c-e9d8a1ec22b7",
       "name": "디클라인 푸시업",
       "english": "decline push up",
-      "image": null,
+      "image": "02791101-Decline-Push-Up-m_chest_max.png",
       "gif": null
     },
     {
       "id": "cc003b43-0996-5850-96ab-11a06903d131",
       "name": "밴드 체스트 프레스",
       "english": "resistance band chest press",
-      "image": null,
-      "gif": null
+      "image": "09201101-Band-standing-chest-press_Chest_max.png",
+      "gif": "09201301-Band-standing-chest-press_Chest_720.gif"
     },
     {
       "id": "6c05ce72-98c3-5dea-90e8-865deb9dd5e6",
       "name": "바벨 벤트오버 로우",
       "english": "bent over barbell row",
-      "image": null,
-      "gif": null
+      "image": "00271101-Barbell-Bent-Over-Row_Back-FIX_max.png",
+      "gif": "00271301-Barbell-Bent-Over-Row_Back-FIX_720.gif"
     },
     {
       "id": "464d7097-ddb4-5ff5-a1f1-a375fe315194",
       "name": "원암 덤벨 로우",
       "english": "one arm dumbbell row",
-      "image": null,
+      "image": "02921101-Dumbbell-Bent-over-Row_back_Back-AFIX_max.png",
       "gif": null
     },
     {
       "id": "b0caf1b4-afd4-57b2-ac07-f29851a07170",
       "name": "체스트 서포티드 덤벨 로우",
       "english": "chest supported dumbbell row",
-      "image": null,
-      "gif": null
+      "image": "03271101-Dumbbell-Incline-Row_Back_max.png",
+      "gif": "03271301-Dumbbell-Incline-Row_Back_720.gif"
     },
     {
       "id": "b3a87812-78ed-5937-8346-079908954abc",
       "name": "머신 시티드 로우",
       "english": "machine seated row",
-      "image": null,
-      "gif": null
+      "image": "13501101-Lever-Seated-Row_Back_max.png",
+      "gif": "13501301-Lever-Seated-Row_Back_720.gif"
     },
     {
       "id": "a3b05832-6ea5-543c-8db0-fbb1776e9129",
       "name": "시티드 케이블 로우",
       "english": "seated cable row",
-      "image": null,
-      "gif": null
+      "image": "08611101-Cable-seated-row_Back_max.png",
+      "gif": "08611301-Cable-seated-row_Back_720.gif"
     },
     {
       "id": "cb926dc9-30af-5d0c-a991-104fe2f85ce5",
       "name": "케이블 스트레이트 암 풀다운",
       "english": "straight arm cable pulldown",
-      "image": null,
-      "gif": null
+      "image": "02381101-Cable-Straight-Arm-Pulldown_Back-FIX_max.png",
+      "gif": "02381301-Cable-Straight-Arm-Pulldown_Back-FIX_720.gif"
     },
     {
       "id": "d1a76fb0-44bd-5a74-a143-9cb9d65ea4a3",
       "name": "친업",
       "english": "chin up",
-      "image": null,
-      "gif": null
+      "image": "13261101-Chin-Up_Back-FIX_max.png",
+      "gif": "13261301-Chin-Up_Back_720.gif"
     },
     {
       "id": "e6a8c25a-912d-5889-9b67-6044c08c3c2a",
       "name": "인버티드 로우",
       "english": "inverted row",
-      "image": null,
-      "gif": null
+      "image": "04991101-Inverted-Row_Back-FIX_max.png",
+      "gif": "04991301-Inverted-Row_Back-FIX_720.gif"
     },
     {
       "id": "21d17ec2-3298-5684-b025-46d7e40fcca6",
       "name": "어시스트 풀업",
       "english": "assisted pull up",
-      "image": null,
-      "gif": null
+      "image": "00171101-Assisted-Pull-up_Back_max.png",
+      "gif": "00171301-Assisted-Pull-up_Back_720.gif"
     },
     {
       "id": "62c30f9f-5185-5b48-9705-7f5a25732aa7",
       "name": "백 익스텐션",
       "english": "back extension",
-      "image": null,
-      "gif": null
+      "image": "04891101-Hyperextension_Waist-FIX_max.png",
+      "gif": "04891301-Hyperextension_Waist_720.gif"
     },
     {
       "id": "d06674c5-709b-5b6c-9b6e-41fba8866638",
       "name": "덤벨 슈러그",
       "english": "dumbbell shrug",
-      "image": null,
-      "gif": null
+      "image": "04061101-Dumbbell-Shrug_Back-FIX_max.png",
+      "gif": "04061301-Dumbbell-Shrug_Back-FIX_720.gif"
     },
     {
       "id": "a7032b67-1075-5aea-a7e9-a348ef019737",
       "name": "바벨 슈러그",
       "english": "barbell shrug",
-      "image": null,
-      "gif": null
+      "image": "00951101-Barbell-Shrug_Back_max.png",
+      "gif": "00951301-Barbell-Shrug_Back_720.gif"
     },
     {
       "id": "3a9af5b8-cb01-50b0-832b-31227dd2d78a",
       "name": "밴드 로우",
       "english": "resistance band row",
-      "image": null,
-      "gif": null
+      "image": "09181101-Band-seated-row_Back_max.png",
+      "gif": "09181301-Band-seated-row_Back_720.gif"
     },
     {
       "id": "501a557a-ce5a-5f68-844b-98ed523ff58d",
       "name": "덤벨 풀오버",
       "english": "dumbbell pullover",
-      "image": null,
-      "gif": null
+      "image": "03751101-Dumbbell-Pullover_Chest_max.png",
+      "gif": "03751301-Dumbbell-Pullover_Chest_720.gif"
     },
     {
       "id": "5bcee184-9ce9-5904-b4fa-7c28f9f71ebd",
       "name": "바벨 루마니안 데드리프트",
       "english": "barbell romanian deadlift",
-      "image": null,
-      "gif": null
+      "image": "00851101-Barbell-Romanian-Deadlift_Hips-FIX_max.png",
+      "gif": "00851301-Barbell-Romanian-Deadlift_Hips-FIX_720.gif"
     },
     {
       "id": "1e5e9548-6da4-5251-84cd-24c3dcc2a3bc",
       "name": "덤벨 루마니안 데드리프트",
       "english": "dumbbell romanian deadlift",
-      "image": null,
-      "gif": null
+      "image": "14591101-Dumbbell-Romanian-Deadlift_Hips_max.png",
+      "gif": "14591301-Dumbbell-Romanian-Deadlift_Hips_720.gif"
     },
     {
       "id": "b75b2fa8-5317-5e78-8269-5cda164227e3",
       "name": "바벨 힙 쓰러스트",
       "english": "barbell hip thrust",
-      "image": null,
-      "gif": null
+      "image": "10601101-Barbell-Hip-Thrust_Hips_max.png",
+      "gif": "10601301-Barbell-Hip-Thrust_Hips_720.gif"
     },
     {
       "id": "d630984c-f5a0-54f0-a05a-7cfe8297028d",
       "name": "글루트 브리지",
       "english": "glute bridge",
-      "image": null,
-      "gif": null
+      "image": "30131101-Low-Glute-Bridge-on-floor_Hips_max.png",
+      "gif": "30131301-Low-Glute-Bridge-on-floor_Hips_720.gif"
     },
     {
       "id": "95fa131c-2bb7-58ce-bdb8-24042fb47b10",
       "name": "싱글 레그 글루트 브리지",
       "english": "single leg glute bridge",
-      "image": null,
-      "gif": null
+      "image": "07261101-Single-Leg-Bridge_Hips_max.png",
+      "gif": "07261301-Single-Leg-Bridge_Hips_720.gif"
     },
     {
       "id": "cbe2cc91-110a-54a5-8e40-1f3d827b9c4f",
       "name": "덤벨 포워드 런지",
       "english": "dumbbell forward lunge",
-      "image": null,
-      "gif": null
+      "image": "03361101-Dumbbell-Lunge_Hips-FIX_max.png",
+      "gif": "03361301-Dumbbell-Lunge_Hips-FIX_720.gif"
     },
     {
       "id": "71d61f1a-f28c-5212-9fb8-0aaf5974e4ee",
       "name": "덤벨 리버스 런지",
       "english": "dumbbell reverse lunge",
-      "image": null,
-      "gif": null
+      "image": "03811101-Dumbbell-Rear-Lunge_Thighs_max.png",
+      "gif": "03811301-Dumbbell-Rear-Lunge_Thighs_720.gif"
     },
     {
       "id": "eeff2317-ac44-5a23-9099-fcc7a75072a9",
       "name": "맨몸 포워드 런지",
       "english": "bodyweight forward lunge",
-      "image": null,
-      "gif": null
+      "image": "06121101-Lunge-(female)_Hips-FIX_max.png",
+      "gif": "06121301-Lunge-(female)_Hips-FIX_720.gif"
     },
     {
       "id": "84e71175-0791-5979-8383-36788b2dea47",
       "name": "맨몸 사이드 런지",
       "english": "bodyweight lateral lunge",
-      "image": null,
-      "gif": null
+      "image": "29721101-Side-Lunge_Thighs_max.png",
+      "gif": "29721301-Side-Lunge_Thighs_720.gif"
     },
     {
       "id": "f20dd2ee-903b-53ca-8fbc-ab22ca22bee4",
       "name": "덤벨 불가리안 스플릿 스쿼트",
       "english": "dumbbell bulgarian split squat",
-      "image": null,
-      "gif": null
+      "image": "04101101-Dumbbell-Single-Leg-Split-Squat_Thighs-FIX_max.png",
+      "gif": "04101301-Dumbbell-Single-Leg-Split-Squat_Thighs-FIX_720.gif"
     },
     {
       "id": "447467cd-b2e4-5856-9bf3-36a5a5fa972b",
       "name": "덤벨 스텝업",
       "english": "dumbbell step up",
-      "image": null,
-      "gif": null
+      "image": "04311101-Dumbbell-Step-up_Hips_max.png",
+      "gif": "04311301-Dumbbell-Step-up_Hips_720.gif"
     },
     {
       "id": "bab64f45-d785-528e-9c19-9caf8a1d9326",
       "name": "핵 스쿼트 머신",
       "english": "machine hack squat",
-      "image": null,
-      "gif": null
+      "image": "07431101-Sled-Hack-Squat_Hips-FIX_max.png",
+      "gif": "07431301-Sled-Hack-Squat_Hips-FIX_720.gif"
     },
     {
       "id": "ca5ae03e-c93c-58d6-9c64-7b368a1e1b24",
       "name": "레그 익스텐션",
       "english": "leg extension",
-      "image": null,
-      "gif": null
+      "image": "05851101-Lever-Leg-Extension_Thighs_max.png",
+      "gif": "05851301-Lever-Leg-Extension_Thighs_720.gif"
     },
     {
       "id": "c49b261c-fe5e-5645-b56b-c0c24bffabed",
       "name": "시티드 레그 컬",
       "english": "seated leg curl",
-      "image": null,
-      "gif": null
+      "image": "05991101-Lever-Seated-Leg-Curl_Thighs-FIX_max.png",
+      "gif": "05991301-Lever-Seated-Leg-Curl_Thighs-FIX_720.gif"
     },
     {
       "id": "08554897-a9a7-52c6-af6f-e562a9164f3b",
       "name": "라잉 레그 컬",
       "english": "lying leg curl",
-      "image": null,
-      "gif": null
+      "image": "05861101-Lever-Lying-Leg-Curl_Thighs_max.png",
+      "gif": "05861301-Lever-Lying-Leg-Curl_Thighs_720.gif"
     },
     {
       "id": "b442f81e-295f-5393-9e06-e43a7db07260",
       "name": "힙 어브덕션 머신",
       "english": "machine hip abduction",
-      "image": null,
-      "gif": null
+      "image": "05971101-Lever-Seated-Hip-Abduction_Hips-FIX_max.png",
+      "gif": "05971301-Lever-Seated-Hip-Abduction_Hips-FIX_720.gif"
     },
     {
       "id": "078ffe42-deb6-55a5-a3b7-42f1f67c10af",
       "name": "힙 어덕션 머신",
       "english": "machine hip adduction",
-      "image": null,
-      "gif": null
+      "image": "05981101-Lever-Seated-Hip-Adduction_Hips-FIX_max.png",
+      "gif": "05981301-Lever-Seated-Hip-Adduction_Hips-FIX_720.gif"
     },
     {
       "id": "50d5f9ff-3696-560e-9011-2fb91ab32795",
       "name": "스탠딩 카프 레이즈 머신",
       "english": "machine standing calf raise",
-      "image": null,
-      "gif": null
+      "image": "06051101-Lever-Standing-Calf-Raise_Calf_max.png",
+      "gif": "06051301-Lever-Standing-Calf-Raise_Calf_720.gif"
     },
     {
       "id": "18c3d358-4e05-508f-8637-b7a93c417423",
       "name": "시티드 카프 레이즈 머신",
       "english": "machine seated calf raise",
-      "image": null,
-      "gif": null
+      "image": "05941101-Lever-Seated-Calf-Raise-(plate-loaded)_Calf_max.png",
+      "gif": "05941301-Lever-Seated-Calf-Raise-(plate-loaded)_Calf_720.gif"
     },
     {
       "id": "4165403d-7c85-5391-8777-1f7c19134aaf",
       "name": "맨몸 카프 레이즈",
       "english": "bodyweight calf raise",
-      "image": null,
-      "gif": null
+      "image": "13731101-Bodyweight-Standing-Calf-Raise_Calves_max.png",
+      "gif": "13731301-Bodyweight-Standing-Calf-Raise_Calves_720.gif"
     },
     {
       "id": "e5fc4b90-4d05-5b58-9aae-ae234fa0ef93",
       "name": "케이블 글루트 킥백",
       "english": "cable glute kickback",
-      "image": null,
-      "gif": null
+      "image": "08601101-Cable-kickback_Upper-arms-FIX_max.png",
+      "gif": "08601301-Cable-kickback_Upper-arms-FIX_720.gif"
     },
     {
       "id": "2d003fae-aa32-5e1d-9d23-b1cac04cbcbf",
       "name": "밴드 레그 컬",
       "english": "resistance band leg curl",
-      "image": null,
-      "gif": null
+      "image": "40361101-Resistance-Band-Leg-Curl-(male)_Thighs_max.png",
+      "gif": "40361301-Resistance-Band-Leg-Curl-(male)_Thighs_720.gif"
     },
     {
       "id": "7903c4c6-38c1-5027-b57e-ba8b0995b882",
       "name": "짐볼 레그 컬",
       "english": "stability ball leg curl",
-      "image": null,
-      "gif": null
+      "image": "05691101-Leg-Curl-(on-stability-ball)_Thighs_max.png",
+      "gif": "05691301-Leg-Curl-(on-stability-ball)_Thighs_720.gif"
     },
     {
       "id": "df8fda84-a469-56d6-97e4-25bcaa6efb3d",
       "name": "바벨 굿모닝",
       "english": "barbell good morning",
-      "image": null,
-      "gif": null
+      "image": "00441101-Barbell-Good-Morning_Thighs-FIX_max.png",
+      "gif": "00441301-Barbell-Good-Morning_Thighs_720.gif"
     },
     {
       "id": "a691a697-1bd8-5751-9f3d-1f942b7e889d",
       "name": "아놀드 프레스",
       "english": "arnold press",
-      "image": null,
-      "gif": null
+      "image": "21371101-Dumbbell-Arnold-Press_Shoulders_max.png",
+      "gif": "21371301-Dumbbell-Arnold-Press_Shoulders_720.gif"
     },
     {
       "id": "e5855400-64d2-5420-8142-63c95be2b2d7",
       "name": "덤벨 프론트 레이즈",
       "english": "dumbbell front raise",
-      "image": null,
-      "gif": null
+      "image": "03101101-Dumbbell-Front-Raise_Shoulders-FIX_max.png",
+      "gif": "03101301-Dumbbell-Front-Raise_Shoulders-FIX_720.gif"
     },
     {
       "id": "bb55bc26-bf13-58e2-9cbf-78e24a36708e",
       "name": "덤벨 리버스 플라이",
       "english": "dumbbell reverse fly",
-      "image": null,
-      "gif": null
+      "image": "03781101-Dumbbell-Rear-Fly_Shoulders-FIX_max.png",
+      "gif": "03781301-Dumbbell-Rear-Fly_Shoulders-FIX_720.gif"
     },
     {
       "id": "16b8134b-f8a0-524f-b93a-50d4d2409809",
       "name": "머신 숄더 프레스",
       "english": "machine shoulder press",
-      "image": null,
-      "gif": null
+      "image": "14541101-Lever-Seated-Shoulder-Press_Shoulders_max.png",
+      "gif": "14541103-Lever-Seated-Shoulder-Press_Shoulders_720.gif"
     },
     {
       "id": "94f8ec97-3990-54d1-96ef-85e54aa10c2d",
       "name": "머신 레터럴 레이즈",
       "english": "machine lateral raise",
-      "image": null,
-      "gif": null
+      "image": "05841101-Lever-Lateral-Raise_shoulder_max.png",
+      "gif": "05841301-Lever-Lateral-Raise_shoulder_720.gif"
     },
     {
       "id": "6da1bda8-f950-56bd-bd79-8682153e8515",
       "name": "리버스 펙 덱 플라이",
       "english": "reverse pec deck fly",
-      "image": null,
-      "gif": null
+      "image": "06021101-Lever-Seated-Reverse-Fly_Shoulders_max.png",
+      "gif": "06021301-Lever-Seated-Reverse-Fly_Shoulders_720.gif"
     },
     {
       "id": "dd87a5d8-eb0b-53fd-8ab8-5bb43e2cf41b",
       "name": "케이블 레터럴 레이즈",
       "english": "cable lateral raise",
-      "image": null,
-      "gif": null
+      "image": "01781101-Cable-Lateral-Raise_Shoulders-FIX_max.png",
+      "gif": "01781301-Cable-Lateral-Raise_Shoulders-FIX_720.gif"
     },
     {
       "id": "e76ac716-c82c-5153-ab55-10f523a469b4",
       "name": "케이블 페이스 풀",
       "english": "cable face pull",
-      "image": null,
-      "gif": null
+      "image": "02331101-Cable-Standing-Face-Pull-(with-rope)_Shoulders-FIX_max.png",
+      "gif": "02331301-Cable-Standing-Rear-Delt-Row-(with-rope)_shoulder_720.gif"
     },
     {
       "id": "80f4d8ed-ab6a-5a26-acd0-b274702a5837",
       "name": "파이크 푸시업",
       "english": "pike push up",
-      "image": null,
-      "gif": null
+      "image": "29211101-Pike-Push-up_Chest_max.png",
+      "gif": "29211301-Pike-Push-up_Chest_720.gif"
     },
     {
       "id": "2cd4fa77-cb87-52f7-9c15-68f3271fa2bd",
       "name": "밴드 풀어파트",
       "english": "band pull apart",
-      "image": null,
-      "gif": null
+      "image": "15031101-Band-Pull-Apart_Shoulders_max.png",
+      "gif": "15031301-Band-Pull-Apart_Shoulders_720.gif"
     },
     {
       "id": "fc53a1ec-af25-5df3-8a40-a9f44794774d",
       "name": "바벨 컬",
       "english": "barbell curl",
-      "image": null,
-      "gif": null
+      "image": "00311101-Barbell-Curl_Upper-Arms-FIX_max.png",
+      "gif": "00311301-Barbell-Curl_Upper-Arms-FIX_720.gif"
     },
     {
       "id": "4ccb43e1-0240-54aa-b40b-2af419ed4dd7",
       "name": "이지바 프리처 컬",
       "english": "ez bar preacher curl",
-      "image": null,
-      "gif": null
+      "image": "64061101-EZ-Barbell-Preacher-Curl_Upper-Arms_max.png",
+      "gif": "64061301-EZ-Barbell-Preacher-Curl_Upper-Arms_720.gif"
     },
     {
       "id": "ab1e1b18-1f66-540f-9f2e-03fee47925f3",
       "name": "덤벨 해머 컬",
       "english": "dumbbell hammer curl",
-      "image": null,
-      "gif": null
+      "image": "03131101-Dumbbell-Hammer-Curl_Forearm_max.png",
+      "gif": "03131301-Dumbbell-Hammer-Curl_Forearm_720.gif"
     },
     {
       "id": "d610bdc0-5d67-56d4-b207-c94e32a6c524",
       "name": "인클라인 덤벨 컬",
       "english": "incline dumbbell curl",
-      "image": null,
-      "gif": null
+      "image": "03181101-Dumbbell-Incline-Curl_Upper-Arms-FIX_max.png",
+      "gif": "03181301-Dumbbell-Incline-Curl_Upper-Arms-FIX_720.gif"
     },
     {
       "id": "db9ffda6-87aa-5a2b-9bbe-e275b2dc70a6",
       "name": "덤벨 컨센트레이션 컬",
       "english": "dumbbell concentration curl",
-      "image": null,
-      "gif": null
+      "image": "02971101-Dumbbell-Concentration-Curl_Upper-Arms-FIX_max.png",
+      "gif": "02971301-Dumbbell-Concentration-Curl_Upper-Arms-FIX_720.gif"
     },
     {
       "id": "a5801804-f0bb-5d63-954d-0766fe8d7c9e",
       "name": "케이블 컬",
       "english": "cable curl",
-      "image": null,
-      "gif": null
+      "image": "01561101-Cable-Curl_Upper-Arms_max.png",
+      "gif": "01561301-Cable-Curl_Upper-Arms_720.gif"
     },
     {
       "id": "88a55044-623d-5ac6-8fdd-a4b0c9588175",
       "name": "머신 바이셉스 컬",
       "english": "machine biceps curl",
-      "image": null,
-      "gif": null
+      "image": "43361101-Lever-Biceps-Curl_Upper-Arms-FIX_max.png",
+      "gif": "43361301-Lever-Biceps-Curl_Upper-Arms-FIX_720.gif"
     },
     {
       "id": "0acb714f-f97b-5d31-8559-4dc84d552e61",
       "name": "바벨 리버스 컬",
       "english": "barbell reverse curl",
-      "image": null,
-      "gif": null
+      "image": "00801101-Barbell-Reverse-Curl_Forearms-FIX_max.png",
+      "gif": "00801301-Barbell-Reverse-Curl_Forearms-FIX_720.gif"
     },
     {
       "id": "e458b224-3247-5ffa-9f82-50f465a81d28",
       "name": "클로즈 그립 벤치 프레스",
       "english": "close grip barbell bench press",
-      "image": null,
-      "gif": null
+      "image": "00301101-Barbell-Close-Grip-Bench-Press_Upper-Arms-FIX_max.png",
+      "gif": "00301301-Barbell-Close-Grip-Bench-Press_Upper-Arms_720.gif"
     },
     {
       "id": "8dc0c499-fa97-5442-8512-2fc9b666339d",
       "name": "이지바 라잉 트라이셉스 익스텐션",
       "english": "ez bar skull crusher",
-      "image": null,
-      "gif": null
+      "image": "58731101-EZ-Barbell-Lying-Triceps-Extension-(male)_Upper-Arms_max.png",
+      "gif": "58731301-EZ-Barbell-Lying-Triceps-Extension-(male)_Upper-Arms_720.gif"
     },
     {
       "id": "40636f03-bd82-57db-9a6d-3b320970cb58",
       "name": "덤벨 오버헤드 트라이셉스 익스텐션",
       "english": "dumbbell overhead triceps extension",
-      "image": null,
-      "gif": null
+      "image": "21881101-Dumbbell-Seated-Triceps-Extension_Upper-Arms_max.png",
+      "gif": "21881301-Dumbbell-Seated-Triceps-Extension_Upper-Arms_720.gif"
     },
     {
       "id": "daf3340d-47b5-50ae-8f2a-23a13c28c305",
       "name": "덤벨 트라이셉스 킥백",
       "english": "dumbbell triceps kickback",
-      "image": null,
-      "gif": null
+      "image": "03331101-Dumbbell-Kickback_Upper-Arms_max.png",
+      "gif": "03331301-Dumbbell-Kickback_Upper-Arms_720.gif"
     },
     {
       "id": "765b935a-2945-5e1c-9e59-6631b1d56adf",
       "name": "케이블 오버헤드 트라이셉스 익스텐션",
       "english": "cable overhead triceps extension",
-      "image": null,
-      "gif": null
+      "image": "01941101-Cable-Overhead-Triceps-Extension-(rope-attachment)_Upper-Arms_max.png",
+      "gif": "01941301-Cable-Overhead-Triceps-Extension-(rope-attachment)_Upper-Arms_720.gif"
     },
     {
       "id": "70a37e43-3ecb-50a3-8cf3-e863b26a2088",
       "name": "머신 트라이셉스 익스텐션",
       "english": "machine triceps extension",
-      "image": null,
-      "gif": null
+      "image": "06071101-Lever-Triceps-Extension_Upper-Arms_max.png",
+      "gif": "06071301-Lever-Triceps-Extension_Upper-Arms_720.gif"
     },
     {
       "id": "87a9e7de-a7c6-5ba8-973e-df62e1bc3b99",
       "name": "덤벨 리스트 컬",
       "english": "dumbbell wrist curl",
-      "image": null,
-      "gif": null
+      "image": "04011101-Dumbbell-Seated-Palms-Up-Wrist-Curl_Forearms_max.png",
+      "gif": "04011301-Dumbbell-Seated-Palms-Up-Wrist-Curl_Forearms_720.gif"
     },
     {
       "id": "33d8dad2-b9a9-53bc-af80-70d6ea730daf",
       "name": "덤벨 리버스 리스트 컬",
       "english": "dumbbell reverse wrist curl",
-      "image": null,
-      "gif": null
+      "image": "03851101-Dumbbell-Reverse-Wrist-Curl_Forearm_max.png",
+      "gif": "03851301-Dumbbell-Reverse-Wrist-Curl_Forearm_720.gif"
     },
     {
       "id": "61ae50e7-d553-502d-8d10-ac14300264d3",
       "name": "리버스 크런치",
       "english": "reverse crunch",
-      "image": null,
-      "gif": null
+      "image": "06711101-Reverse-Crunch_waist_max.png",
+      "gif": "06711301-Reverse-Crunch_waist_720.gif"
     },
     {
       "id": "e4c73b38-6088-5fdf-9a5b-bdb6c28fc187",
       "name": "바이시클 크런치",
       "english": "bicycle crunch",
-      "image": null,
-      "gif": null
+      "image": "00031101-air-bike-m_waist_FIX_max.png",
+      "gif": "00031301-air-bike-m_waist_FIX_720.gif"
     },
     {
       "id": "f17b42fa-af4e-5681-9ddd-2d40570dd60a",
       "name": "싯업",
       "english": "sit up",
-      "image": null,
-      "gif": null
+      "image": "07361101-Sit-up_waist_max.png",
+      "gif": "07361301-Sit-up_waist_720.gif"
     },
     {
       "id": "262271d4-12da-5612-a72d-008527f8dbc9",
       "name": "라잉 레그 레이즈",
       "english": "lying leg raise",
-      "image": null,
-      "gif": null
+      "image": "11631101-Lying-Leg-Raise_Waist_max.png",
+      "gif": "11631301-Lying-Leg-Raise_Waist_720.gif"
     },
     {
       "id": "959d6a0b-4df8-5dc8-9c86-f8fbc8578c04",
       "name": "행잉 니 레이즈",
       "english": "hanging knee raise",
-      "image": null,
-      "gif": null
+      "image": "98191101-Hanging-Knee-Raise-(male)_Waist_max.png",
+      "gif": "98191301-Hanging-Knee-Raise-(male)_Waist_720.gif"
     },
     {
       "id": "359dfdfe-190c-537e-b6bf-013493f400c1",
       "name": "행잉 레그 레이즈",
       "english": "hanging leg raise",
-      "image": null,
-      "gif": null
+      "image": "04721101-Hanging-Leg-Raise_Hips_max.png",
+      "gif": "04721301-Hanging-Leg-Raise_Hips_720.gif"
     },
     {
       "id": "fa9c3ba1-dc2f-56a8-bd33-aa5d26402203",
       "name": "닐링 케이블 크런치",
       "english": "kneeling cable crunch",
-      "image": null,
-      "gif": null
+      "image": "01751101-Cable-Kneeling-Crunch_Waist-FIX2_max.png",
+      "gif": "01751301-Cable-Kneeling-Crunch_Waist-FIX_720.gif"
     },
     {
       "id": "7774108e-19da-53f6-8b95-5e5a214f9f92",
       "name": "머신 앱 크런치",
       "english": "machine abdominal crunch",
-      "image": null,
-      "gif": null
+      "image": "14521101-Lever-Seated-Crunch_Waist_max.png",
+      "gif": "14521301-Lever-Seated-Crunch_Waist_720.gif"
     },
     {
       "id": "8240173f-a989-50ae-be00-7f459d50b434",
       "name": "케이블 우드촙",
       "english": "cable wood chop",
-      "image": null,
-      "gif": null
+      "image": "81931101-Cable-Reverse-Woodchop-(male)_Waist_max.png",
+      "gif": "81931301-Cable-Reverse-Woodchop-(male)_Waist_720.gif"
     },
     {
       "id": "b86a6c4e-2cf4-59cc-884c-0b9d9393fadb",
       "name": "덤벨 사이드 벤드",
       "english": "dumbbell side bend",
-      "image": null,
-      "gif": null
+      "image": "04071101-Dumbbell-Side-Bend_Waist-FIX_max.png",
+      "gif": "04071301-Dumbbell-Side-Bend_Waist-FIX_720.gif"
     },
     {
       "id": "fbade768-6a23-53a0-9fcf-a2490f779525",
       "name": "앱 휠 롤아웃",
       "english": "ab wheel rollout",
-      "image": null,
-      "gif": null
+      "image": "08571101-Wheel-Rollout_Waist-FIX2_max.png",
+      "gif": "08571301-Wheel-Rollout_Waist-FIX2_720.gif"
     },
     {
       "id": "3a8e53a9-b616-5778-9df7-6341d3c8c972",
       "name": "힐 터치",
       "english": "heel touch",
-      "image": null,
-      "gif": null
+      "image": "00061101-Alternate-Heel-Touchers_waist-FIX_max.png",
+      "gif": "00061301-Alternate-Heel-Touchers_waist-FIX_720.gif"
     },
     {
       "id": "7411c3c8-f9e5-5777-ae96-ef40b277b97b",
       "name": "케틀벨 스윙",
       "english": "kettlebell swing",
-      "image": null,
-      "gif": null
+      "image": "05491101-Kettlebell-Swing_Hips-FIX_max.png",
+      "gif": "05491301-Kettlebell-Swing_Hips-FIX_720.gif"
     },
     {
       "id": "e7d78940-dd1d-5ae3-af96-9ac900f66071",
       "name": "덤벨 쓰러스터",
       "english": "dumbbell thruster",
-      "image": null,
-      "gif": null
+      "image": "29681101-Dumbbell-Thruster-FIX_max.png",
+      "gif": "29681301-Dumbbell-Thruster-FIX_720.gif"
     },
     {
       "id": "7050fcc4-7d38-537f-9561-79a44717219d",
       "name": "케틀벨 터키시 겟업",
       "english": "kettlebell turkish get up",
-      "image": null,
-      "gif": null
+      "image": "05511101-Kettlebell-Turkish-Get-Up-(Squat-style)_Thighs-FIX_max.png",
+      "gif": "05511301-Kettlebell-Turkish-Get-Up-(Squat-style)_Thighs-FIX_720.gif"
     },
     {
       "id": "02db474d-5d1b-5ca6-9155-ddcf1101203e",
       "name": "바벨 클린 앤 프레스",
       "english": "barbell clean and press",
-      "image": null,
-      "gif": null
+      "image": "00281101-Barbell-Clean-and-Press_Shoulders_max.png",
+      "gif": "00281301-Barbell-Clean-and-Press_Shoulders_720.gif"
     }
   ]
 }
