@@ -1,5 +1,5 @@
 /**
- * Figma 05-01 분석입니다. 삼대 측정·체중 카드(작은 그래프 포함)와 이번 달 달성률을 보여 줍니다.
+ * Figma 05-01 분석입니다. 근육 회복, 삼대 측정·체중 카드(작은 그래프 포함)와 이번 달 달성률을 보여 줍니다.
  * 측정 데이터는 진입 시 기기 저장소에서 읽고, 저장되지 않은 샘플 수치는 보여 주지 않습니다.
  */
 import { useEffect, useState } from 'react';
@@ -18,6 +18,7 @@ import { signed } from '../strength/StrengthScreen';
 import { TrendChart } from '../strength/TrendChart';
 import { decodeWeight, weightStorageKey, type WeightRecord } from '../bodyweight/model';
 import { weightBase } from '../bodyweight/BodyWeightScreen';
+import { MuscleRecoveryCard } from '../recovery/MuscleRecoveryCard';
 import { s } from './AnalysisScreen.styles';
 
 const c = tokens.color;
@@ -109,6 +110,7 @@ export function AnalysisScreen({
   const pastWeight = weightBase(weight, 1);
   return (
     <Screen edges={['top']} header={<PageHeader subtitle={`${md(today)} 기준`} title="분석" />}>
+      <MuscleRecoveryCard history={history} />
       <MeasureCard
         title="삼대 측정"
         name="삼대 합계"
