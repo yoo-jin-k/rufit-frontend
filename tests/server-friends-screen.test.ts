@@ -133,13 +133,12 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
       );
     };
     await click('운동 친구 프로필 보기');
-    assert.match(
-      document.body.textContent!,
-      /공개 프로필\(사진·한 줄 소개\)과 친구에게 공개한 오운완/,
-    );
-    // 프로필 화면은 더보기 없이 신고하기 버튼을 바로 보여 줍니다.
-    assert.equal(document.querySelector('[aria-label="운동 친구 더보기"]'), null);
+    // 친구 홈은 내 프로필처럼 사진·소개·오운완을 보여 주고, 친구 해제·차단·신고는 ⋯ 메뉴에 둡니다.
+    assert.match(document.body.textContent!, /친구 공개 오운완/);
+    await click('운동 친구 더보기');
     await click('신고하기');
+    // 메뉴가 내려간 뒤 신고 창이 뜹니다.
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 400)));
     await click('괴롭힘');
     await click('신고 접수');
     assert.match(document.body.textContent!, /일시적인 연결 오류/);
@@ -149,7 +148,9 @@ test('서버 친구 화면은 실명 대신 닉네임을 표시하고 수락 뒤
     assert.match(document.body.textContent!, /신고가 접수되었습니다/);
     assert.equal(blockCalls, 0, '신고가 차단이나 친구 해제를 자동 실행하지 않습니다.');
     await click('확인');
+    await click('운동 친구 더보기');
     await click('친구 해제');
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 400)));
     assert.equal(removeCalls, 0);
     await click('해제');
     assert.equal(removeCalls, 1);
