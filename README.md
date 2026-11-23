@@ -6,10 +6,10 @@ React Native + Expo + TypeScript 기반 iOS/Android 앱입니다. 웹은 개발 
 ## 체험하기
 
 - 웹: [app.rufit.yjinee.com](https://app.rufit.yjinee.com) — main에 병합되면 GitHub Pages로 자동 배포됩니다(`.github/workflows/deploy-web.yml`).
-- 안드로이드: [최신 테스트 앱 설치 페이지](https://expo.dev/accounts/yj_nnn/projects/rufit/builds/d41351e7-b108-4e93-9fd1-e815fbe24fee) — 휴대폰에서 링크를 열고 설치를 누릅니다. 이미 설치했다면 지우지 않고 그 위에 설치하면 기록이 그대로 남습니다.
+- 안드로이드: [api.rufit.yjinee.com/android](https://api.rufit.yjinee.com/android) — 휴대폰 브라우저로 열면 최신 테스트 앱(APK)이 받아집니다. 받은 파일을 열어 설치하며, 처음에는 "출처를 알 수 없는 앱 설치"를 허용해야 합니다. 이미 설치했다면 지우지 않고 그 위에 설치하면 기록이 그대로 남습니다.
 - 아이폰: [TestFlight 참여 링크](https://testflight.apple.com/join/pYtQMuAQ) — App Store에서 TestFlight 앱을 설치한 뒤 링크를 열어 설치합니다.
 
-새 안드로이드 테스트 앱은 `npx eas-cli build -p android --profile preview`로 빌드하고, 완료된 빌드의 Expo 페이지 링크(`https://expo.dev/accounts/<계정>/projects/rufit/builds/<빌드 ID>`)로 위 안드로이드 설치 링크를 바꿉니다. 빌드마다 주소가 달라지므로 밖에는 이 README의 '체험하기' 위치를 알려 줍니다. 앱에 구매한 운동 그림이 들어 있어 APK 파일은 GitHub 릴리스나 저장소에 올리지 않습니다.
+새 안드로이드 테스트 앱은 `npx eas-cli build -p android --profile preview`로 빌드한 뒤, 받은 APK로 서버의 `rufit.apk`를 바꿉니다(Caddy 데이터 볼륨의 `downloads/rufit.apk`, `/android`가 이 파일로 연결됩니다). 설치 주소는 빌드가 바뀌어도 그대로입니다. Expo 빌드 페이지 링크는 Expo에 로그인한 사람만 열 수 있고 파일 보관 기간도 짧아 외부 공유용으로 쓰지 않습니다. 앱에 구매한 운동 그림이 들어 있어 APK 파일은 GitHub 릴리스나 저장소에 올리지 않습니다.
 
 새 아이폰 테스트 앱은 `app.json`의 `ios.buildNumber`를 올린 뒤 `npx eas-cli build -p ios --profile testflight --auto-submit`으로 빌드·제출합니다. Apple 로그인과 인증서 생성이 대화형이라 터미널에서 직접 실행하고, 업로드된 빌드를 App Store Connect의 외부 테스트 그룹에 추가하면 같은 링크로 업데이트됩니다. iOS 번들 ID는 `com.yjinee.rufit`입니다(Android package는 `com.rufit.app`).
 
