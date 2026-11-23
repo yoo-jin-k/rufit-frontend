@@ -43,3 +43,4 @@ yarn-error.*
 # 구매한 운동 그림(라이선스상 재배포 금지). 원본은 저장소 밖 Rufit_assets/gymvisual에 보관하고 npm run media:sync 로 복사합니다.
 /assets/licensed/
 /src/features/exercises/licensedMedia.generated.ts
+/src/features/recovery/muscleMapMedia.generated.ts

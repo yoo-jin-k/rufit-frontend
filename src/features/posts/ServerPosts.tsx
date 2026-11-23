@@ -166,10 +166,13 @@ export function ServerPostDetail({
   session,
   id,
   onClose,
+  onOpenMember,
 }: {
   session: RufitSession;
   id: string;
   onClose: () => void;
+  /** 작성자 이름을 누르면 그 회원의 프로필을 엽니다. 없으면 이름은 글자로만 보입니다. */
+  onOpenMember?: (memberId: string) => void;
 }) {
   const [post, setPost] = useState<ServerPost | null>(null),
     [error, setError] = useState(''),
@@ -298,7 +301,18 @@ export function ServerPostDetail({
               )}
               {post && (
                 <>
-                  <Text style={ui.heading}>{post.nickname}</Text>
+                  {onOpenMember && !post.mine ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${post.nickname} 프로필 보기`}
+                      onPress={() => onOpenMember(post.memberId)}
+                      style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
+                    >
+                      <Text style={ui.heading}>{post.nickname}</Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={ui.heading}>{post.nickname}</Text>
+                  )}
                   <Text style={ui.muted}>
                     {post.date} · {post.summary}
                   </Text>
