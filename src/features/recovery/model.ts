@@ -7,7 +7,8 @@ import type { BodyPart } from '../../api/client.ts';
 import type { CatalogExercise } from '../exercises/catalog.ts';
 import { validSet, type Workout } from '../workout/model.ts';
 
-export type RecoveryPart = Exclude<BodyPart, 'FULL_BODY'>;
+// 스트레칭은 근육을 지치게 하는 운동이 아니라 회복 계산에서 뺍니다.
+export type RecoveryPart = Exclude<BodyPart, 'FULL_BODY' | 'STRETCH'>;
 export const recoveryParts: RecoveryPart[] = ['LEGS', 'BACK', 'CHEST', 'SHOULDERS', 'ARMS', 'CORE'];
 
 /** 부위별 기본 회복 시간(시간)입니다. 큰 근육일수록 길게 둡니다. */
@@ -72,8 +73,8 @@ export function muscleRecovery(
     const perPart = new Map<RecoveryPart, Session>();
     for (const exercise of workout.exercises) {
       const info = exercise.catalogId ? byId.get(exercise.catalogId) : undefined;
-      // 직접 만든 종목은 부위를 알 수 없어 제외합니다.
-      if (!info) continue;
+      // 직접 만든 종목은 부위를 알 수 없어, 스트레칭은 피로가 쌓이지 않아 제외합니다.
+      if (!info || info.bodyPart === 'STRETCH') continue;
       const done = exercise.sets.filter((set) => set.completed && validSet(set)).length;
       if (!done) continue;
       const shares: [RecoveryPart, number][] =

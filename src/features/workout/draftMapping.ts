@@ -6,6 +6,7 @@ import {
   type Workout,
   type WorkoutSet,
 } from './model.ts';
+import { toServerCount } from './setCount.ts';
 
 export type RowIdentity = { exerciseId: string; setId: string };
 export type RestTarget = RowIdentity & { endsAt: string };
@@ -145,7 +146,7 @@ export function prepareWorkoutDraft(workout: Workout, context: DraftContext): Dr
       exerciseId: exercise.catalogId ?? null,
       exerciseName: exercise.name.trim(),
       weight: Number(set.weight),
-      reps: Number(set.reps),
+      ...toServerCount(exercise.catalogId, set.reps),
       ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
       ...(set.rpe !== undefined ? { rpe: set.rpe } : {}),
     },

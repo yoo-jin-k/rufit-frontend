@@ -9,6 +9,7 @@ export const bodyParts: Record<BodyPart, string> = {
   ARMS: '팔',
   CORE: '복부',
   FULL_BODY: '전신',
+  STRETCH: '스트레칭',
 };
 export const equipmentLabels: Record<Equipment, string> = {
   BARBELL: '바벨',
@@ -25,6 +26,8 @@ export type CatalogExercise = {
   readonly equipment: Equipment;
   readonly recommendedRestSeconds: number | null;
   readonly aliases: readonly string[];
+  /** 스트레칭·플랭크처럼 시간(초)으로 기록하는 종목입니다. 없으면 무게·횟수로 기록합니다. */
+  readonly tracking?: 'DURATION';
 };
 const normalize = (value: string) =>
   value
@@ -60,4 +63,9 @@ export function searchExercises(
 }
 export function findCatalogExercise(catalogId?: string): CatalogExercise | undefined {
   return exerciseCatalog.find((e) => e.id === catalogId);
+}
+
+/** 시간(초)으로 기록하는 종목인지입니다. 이런 종목은 세트의 reps 칸에 초를 담습니다. */
+export function isTimedExercise(catalogId?: string | null): boolean {
+  return findCatalogExercise(catalogId ?? undefined)?.tracking === 'DURATION';
 }

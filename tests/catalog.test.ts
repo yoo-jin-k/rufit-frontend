@@ -44,15 +44,20 @@ test('한글·영문·별칭 검색과 부위/도구 필터가 동시에 적용�
   );
   assert.equal(searchExercises('kettlebell swing')[0].name, '케틀벨 스윙');
 });
-test('확정 v2 원본 110개를 순서와 nullable 휴식값까지 그대로 사용한다', () => {
+test('확정 원본 124개(v2 110개 + 시간 종목 14개)를 순서와 nullable 휴식값까지 그대로 사용한다', () => {
   const source = JSON.parse(readFileSync('assets/exercises/catalog-v2.json', 'utf8'));
-  assert.equal(catalogVersion, '2026-10-29.v2');
+  assert.equal(catalogVersion, '2026-11-23.v3');
   assert.equal(source.catalogVersion, catalogVersion);
-  assert.equal(source.exerciseCount, 110);
-  assert.equal(exerciseCatalog.length, 110);
+  assert.equal(source.exerciseCount, 124);
+  assert.equal(exerciseCatalog.length, 124);
   assert.deepEqual(exerciseCatalog, source.exercises);
-  assert.equal(exerciseCatalog.slice(18).length, 92);
-  assert.ok(exerciseCatalog.slice(18).every((item) => item.recommendedRestSeconds === null));
+  assert.equal(exerciseCatalog.slice(18, 110).length, 92);
+  assert.ok(exerciseCatalog.slice(18, 110).every((item) => item.recommendedRestSeconds === null));
+  // 뒤에 더한 14개는 모두 시간(초)으로 기록하는 종목입니다.
+  const timed: readonly CatalogExercise[] = exerciseCatalog.slice(110);
+  assert.ok(timed.every((item) => item.tracking === 'DURATION' && item.equipment === 'BODYWEIGHT'));
+  assert.equal(timed.filter((item) => item.bodyPart === 'STRETCH').length, 12);
+  assert.ok(exerciseCatalog.slice(0, 110).every((item) => !('tracking' in item)));
 });
 test('큰 오프라인 목록도 색인 뒤 원본 순서와 검색·필터 결과를 유지한다', () => {
   const largeCatalog: CatalogExercise[] = Array.from({ length: 1000 }, (_, index) => ({

@@ -41,7 +41,7 @@ import { WorkoutSession, type SessionActions } from './WorkoutSession';
 import { AppState, Platform, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { ExercisePicker } from '../exercises/ExercisePicker';
-import { findCatalogExercise } from '../exercises/catalog';
+import { findCatalogExercise, isTimedExercise } from '../exercises/catalog';
 import {
   addExercise,
   addSet,
@@ -619,6 +619,7 @@ export function WorkoutScreen({
                       history,
                       created,
                       findCatalogExercise(exercise.id)?.equipment,
+                      isTimedExercise(exercise.id),
                     );
                     return updateSet(added, id, created.sets[0]!.id, {
                       weight: pick.weight,

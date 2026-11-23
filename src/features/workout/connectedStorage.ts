@@ -14,6 +14,7 @@ import {
   describeRemoteRecovery,
   type RecoveryCheck,
 } from './recoveryOverview.ts';
+import { fromServerCount } from './setCount.ts';
 
 export type ConnectedForm = { workout: Workout; note: string; rest: RestTarget | null };
 type Ready = Extract<DraftPreparation, { kind: 'ready' }>;
@@ -159,7 +160,7 @@ function hydrate(snapshot: WorkoutSnapshot): ConnectedForm {
       (set.exerciseId != null && !uuid(set.exerciseId)) ||
       typeof set.weight !== 'number' ||
       !Number.isFinite(set.weight) ||
-      !Number.isInteger(set.reps)
+      !Number.isInteger(fromServerCount(set))
     )
       throw new Error('서버 세트 값을 확인하지 못했습니다.');
     let exercise = workout.exercises.at(-1);
@@ -180,7 +181,7 @@ function hydrate(snapshot: WorkoutSnapshot): ConnectedForm {
     exercise.sets.push({
       id,
       weight: String(set.weight),
-      reps: String(set.reps),
+      reps: String(fromServerCount(set)),
       completed: completed.has(i),
     });
     rows.push({ exerciseId: exercise.id, setId: id });
@@ -231,7 +232,8 @@ function receiptMatches(receipt: DraftReceipt, record: ConnectedRecord): boolean
         (set.exerciseId ?? null) === (e.exerciseId ?? null) &&
         (e.exerciseId != null || set.exerciseName === e.exerciseName) &&
         set.weight === e.weight &&
-        set.reps === e.reps
+        (set.reps ?? null) === (e.reps ?? null) &&
+        (set.durationSeconds ?? null) === (e.durationSeconds ?? null)
       );
     }) &&
     same(

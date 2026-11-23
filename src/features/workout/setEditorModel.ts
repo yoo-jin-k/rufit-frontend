@@ -85,6 +85,8 @@ const increments: Record<Equipment, number> = {
   BODYWEIGHT: 0,
   OTHER: 2.5,
 };
+/** 시간 종목(스트레칭·플랭크)의 첫 추천 시간(초)입니다. */
+const TIMED_START = 30;
 /** 이 횟수를 넘기면 다음에는 무게를 한 단계 올리고 횟수를 낮춥니다. */
 const REP_CEILING = 12;
 const REP_RESET = 8;
@@ -100,11 +102,18 @@ export function recommendSet(
   history: Workout[],
   exercise: Exercise,
   equipment?: Equipment,
+  timed = false,
 ): Recommendation {
   const kind = equipment ?? 'OTHER';
   const last = previousExercises(history, exercise)[0]?.exercise;
   // 웜업 세트는 실제 작업 무게가 아니므로 추천 계산에서 뺍니다.
   const sets = last?.sets.filter((set) => validSet(set) && set.setType !== 'WARMUP') ?? [];
+  // 시간 종목은 처음엔 30초, 지난 기록이 있으면 가장 길게 버틴 시간에 5초를 더합니다.
+  if (timed) {
+    if (!sets.length) return { weight: '0', reps: String(TIMED_START), basis: 'starter' };
+    const longest = Math.max(...sets.map((set) => Number(set.reps)));
+    return { weight: '0', reps: String(Math.min(longest + 5, MAX_REPS)), basis: 'history' };
+  }
   if (!sets.length) {
     const start = starters[kind];
     return { weight: formatWeight(start.weight), reps: String(start.reps), basis: 'starter' };
