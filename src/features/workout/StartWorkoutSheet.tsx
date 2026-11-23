@@ -7,7 +7,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
-import { findCatalogExercise } from '../exercises/catalog';
+import { findCatalogExercise, isTimedExercise } from '../exercises/catalog';
 import { ExerciseMedia } from '../exercises/ExerciseMedia';
 import type { Workout } from './model';
 import { formatDay } from './recordFormat';
@@ -15,6 +15,7 @@ import { recentWorkouts, startCard } from './startSheetModel';
 import { formatWeight } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
 import { s } from './StartWorkoutSheet.styles';
+import { countUnit } from './setCount';
 
 const c = tokens.color;
 
@@ -90,7 +91,7 @@ export function StartWorkoutSheet({
                         {[
                           `${row.sets}세트`,
                           row.weight && formatWeight(row.weight, unit),
-                          row.reps && `${row.reps}회`,
+                          row.reps && `${row.reps}${countUnit(isTimedExercise(row.catalogId))}`,
                         ]
                           .filter(Boolean)
                           .join(' · ')}

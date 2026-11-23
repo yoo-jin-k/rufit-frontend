@@ -14,6 +14,13 @@ import {
 import { toServerCount } from '../workout/setCount.ts';
 
 type Receipt = { localId: string; key: string; body: OfflineWorkoutImport; saved: boolean };
+/**
+ * 서버에 올릴 기기 기록입니다. 서버 기록 사본과, 종목 없이 운동 시간만 남긴 기록은 뺍니다.
+ * 시간만 남긴 기록은 서버가 받을 세트가 없어, 목록에 넣으면 업로드가 그 기록에서 멈추고 뒤 기록까지 막힙니다.
+ */
+export function uploadCandidates(history: Workout[]): Workout[] {
+  return history.filter((w) => !w.id.startsWith('server:') && w.exercises.length > 0);
+}
 export function workoutImportBody(workout: Workout): OfflineWorkoutImport {
   if (
     !isWorkout(workout) ||

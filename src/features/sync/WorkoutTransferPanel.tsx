@@ -7,7 +7,7 @@ import type { RufitSession } from '../../api/session';
 import { Button } from '../../components/Button';
 import { ui } from '../../components/ScreenLayout';
 import type { Workout } from '../workout/model';
-import { uploadWorkout } from './workoutTransfer';
+import { uploadCandidates, uploadWorkout } from './workoutTransfer';
 export function WorkoutTransferPanel({
   session,
   history,
@@ -23,7 +23,7 @@ export function WorkoutTransferPanel({
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState('');
   const lock = useRef(false);
-  const candidates = history.filter((w) => !w.id.startsWith('server:'));
+  const candidates = uploadCandidates(history);
   async function upload() {
     if (lock.current || disabled) return;
     lock.current = true;

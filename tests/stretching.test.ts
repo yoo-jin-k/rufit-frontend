@@ -131,3 +131,35 @@ test('스트레칭은 근육 회복 계산에 넣지 않고, 플랭크는 복부
   assert.equal(result.find((r) => r.part === 'LEGS')?.percent, 100);
   assert.ok((result.find((r) => r.part === 'CORE')?.percent ?? 100) < 100);
 });
+
+test('기기 기록 업로드는 종목 없이 시간만 남긴 기록을 빼고 시간 세트 기록은 올린다', async () => {
+  const { uploadCandidates, workoutImportBody } = await import(
+    '../src/features/sync/workoutTransfer.ts'
+  );
+  const timeOnly: Workout = { id: 'a', startedAt: 1, finishedAt: 2, exercises: [] };
+  const plank: Workout = {
+    id: 'b',
+    startedAt: 3,
+    finishedAt: 4,
+    exercises: [
+      {
+        id: 'p',
+        name: '플랭크',
+        catalogId: PLANK,
+        sets: [{ id: 's', weight: '0', reps: '30', completed: true }],
+      },
+    ],
+  };
+  const server: Workout = { ...plank, id: 'server:x' };
+  assert.deepEqual(
+    uploadCandidates([timeOnly, plank, server]).map((w) => w.id),
+    ['b'],
+  );
+  assert.deepEqual(workoutImportBody(plank).sets[0]!.set, {
+    exerciseId: PLANK,
+    exerciseName: '플랭크',
+    weight: 0,
+    reps: null,
+    durationSeconds: 30,
+  });
+});
