@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yjinee.rufit",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -38,7 +38,8 @@
           "cameraPermission": "오운완 사진을 촬영합니다.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-image"
     ],
     "extra": {
       "eas": {

@@ -1,5 +1,5 @@
 /**
- * 구매한 운동 그림(정지 이미지·GIF)을 원본 보관 폴더에서 앱 폴더로 복사합니다.
+ * 구매한 운동 그림(정지 이미지·GIF)을 원본 보관 폴더에서 앱 폴더로 복사합니다. GIF는 용량을 줄이려고 움직이는 WebP로 바꿉니다.
  * 원본과 복사본, 그리고 이 스크립트가 만드는 연결 파일은 모두 Git에 올리지 않습니다(라이선스상 재배포 금지).
  *
  * 원본 폴더: RUFIT_LICENSED_MEDIA_DIR 환경변수, 없으면 저장소 옆 ../../Rufit_assets/gymvisual/originals
@@ -36,6 +36,15 @@ const animations: string[] = [];
 const colors: string[] = [];
 const missing: string[] = [];
 const hasSource = existsSync(source);
+const webpCache = resolve(repo, 'node_modules/.cache/licensed-webp');
+const hasGif2webp = (() => {
+  try {
+    execFileSync('gif2webp', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 // 지난번 복사본을 지우고 새로 만듭니다. 연결에서 빠진 파일이 앱에 남지 않게 합니다.
 await rm(target, { recursive: true, force: true });
@@ -59,9 +68,33 @@ if (hasSource) {
         missing.push(`${entry.name}: ${file} (움직이는 그림은 gif만 씁니다)`);
         continue;
       }
-      const name = `${entry.id}-${kind}${ext}`;
+      // GIF는 움직이는 WebP로 바꿔 넣습니다. 화질 차이 없이 용량이 약 3분의 1로 줄어듭니다.
+      // 변환 도구(gif2webp)가 없는 컴퓨터에서는 GIF를 그대로 넣습니다.
+      const toWebp = kind === 'gif' && hasGif2webp;
+      const name = `${entry.id}-${kind}${toWebp ? '.webp' : ext}`;
       const to = resolve(target, name);
-      await copyFile(from, to);
+      if (toWebp) {
+        // 변환은 그림 100여 개에 몇 분 걸려서, 원본이 바뀌지 않았으면 지난 변환 결과를 다시 씁니다.
+        const cached = resolve(webpCache, `${file.replace(/[/\\]/g, '_')}.webp`);
+        if (!existsSync(cached) || (await stat(cached)).mtimeMs < (await stat(from)).mtimeMs) {
+          await mkdir(webpCache, { recursive: true });
+          execFileSync('gif2webp', [
+            '-mixed',
+            '-q',
+            '80',
+            '-m',
+            '6',
+            '-mt',
+            '-quiet',
+            from,
+            '-o',
+            cached,
+          ]);
+        }
+        await copyFile(cached, to);
+      } else {
+        await copyFile(from, to);
+      }
       // 큰 정지 이미지는 macOS 기본 도구(sips)로 줄여 앱 용량을 아낍니다. GIF는 움직임이 깨지지 않게 그대로 둡니다.
       if (kind === 'image' && process.platform === 'darwin') {
         execFileSync('sips', ['--resampleHeightWidthMax', String(maxImageSide), to], {
@@ -171,7 +204,7 @@ if (!hasSource) {
   let bytes = 0;
   for (const f of files) bytes += (await stat(resolve(target, f))).size;
   console.log(
-    `[media:sync] 정지 이미지 ${images.length}개, GIF ${animations.length}개를 넣었습니다 (${(bytes / 1024 / 1024).toFixed(1)}MB).`,
+    `[media:sync] 정지 이미지 ${images.length}개, 움직이는 그림 ${animations.length}개를 넣었습니다 (${(bytes / 1024 / 1024).toFixed(1)}MB).`,
   );
   console.log(
     hasMuscleMap

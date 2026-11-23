@@ -35,6 +35,7 @@ Expo Go는 프로젝트 SDK와 호환되는 버전이 필요합니다.
 - 원본 보관: 저장소 밖 `../../Rufit_assets/gymvisual/originals` (다른 위치면 `RUFIT_LICENSED_MEDIA_DIR`로 지정)
 - 종목과 파일 연결: `assets/exercises/licensed-media.json`의 `image`·`gif` 칸에 원본 파일 이름을 적습니다.
 - 앱에 반영: `npm run media:sync` (`npm start`·`npm run ios` 등을 실행할 때도 자동 실행)
+- GIF는 앱 용량을 줄이려고 움직이는 WebP로 바꿔 넣습니다(`gif2webp` 필요, macOS는 `brew install webp`). 도구가 없으면 GIF를 그대로 넣습니다. 상세 화면은 iOS에서도 WebP가 움직이도록 `expo-image`로 그립니다.
 - 복사본 `assets/licensed/`와 생성 파일 `src/features/exercises/licensedMedia.generated.ts`는 `.gitignore` 대상입니다.
 - 원본 폴더가 없으면(GitHub 검사·다른 컴퓨터) 기본 그림만 보이고 나머지는 회색 자리표시로 나옵니다.
 
