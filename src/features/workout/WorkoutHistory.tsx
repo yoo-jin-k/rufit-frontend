@@ -13,6 +13,8 @@ import { elapsedWorkoutMs, type Workout } from './model';
 import { localDay } from '../calendar/model';
 import { formatWeight, unitLabel, volumeNumber } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
+import { isTimedExercise } from '../exercises/catalog';
+import { setValueText } from './setCount';
 export const workoutDate = (w: Workout) => w.recordDate ?? localDay(w.startedAt);
 export const workoutSummary = (w: Workout) =>
   `${w.entryMode === 'manual' ? '시간 미측정' : `${Math.floor(elapsedWorkoutMs(w, w.finishedAt ?? w.startedAt) / 60000)}분`} · ${w.exercises.length}종목 · ${w.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)}세트`;
@@ -91,7 +93,12 @@ export function WorkoutHistory({
                     .filter((s) => s.completed)
                     .map((s, i) => (
                       <Text key={s.id} style={ui.body}>
-                        {i + 1}세트　{formatWeight(s.weight, unit)}　×　{s.reps} 회
+                        {i + 1}세트　
+                        {setValueText(
+                          isTimedExercise(e.catalogId),
+                          formatWeight(s.weight, unit),
+                          s.reps,
+                        )}
                       </Text>
                     ))}
                 </View>

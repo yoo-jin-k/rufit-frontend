@@ -11,6 +11,7 @@ import {
   transferSerial,
   type TransferStorage,
 } from './transferStorage.ts';
+import { toServerCount } from '../workout/setCount.ts';
 
 type Receipt = { localId: string; key: string; body: OfflineWorkoutImport; saved: boolean };
 export function workoutImportBody(workout: Workout): OfflineWorkoutImport {
@@ -30,7 +31,7 @@ export function workoutImportBody(workout: Workout): OfflineWorkoutImport {
         exerciseId: e.catalogId ?? null,
         exerciseName: e.name,
         weight: Number(s.weight),
-        reps: Number(s.reps),
+        ...toServerCount(e.catalogId, s.reps),
         ...(s.setType && s.setType !== 'NORMAL' ? { setType: s.setType } : {}),
         ...(s.rpe !== undefined ? { rpe: s.rpe } : {}),
       },

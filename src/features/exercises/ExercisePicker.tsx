@@ -107,6 +107,7 @@ export function ExercisePicker({
       sets: [],
     })[0]?.exercise.sets.at(-1);
     if (!set) return undefined;
+    if (item.tracking === 'DURATION') return `${set.reps}초`;
     return item.equipment === 'BODYWEIGHT'
       ? `${set.reps}회`
       : `${formatWeight(set.weight, unit)} × ${set.reps}회`;

@@ -3,6 +3,7 @@ import type { WorkoutSnapshot } from '../../api/client.ts';
 import type { RufitSession } from '../../api/session.ts';
 import { isWorkout } from './storage.ts';
 import { validSet, type Workout } from './model.ts';
+import { fromServerCount } from './setCount.ts';
 
 /** 서버 원본을 기기 기록과 다른 ID로 표시합니다. 조회만으로 기존 기록을 덮어쓰지 않습니다. */
 export function serverWorkout(snapshot: WorkoutSnapshot): Workout {
@@ -35,11 +36,11 @@ export function serverWorkout(snapshot: WorkoutSnapshot): Workout {
       typeof set.exerciseName !== 'string' ||
       !set.exerciseName.trim() ||
       typeof set.weight !== 'number' ||
-      typeof set.reps !== 'number' ||
+      fromServerCount(set) === undefined ||
       !validSet({
         id: 'validation',
         weight: String(set.weight),
-        reps: String(set.reps),
+        reps: String(fromServerCount(set)),
         completed: true,
       })
     )
@@ -61,7 +62,7 @@ export function serverWorkout(snapshot: WorkoutSnapshot): Workout {
     exercise.sets.push({
       id: `${snapshot.id}:set:${index}`,
       weight: String(set.weight),
-      reps: String(set.reps),
+      reps: String(fromServerCount(set)),
       completed: true,
       ...(set.setType && set.setType !== 'NORMAL' ? { setType: set.setType } : {}),
       ...(typeof set.rpe === 'number' ? { rpe: set.rpe } : {}),

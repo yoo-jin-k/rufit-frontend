@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppModal } from '../../components/AppModal';
 import {
   bodyParts,
+  isTimedExercise,
   equipmentLabels,
   findCatalogExercise,
   type CatalogExercise,
@@ -52,6 +53,7 @@ import { SortableSets } from './SortableSets';
 import { formatNumber } from './recordFormat';
 import type { restTimerView } from './timerView';
 import { s } from './WorkoutSession.styles';
+import { countUnit } from './setCount';
 
 const c = tokens.color;
 
@@ -206,12 +208,18 @@ export function WorkoutSession({
   const detailExercise = workout.exercises.find((e) => e.id === detailFor?.exerciseId);
   const detailIndex = detailExercise?.sets.findIndex((set) => set.id === detailFor?.setId) ?? -1;
   const detailSet = detailIndex >= 0 ? detailExercise?.sets[detailIndex] : undefined;
-  const noWeightFor = (e: Exercise) => weightless(findCatalogExercise(e.catalogId)?.equipment);
+  // 시간 종목(스트레칭·플랭크)도 무게 칸 없이 시간만 받습니다.
+  const timedFor = (e: Exercise) => isTimedExercise(e.catalogId);
+  const noWeightFor = (e: Exercise) =>
+    timedFor(e) || weightless(findCatalogExercise(e.catalogId)?.equipment);
   function completeFromEditor() {
     if (!editExercise || !editSet) return;
     const noWeight = noWeightFor(editExercise);
     if (!editSet.completed) {
-      const errors = setFieldErrors(noWeight ? { ...editSet, weight: '0' } : editSet);
+      const errors = setFieldErrors(
+        noWeight ? { ...editSet, weight: '0' } : editSet,
+        timedFor(editExercise),
+      );
       if (errors.weight || errors.reps) {
         setEditError(errors.weight || errors.reps);
         return;
@@ -259,7 +267,10 @@ export function WorkoutSession({
       return;
     }
     const noWeight = noWeightFor(focus);
-    const errors = setFieldErrors(noWeight ? { ...currentSet, weight: '0' } : currentSet);
+    const errors = setFieldErrors(
+      noWeight ? { ...currentSet, weight: '0' } : currentSet,
+      timedFor(focus),
+    );
     if (errors.weight || errors.reps) {
       setToast(errors.weight || errors.reps);
       return;
@@ -455,7 +466,7 @@ export function WorkoutSession({
                   name={e.name}
                   exercise={findCatalogExercise(e.catalogId)}
                   onOpenDetail={setDetail}
-                  meta={`${finishedCount}/${e.sets.length}세트${calories && finishedCount ? ` · ${formatKcal(calories.byExercise[e.id] ?? 0)}` : ''}${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}회` : ''}`}
+                  meta={`${finishedCount}/${e.sets.length}세트${calories && finishedCount ? ` · ${formatKcal(calories.byExercise[e.id] ?? 0)}` : ''}${lastSet ? ` · 지난번 ${noWeightFor(e) ? '' : `${formatWeight(lastSet.weight, unit)} × `}${lastSet.reps}${countUnit(timedFor(e))}` : ''}`}
                   trailing={<AppIcon name="chevron-right" color={c.text.muted} />}
                 />
               )}
@@ -485,6 +496,7 @@ export function WorkoutSession({
               name={e.name}
               unitAware
               noWeight={noWeightFor(e)}
+              timed={timedFor(e)}
               allCompleted={done(e)}
               onCompleteAll={() => actions.onCompleteAll(e.id, !done(e))}
             />
@@ -510,11 +522,12 @@ export function WorkoutSession({
                   previous={
                     prev?.sets[i]
                       ? noWeightFor(e)
-                        ? `${prev.sets[i].reps}회`
+                        ? `${prev.sets[i].reps}${countUnit(timedFor(e))}`
                         : `${displayWeight(prev.sets[i].weight, unit)}×${prev.sets[i].reps}`
                       : undefined
                   }
                   noWeight={noWeightFor(e)}
+                  timed={timedFor(e)}
                   onEdit={() => {
                     setEditError('');
                     setEditing({ exerciseId: e.id, setId: set.id });
@@ -574,10 +587,12 @@ export function WorkoutSession({
           index={editIndex}
           history={history}
           noWeight={noWeightFor(editExercise)}
+          timed={timedFor(editExercise)}
           recommendation={recommendSet(
             history,
             editExercise,
             findCatalogExercise(editExercise.catalogId)?.equipment,
+            timedFor(editExercise),
           )}
           error={editError}
           onChange={(patch) => {

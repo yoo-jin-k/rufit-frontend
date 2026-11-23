@@ -3,10 +3,11 @@
  * 큰 숫자를 직접 고치거나 증감 버튼으로 조절하고, 최근·추천·이전 기록 값을 눌러 지금 세트에 넣습니다.
  * '남은 세트 통일'은 지금 세트와 그 뒤의 완료하지 않은 세트에만 같은 값을 넣습니다.
  * 맨몸 운동은 무게 영역 없이 횟수만 보여 줍니다.
+ * 스트레칭·플랭크처럼 시간 종목은 횟수 대신 시간(초)을 받고, 타이머로 세면서 끝나면 세트를 완료합니다.
  * 무게는 kg·lbs 중 고른 단위로 보여 주고 입력받되, 저장은 언제나 kg로 합니다.
  */
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, TextInput, Vibration, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/kit/Surfaces';
@@ -31,6 +32,7 @@ import {
 } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
 import { s } from './SetEditorSheet.styles';
+import { countName, countUnit } from './setCount';
 
 const c = tokens.color;
 
@@ -42,6 +44,7 @@ export function SetEditorSheet({
   index,
   history,
   noWeight,
+  timed = false,
   recommendation,
   error,
   onChange,
@@ -54,6 +57,8 @@ export function SetEditorSheet({
   index: number;
   history: Workout[];
   noWeight: boolean;
+  /** 시간(초)으로 기록하는 종목입니다. */
+  timed?: boolean;
   recommendation: Recommendation;
   error?: string;
   onChange(patch: Patch): void;
@@ -70,8 +75,27 @@ export function SetEditorSheet({
   const u = unitLabel(unit);
   const recent = recentSet(history, exercise, index);
   const records = showHistory ? setHistory(history, exercise) : [];
+  const n = countUnit(timed);
   const label = (w: string, r: string) =>
-    noWeight ? `${r}회` : `${formatWeight(w, unit)} × ${r}회`;
+    noWeight ? `${r}${n}` : `${formatWeight(w, unit)} × ${r}${n}`;
+  // 시간 종목 타이머입니다. 남은 초를 세고, 0이 되면 진동과 함께 세트를 완료합니다.
+  const [left, setLeft] = useState<number | null>(null);
+  const complete = useRef(onComplete);
+  useEffect(() => {
+    complete.current = onComplete;
+  });
+  useEffect(() => {
+    if (left === null) return;
+    const timer = setTimeout(() => {
+      if (left > 1) return setLeft(left - 1);
+      setLeft(null);
+      Vibration.vibrate(400);
+      complete.current();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [left]);
+  const seconds = Number(set.reps);
+  const canTime = timed && !set.completed && Number.isInteger(seconds) && seconds > 0;
   const apply = (source: Pick<WorkoutSet, 'weight' | 'reps'>) => {
     setTyping(null);
     onChange(
@@ -150,10 +174,12 @@ export function SetEditorSheet({
         )}
         <View style={s.field}>
           <View style={s.unitRow}>
-            <Text style={[text.captionBold, { color: c.text.secondary }]}>횟수</Text>
+            <Text style={[text.captionBold, { color: c.text.secondary }]}>
+              {timed ? '시간(초)' : '횟수'}
+            </Text>
           </View>
           <TextInput
-            accessibilityLabel={`${exercise.name} ${index + 1}세트 횟수`}
+            accessibilityLabel={`${exercise.name} ${index + 1}세트 ${countName(timed)}`}
             style={[text.display, s.value]}
             keyboardType="number-pad"
             value={set.reps}
@@ -164,16 +190,15 @@ export function SetEditorSheet({
             onChangeText={(reps) => onChange({ reps })}
           />
           <Text style={[text.label, s.hint]} />
-          <Stepper
-            label="1회"
-            name="횟수 1회"
-            onStep={(sign) => onChange({ reps: stepReps(set.reps, sign) })}
-          />
-          <Stepper
-            label="5회"
-            name="횟수 5회"
-            onStep={(sign) => onChange({ reps: stepReps(set.reps, sign * 5) })}
-          />
+          {/* 시간 종목은 5초·15초, 나머지는 1회·5회씩 조절합니다. */}
+          {(timed ? [5, 15] : [1, 5]).map((amount) => (
+            <Stepper
+              key={amount}
+              label={`${amount}${n}`}
+              name={`${countName(timed)} ${amount}${n}`}
+              onStep={(sign) => onChange({ reps: stepReps(set.reps, sign * amount) })}
+            />
+          ))}
         </View>
       </View>
 
@@ -223,7 +248,10 @@ export function SetEditorSheet({
                           {formatWeight(row.weight, unit)}
                         </Text>
                       )}
-                      <Text style={[text.bodyBold, s.historyValue]}>{row.reps}회</Text>
+                      <Text style={[text.bodyBold, s.historyValue]}>
+                        {row.reps}
+                        {n}
+                      </Text>
                       <Text style={[text.label, { color: c.text.secondary }]}>넣기</Text>
                     </Pressable>
                   ))}
@@ -282,6 +310,16 @@ export function SetEditorSheet({
         <Text accessibilityRole="alert" style={[text.caption, { color: c.danger.default }]}>
           {error}
         </Text>
+      )}
+      {(canTime || left !== null) && (
+        <Button
+          title={left === null ? `${seconds}초 타이머 시작` : `남은 시간 ${left}초 · 멈추기`}
+          variant="secondary"
+          accessibilityLabel={
+            left === null ? `${exercise.name} ${seconds}초 타이머 시작` : '타이머 멈추기'
+          }
+          onPress={() => setLeft((value) => (value === null ? seconds : null))}
+        />
       )}
       <View style={s.actions}>
         <Button

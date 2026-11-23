@@ -11,6 +11,8 @@ import type { Workout } from './model';
 import { formatWeight } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
 import { s } from './WorkoutRecordCard.styles';
+import { isTimedExercise } from '../exercises/catalog';
+import { setValueText } from './setCount';
 
 const c = tokens.color;
 
@@ -76,7 +78,11 @@ export function WorkoutRecordCard({
               <View key={set.id} style={s.setLine}>
                 <Text style={[text.caption, s.setIndex]}>{index + 1}</Text>
                 <Text style={[text.caption, { color: c.text.primary }]}>
-                  {formatWeight(set.weight, unit)} × {set.reps}회
+                  {setValueText(
+                    isTimedExercise(exercise.catalogId),
+                    formatWeight(set.weight, unit),
+                    set.reps,
+                  )}
                 </Text>
               </View>
             ))}

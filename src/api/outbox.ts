@@ -80,10 +80,18 @@ function validDraft(v: unknown): v is Draft {
         s.set.weight >= 0 &&
         s.set.weight <= 1500 &&
         Math.abs(s.set.weight * 100 - Math.round(s.set.weight * 100)) < 1e-8 &&
-        typeof s.set.reps === 'number' &&
-        Number.isInteger(s.set.reps) &&
-        s.set.reps >= 1 &&
-        s.set.reps <= 1000,
+        // 무게·횟수 세트는 횟수 1~1000, 시간 세트는 무게 0에 시간 1~3600초만 있습니다.
+        (s.set.durationSeconds == null
+          ? typeof s.set.reps === 'number' &&
+            Number.isInteger(s.set.reps) &&
+            s.set.reps >= 1 &&
+            s.set.reps <= 1000
+          : s.set.reps == null &&
+            s.set.weight === 0 &&
+            typeof s.set.durationSeconds === 'number' &&
+            Number.isInteger(s.set.durationSeconds) &&
+            s.set.durationSeconds >= 1 &&
+            s.set.durationSeconds <= 3600),
     )
   )
     return false;

@@ -15,13 +15,19 @@ import {
   PhotoPlaceholder,
 } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
-import { bodyParts, equipmentLabels, findCatalogExercise } from '../exercises/catalog';
+import {
+  bodyParts,
+  equipmentLabels,
+  findCatalogExercise,
+  isTimedExercise,
+} from '../exercises/catalog';
 import type { Journal } from '../profile/journalModel';
 import type { Workout } from './model';
 import { completedSets, recordTitle, workoutMinutes, workoutVolume } from './recordFormat';
 import { formatWeight, unitLabel, volumeNumber } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
 import { s } from './WorkoutDetail.styles';
+import { setValueText } from './setCount';
 
 const c = tokens.color;
 
@@ -123,7 +129,11 @@ export function WorkoutDetail({
                       {index + 1}세트
                     </Text>
                     <Text style={[text.calloutBold, { color: c.text.primary }]}>
-                      {formatWeight(set.weight, unit)} × {set.reps}회
+                      {setValueText(
+                        isTimedExercise(exercise.catalogId),
+                        formatWeight(set.weight, unit),
+                        set.reps,
+                      )}
                     </Text>
                   </View>
                 ))}

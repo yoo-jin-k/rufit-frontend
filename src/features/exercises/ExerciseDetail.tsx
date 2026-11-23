@@ -138,7 +138,8 @@ export function ExerciseDetail({
         다른 이름: {exercise.aliases.join(' · ') || exercise.name}
         {rest !== undefined ? ` · 기본 세트 간 휴식 ${rest}초` : ''}
       </Text>
-      {best && latest && (
+      {/* 시간 종목은 무게 기록이 없어 '최고 무게'를 보여 주지 않습니다. */}
+      {best && latest && exercise.tracking !== 'DURATION' && (
         <>
           <SectionTitle title="내 기록" />
           <View style={s.records}>

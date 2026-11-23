@@ -103,7 +103,10 @@ export type SetInput = {
   exerciseId?: string | null;
   exerciseName: string;
   weight: number;
-  reps: number;
+  /** 횟수입니다. 스트레칭·플랭크처럼 시간으로 기록하는 세트는 비우고 durationSeconds를 씁니다. */
+  reps?: number | null;
+  /** 시간(초) 1~3600. 시간 세트는 무게 0, 횟수 없음으로 보냅니다. */
+  durationSeconds?: number | null;
   /** 생략하면 서버가 NORMAL로 저장합니다. */
   setType?: SetType;
   /** 운동 자각도 5~10. 생략하면 미입력입니다. */
@@ -161,7 +164,15 @@ export type Draft = {
   restEndsAt: string | null;
 };
 export type DraftSave = { workout: WorkoutSnapshot; appliedVersion: number; replayed: boolean };
-export type BodyPart = 'CHEST' | 'BACK' | 'SHOULDERS' | 'LEGS' | 'ARMS' | 'CORE' | 'FULL_BODY';
+export type BodyPart =
+  | 'CHEST'
+  | 'BACK'
+  | 'SHOULDERS'
+  | 'LEGS'
+  | 'ARMS'
+  | 'CORE'
+  | 'FULL_BODY'
+  | 'STRETCH';
 export type Equipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIGHT' | 'OTHER';
 export type ExerciseInput = { name: string; bodyPart: BodyPart; equipment: Equipment };
 export type Exercise = ExerciseInput & {

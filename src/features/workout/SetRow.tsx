@@ -11,6 +11,7 @@ import { BottomSheet, ListGroup, ListRow } from '../../components/kit/Surfaces';
 import { text, tokens } from '../../theme/tokens';
 import type { WorkoutSet } from './model';
 import { setFieldErrors } from './setRowView';
+import { countName, countUnit } from './setCount';
 import { displayWeight, unitLabel } from '../units/model';
 import { useWeightUnit } from '../units/UnitProvider';
 import { s } from './SetRow.styles';
@@ -25,6 +26,7 @@ export function SetHeader({
   manual = false,
   noWeight = false,
   unitAware = false,
+  timed = false,
 }: {
   name: string;
   allCompleted?: boolean;
@@ -34,6 +36,8 @@ export function SetHeader({
   noWeight?: boolean;
   /** 운동 기록 화면처럼 고른 무게 단위(kg·lbs)로 보여 줄지입니다. 직접 입력 화면은 kg로 받습니다. */
   unitAware?: boolean;
+  /** 스트레칭·플랭크처럼 시간(초)으로 기록하는 종목입니다. */
+  timed?: boolean;
 }) {
   const { unit } = useWeightUnit();
   return (
@@ -45,7 +49,7 @@ export function SetHeader({
           {unitAware ? unitLabel(unit) : 'kg'}
         </Text>
       )}
-      <Text style={[text.label, s.muted, s.center, s.repsCol]}>회</Text>
+      <Text style={[text.label, s.muted, s.center, s.repsCol]}>{countUnit(timed)}</Text>
       <View style={s.checkCol}>
         {!manual && onCompleteAll && (
           <Pressable
@@ -139,6 +143,7 @@ export function SetRow({
   finished,
   manual = false,
   noWeight = false,
+  timed = false,
   onEdit,
   onChange,
   onComplete,
@@ -156,6 +161,8 @@ export function SetRow({
   manual?: boolean;
   /** 맨몸 운동은 무게 칸 없이 횟수만 받습니다. */
   noWeight?: boolean;
+  /** 시간(초)으로 기록하는 종목입니다. 횟수 칸에 초를 받습니다. */
+  timed?: boolean;
   /** 있으면 무게·횟수 칸을 눌러 입력 시트를 엽니다(운동 기록 중). 없으면 칸에 바로 입력합니다(직접 입력). */
   onEdit?(kind: 'weight' | 'reps'): void;
   /** 예전 호출부 호환용입니다. 글자 확대는 줄 높이가 자동으로 늘어나 처리됩니다. */
@@ -175,12 +182,12 @@ export function SetRow({
     repsRef = useRef<TextInput>(null);
   // 맨몸 운동은 무게를 받지 않으므로 0kg으로 보고 검사합니다.
   const checked = noWeight ? { ...set, weight: '0' } : set;
-  const errors = attempted ? setFieldErrors(checked) : { weight: '', reps: '' };
+  const errors = attempted ? setFieldErrors(checked, timed) : { weight: '', reps: '' };
   const prefix = `${exerciseName} ${index + 1}세트`;
   function complete() {
     if (!set.completed) {
       setAttempted(true);
-      const next = setFieldErrors(checked);
+      const next = setFieldErrors(checked, timed);
       if (next.weight || next.reps) {
         if (onEdit) onEdit(next.weight ? 'weight' : 'reps');
         else (next.weight ? weightRef : repsRef).current?.focus();
@@ -196,7 +203,7 @@ export function SetRow({
     onEdit ? (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${prefix} ${kind === 'weight' ? `무게 ${displayWeight(set.weight, unit) || '미입력'}${unit === 'LB' ? '파운드' : '킬로그램'}` : `횟수 ${set.reps || '미입력'}회`} 수정`}
+        accessibilityLabel={`${prefix} ${kind === 'weight' ? `무게 ${displayWeight(set.weight, unit) || '미입력'}${unit === 'LB' ? '파운드' : '킬로그램'}` : `${countName(timed)} ${set.reps || '미입력'}${countUnit(timed)}`} 수정`}
         onPress={() => onEdit(kind)}
         style={[
           s.cell,
@@ -208,7 +215,7 @@ export function SetRow({
       >
         <Text style={[text.headline, { color: set[kind] ? c.text.primary : c.text.disabled }]}>
           {(kind === 'weight' ? displayWeight(set.weight, unit) : set.reps) ||
-            (kind === 'weight' ? unitLabel(unit) : '회')}
+            (kind === 'weight' ? unitLabel(unit) : countUnit(timed))}
         </Text>
       </Pressable>
     ) : (
@@ -222,10 +229,10 @@ export function SetRow({
           focused === kind && s.cellFocus,
           !!errors[kind] && s.cellError,
         ]}
-        accessibilityLabel={`${prefix} ${kind === 'weight' ? '무게' : '횟수'}`}
-        accessibilityHint={kind === 'weight' ? '킬로그램 단위' : '회 단위'}
+        accessibilityLabel={`${prefix} ${kind === 'weight' ? '무게' : countName(timed)}`}
+        accessibilityHint={kind === 'weight' ? '킬로그램 단위' : `${countUnit(timed)} 단위`}
         aria-invalid={!!errors[kind]}
-        placeholder={manual ? '0' : kind === 'weight' ? 'kg' : '회'}
+        placeholder={manual ? '0' : kind === 'weight' ? 'kg' : countUnit(timed)}
         placeholderTextColor={c.text.disabled}
         keyboardType={kind === 'weight' ? 'decimal-pad' : 'number-pad'}
         value={set[kind]}
